@@ -41,7 +41,7 @@
   #scene-truhe {
     background-image:
       linear-gradient(rgba(8,6,4,0.55), rgba(8,6,4,0.55)),
-      url('Bilder/Truhe.png');
+      url('Truhe.png');
     background-size: cover;
     background-position: center;
     flex-direction: column;
@@ -492,7 +492,7 @@
   .gruppen-empty-hint { color: #b8ab8c; font-size: 13px; padding-top: 10px; }
 
   /* --- Ablauf (Startseite): echtes Stundenplan-Raster --- */
-  /* Eigener, dezenter Hintergrund fuer diese Szene (Bilder/Stundenplan-
+  /* Eigener, dezenter Hintergrund fuer diese Szene (Stundenplan-
      Hintergrund.png). WICHTIG: nur EIN Bild-Layer plus ein halbtransparenter
      Abdunkel-Verlauf darueber, kein zweiter opaker Verlauf dazwischen, sonst
      verdeckt der das Bild komplett (das war der Bug: das radial-gradient
@@ -502,7 +502,7 @@
     background-color: #0c0906;
     background-image:
       linear-gradient(rgba(12,9,6,0.55), rgba(12,9,6,0.72)),
-      url('Bilder/Stundenplan-Hintergrund.png');
+      url('Stundenplan-Hintergrund.png');
     background-size: cover;
     background-position: center;
     align-items: flex-start;
@@ -892,7 +892,7 @@
   <button id="nav-gruppen" onclick="showScene('gruppen')">Gruppen</button>
 </nav>
 
-<audio id="bg-music" src="Musik/Hintergrundmusik.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="Hintergrundmusik.mp3" loop preload="auto"></audio>
 
 <div class="top-left-cluster">
   <div class="level-badge">Level <b id="level-num">1</b></div>
@@ -960,7 +960,7 @@
 <!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
 <div class="scene active" id="scene-trank">
   <div class="stage">
-    <img class="bg" src="Bilder/Reagenzglas.png" alt="Reagenzglas">
+    <img class="bg" src="Reagenzglas.png" alt="Reagenzglas">
     <svg class="overlay" viewBox="0 0 2752 1536" preserveAspectRatio="xMidYMid meet">
       <defs>
         <clipPath id="vial-clip">
@@ -1025,7 +1025,7 @@
   <div class="wheel-layout">
     <div class="wheel-stage">
       <div class="rad-frame" id="rad-frame">
-        <img class="rad-bg" src="Bilder/Glücksrad.png" alt="Glücksrad">
+        <img class="rad-bg" src="Glücksrad.png" alt="Glücksrad">
         <svg id="wheel-svg" viewBox="0 0 2816 1536" preserveAspectRatio="xMidYMid slice">
           <g transform="translate(1411,773)">
             <g id="wheel-rotor"></g>
@@ -1154,12 +1154,12 @@
   })();
 
   // eigene Sound-Dateien von Fabian, liegen im Musik-Ordner
-  const SND_GAIN = 'Musik/' + encodeURIComponent('+1 Punkt.mp3');
-  const SND_CORRECTION = 'Musik/' + encodeURIComponent('-1 Punkt.mp3');
-  const SND_LEVELUP = 'Musik/' + encodeURIComponent('Lvl up.mp3');
-  const SND_VAULT_DOOR = 'Musik/' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
-  const SND_WHEEL_SPIN = 'Musik/' + encodeURIComponent('Spinning Wheel.mp3');
-  const SND_WINNER = 'Musik/' + encodeURIComponent('Winning.mp3');
+  const SND_GAIN = '' + encodeURIComponent('+1 Punkt.mp3');
+  const SND_CORRECTION = '' + encodeURIComponent('-1 Punkt.mp3');
+  const SND_LEVELUP = '' + encodeURIComponent('Lvl up.mp3');
+  const SND_VAULT_DOOR = '' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
+  const SND_WHEEL_SPIN = '' + encodeURIComponent('Spinning Wheel.mp3');
+  const SND_WINNER = '' + encodeURIComponent('Winning.mp3');
 
   // Alle Soundeffekte (Punkt+/-, Levelup, Schatzkammertuer, Rad-Gewinn, ...)
   // sind relativ zur Musik-Lautstaerke skaliert (gleiche Rechnung wie bei der
