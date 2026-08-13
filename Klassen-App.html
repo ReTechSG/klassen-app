@@ -1,0 +1,2575 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Klassen-App</title>
+<style>
+  :root {
+    --gold: #d4af37;
+    --glow: #7fd8ff;
+    --panel-bg: rgba(20, 14, 10, 0.82);
+  }
+  * { box-sizing: border-box; }
+  :root {
+    /* Startwert, wird per JS (updateTopClearance) sofort durch die tatsaechlich
+       gemessene Navbar-Hoehe ersetzt (nav kann je nach Fensterbreite 1-3 Reihen
+       hoch sein), damit .wheel-layout/.gruppen-layout auf jedem Geraet sicher
+       unter der Navbar beginnen statt einen festen Pixelwert zu raten. */
+    --top-clearance: 100px;
+    /* Normal (breite Fenster) bleiben die Badges auf Hoehe der einreihigen Navbar
+       stehen (18px), wie bisher. Nur wenn die Navbar auf schmalen Fenstern auf
+       mehrere Reihen umbricht und dadurch breiter/hoeher wird als der Platz
+       zwischen den Eck-Badges, schiebt JS die Badges unter die Navbar (siehe
+       updateTopClearance), damit sich nichts ueberlappt. */
+    --badge-top: 18px;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #f1e6d0;
+    overflow: hidden;
+  }
+  .scene {
+    position: fixed; inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #0c0906;
+  }
+  .scene.active { display: flex; }
+  #scene-truhe {
+    background-image:
+      linear-gradient(rgba(8,6,4,0.55), rgba(8,6,4,0.55)),
+      url('Bilder/Truhe.png');
+    background-size: cover;
+    background-position: center;
+    flex-direction: column;
+  }
+
+  /* --- Alchemistenkammer: Bild + SVG-Overlay pixelgenau uebereinander --- */
+  .stage {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+  .stage img.bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+  .stage svg.overlay {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+  #liquid-clip-rect {
+    transition: y 0.8s cubic-bezier(.34,1.56,.64,1), height 0.8s cubic-bezier(.34,1.56,.64,1);
+  }
+  .liquid-glow {
+    filter: drop-shadow(0 0 22px rgba(127,216,255,0.95)) drop-shadow(0 0 46px rgba(127,216,255,0.6));
+    animation: liquid-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes liquid-pulse {
+    0%, 100% { filter: drop-shadow(0 0 22px rgba(127,216,255,0.95)) drop-shadow(0 0 46px rgba(127,216,255,0.6)); }
+    50% { filter: drop-shadow(0 0 32px rgba(160,230,255,1)) drop-shadow(0 0 64px rgba(127,216,255,0.8)); }
+  }
+
+  /* max-width + flex-wrap: bei 5 Buttons mit deutschen Wortlaengen (u.a.
+     "Alchemistenkammer") reicht die Fensterbreite auf einem Handy nicht fuer
+     eine Reihe, ohne Umbruch wuerden Buttons rechts/links unsichtbar aus dem
+     Bildschirm ragen. Bricht jetzt in mehrere Reihen um, schrumpft zusaetzlich
+     unter 480px per Media Query. */
+  nav {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 20;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    /* flex-start statt center: der Musik-Button (oben in seiner Spalte) liegt
+       dadurch exakt auf gleicher Hoehe wie die anderen Reiter, der Regler
+       haengt einfach darunter dran statt den ganzen Block nach oben zu
+       schieben (was bei "center" bei einem hoeheren Element passiert waere). */
+    align-items: flex-start;
+    background: var(--panel-bg);
+    padding: 8px; border-radius: 14px;
+    border: 1px solid rgba(212,175,55,0.4);
+    max-width: min(760px, calc(100vw - 20px));
+  }
+  nav button {
+    font-family: inherit;
+    background: transparent;
+    color: #e8dcc3;
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  nav button.active { background: rgba(212,175,55,0.25); border-color: var(--gold); }
+  nav button:hover { background: rgba(212,175,55,0.18); }
+
+  /* Musik ist bewusst klein/unauffaellig neben dem Level-Badge statt als
+     eigener Reiter in der Haupt-Navbar (die ist fuer die Szenen-Wechsel da,
+     Musik ist nur ein Nebenschalter). Halbtransparent bis man drueberfaehrt,
+     damit es nicht dominiert. */
+  .top-left-cluster {
+    position: fixed; top: var(--badge-top, 18px); left: 18px; z-index: 20;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .music-mini {
+    display: flex; align-items: center; gap: 6px;
+    opacity: 0.6; transition: opacity 0.2s;
+  }
+  .music-mini:hover, .music-mini:focus-within { opacity: 1; }
+  #music-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; padding: 0; flex-shrink: 0;
+    background: var(--panel-bg); border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 50%; color: #e8dcc3; cursor: pointer;
+  }
+  #music-toggle .music-icon { flex-shrink: 0; }
+  #music-toggle .mute-slash { display: none; }
+  #music-toggle:not(.active) .mute-slash { display: block; }
+  #music-volume {
+    width: 54px;
+    accent-color: var(--gold);
+    height: 12px;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .total-badge {
+    position: fixed; top: var(--badge-top, 18px); right: 18px; z-index: 20;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #cbbf9e;
+    max-width: 42vw;
+  }
+  .total-badge b { color: var(--gold); font-size: 16px; }
+
+  .pending-rewards {
+    /* Haengt am --badge-top-Versatz statt an einem festen Pixelwert, damit es
+       (wie die anderen Ecken-Badges) automatisch unter die Navbar rutscht,
+       falls die auf mehrere Reihen umbricht - siehe updateTopClearance(). */
+    position: fixed; top: calc(var(--badge-top, 18px) + 48px); right: 18px; z-index: 20;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    max-width: 230px;
+    display: none;
+  }
+  .pending-rewards.show { display: block; }
+  .pending-rewards-title { color: var(--gold); font-size: 12px; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .pending-reward-item {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; padding: 5px 0;
+    border-top: 1px solid rgba(212,175,55,0.15);
+  }
+  .pending-reward-item:first-child { border-top: none; }
+  .pending-reward-item .name { color: #e8dcc3; }
+  .pending-reward-item .remove-btn {
+    background: none; border: none; color: #d98a8a; cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 3px; flex-shrink: 0;
+  }
+  .pending-reward-item .remove-btn:hover { color: #f0a0a0; }
+
+  .level-badge {
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.5);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--gold);
+    max-width: 30vw;
+    flex-shrink: 0;
+  }
+  .level-badge b { font-size: 16px; }
+  .level-badge.level-down-flash { animation: levelDownPulse 0.7s ease; }
+  @keyframes levelDownPulse {
+    0% { box-shadow: 0 0 0 rgba(200,90,90,0); border-color: rgba(212,175,55,0.5); }
+    30% { box-shadow: 0 0 18px rgba(200,90,90,0.9); border-color: #c85a5a; }
+    100% { box-shadow: 0 0 0 rgba(200,90,90,0); border-color: rgba(212,175,55,0.5); }
+  }
+
+  /* --- schwebende Punkte-Texte --- */
+  .float-pop {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 110px;
+    font-weight: bold;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: rgba(10,6,3,0.65);
+    stroke-width: 8px;
+    animation: floatPop 1.3s ease-out forwards;
+    pointer-events: none;
+  }
+  .float-pop.gain { fill: #6be07a; }
+  .float-pop.correction { fill: #d98a8a; }
+  @keyframes floatPop {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translateY(-220px); opacity: 0; }
+  }
+  .float-pop-html {
+    position: fixed; z-index: 60; transform: translate(-50%, -50%);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26px; font-weight: bold;
+    color: #e08a8a;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(0,0,0,0.7);
+    animation: floatPopHtml 1.3s ease-out forwards;
+  }
+  @keyframes floatPopHtml {
+    0% { opacity: 0; transform: translate(-50%, -50%) translateY(0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) translateY(-70px); }
+  }
+
+  /* --- Kerzenflackern --- */
+  .flame {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: flicker 1.6s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 0.55; transform: scale(0.92); }
+    25% { opacity: 0.85; transform: scale(1.05); }
+    50% { opacity: 0.65; transform: scale(0.97); }
+    75% { opacity: 0.95; transform: scale(1.08); }
+  }
+
+  /* --- schwebende Steuerleiste unten, ueberdeckt das Glas nicht --- */
+  .control-bar {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    z-index: 20;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 20px;
+    padding: 16px 28px 12px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0,0,0,0.55);
+    max-width: 92vw;
+  }
+  .control-bar .points-readout { font-size: 15px; margin: 0 0 12px; color: #e8dcc3; }
+  .control-bar .points-readout b { color: var(--glow); font-size: 19px; }
+
+  .ritual-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .ritual-buttons button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: linear-gradient(180deg, rgba(212,175,55,0.22), rgba(212,175,55,0.08));
+    color: #f1e6d0;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .ritual-buttons button:hover { background: rgba(212,175,55,0.32); transform: translateY(-2px); }
+  .ritual-buttons button:active { transform: translateY(0); }
+  .minus-btn {
+    margin-top: 10px;
+    background: none !important;
+    border: 1px solid rgba(200,90,90,0.4) !important;
+    color: #d9a3a3 !important;
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+  }
+
+  .levelup-flash {
+    position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(circle, rgba(127,216,255,0.35), rgba(127,216,255,0) 60%);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  .levelup-flash.show { opacity: 1; }
+  .levelup-text {
+    position: fixed; top: 22%; left: 50%; transform: translate(-50%,-50%) scale(0.6);
+    z-index: 51; font-size: 34px; color: var(--gold);
+    text-shadow: 0 0 20px rgba(212,175,55,0.9);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s, transform 0.6s cubic-bezier(.34,1.56,.64,1);
+  }
+  .levelup-text.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* --- Schatzkammer --- */
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 22px;
+    padding: 34px 46px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    max-width: 640px;
+  }
+  .panel h1 { font-size: 22px; margin: 0 0 4px; color: var(--gold); letter-spacing: 0.5px; }
+  .panel .sub { font-size: 13px; color: #b8ab8c; margin-bottom: 22px; }
+  .rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 6px;
+  }
+  .reward-card {
+    background: rgba(30,20,12,0.7);
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .reward-card:hover:not(.disabled) { background: rgba(212,175,55,0.15); transform: translateY(-2px); }
+  .reward-card.disabled { opacity: 0.4; cursor: not-allowed; }
+  .reward-card .name { font-size: 15px; color: #f1e6d0; margin-bottom: 6px; }
+  .reward-card .cost { font-size: 13px; color: var(--glow); }
+  .redeem-msg { margin-top: 16px; font-size: 13px; color: var(--gold); min-height: 18px; }
+
+  /* --- Gluecksrad --- */
+  /* align-items: flex-start + Padding oben (statt echter vertikaler Zentrierung):
+     bei kurzen Fenstern/Bildschirmen (z.B. Schul-Laptop) wuerde eine echte
+     Zentrierung das Rad so weit nach oben schieben, dass es unter die fixierte
+     Navbar rutscht und die obersten Namen verdeckt werden. Padding-top raeumt
+     der Navbar (top:18px + Buttonhoehe) und den Badges sicher Platz. Gleiches
+     Muster wie bei #scene-gruppen. overflow-y:auto als Sicherheitsnetz, falls
+     Rad+Panel bei sehr kurzen Fenstern trotzdem nicht ganz reinpassen. */
+  #scene-rad {
+    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .wheel-layout {
+    display: flex; align-items: center; justify-content: center;
+    gap: 46px; flex-wrap: wrap; padding: var(--top-clearance) 20px 40px; max-width: 96vw;
+  }
+  .wheel-stage { display: flex; flex-direction: column; align-items: center; }
+  .rad-frame {
+    position: relative;
+    width: min(560px, 80vw);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+    transition: width 0.3s;
+  }
+  .rad-frame img.rad-bg {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .rad-frame #wheel-svg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+  #wheel-rotor { transition: none; }
+  .rad-pointer {
+    fill: #ffe9a8; stroke: #3a2410; stroke-width: 3;
+    filter: drop-shadow(0 0 8px rgba(255,220,140,0.9));
+  }
+  .wheel-panel {
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 18px;
+    padding: 18px 20px;
+    width: min(260px, 88vw);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  }
+  .wheel-panel-title { color: var(--gold); font-size: 14px; margin-bottom: 10px; letter-spacing: 0.3px; }
+  .wheel-panel-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .wheel-panel-row button {
+    flex: 1 1 28%; font-family: inherit; font-size: 12px; padding: 8px 4px;
+    border-radius: 10px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.1); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .wheel-panel-row button:hover { background: rgba(212,175,55,0.25); }
+  #wheel-names {
+    width: 100%; min-height: 240px; resize: vertical;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 10px; color: #f1e6d0; font-family: inherit; font-size: 13px;
+    padding: 8px 10px; line-height: 1.5;
+  }
+  .spin-btn {
+    display: block; width: 100%; margin-top: 12px;
+    font-family: inherit; font-size: 15px; font-weight: bold;
+    padding: 12px; border-radius: 12px;
+    border: 1px solid rgba(212,175,55,0.6);
+    background: linear-gradient(180deg, rgba(212,175,55,0.32), rgba(212,175,55,0.12));
+    color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .spin-btn:hover:not(:disabled) { background: rgba(212,175,55,0.4); transform: translateY(-2px); }
+  .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .wheel-result-backdrop {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(8,6,4,0.55);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .wheel-result-backdrop.show { opacity: 1; pointer-events: auto; cursor: pointer; }
+  .wheel-result {
+    position: fixed; top: 44%; left: 50%; transform: translate(-50%,-50%) scale(0.6);
+    z-index: 51; text-align: center;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.6);
+    border-radius: 22px;
+    padding: 34px 50px;
+    max-width: 90vw;
+    box-shadow: 0 0 50px rgba(0,0,0,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s, transform 0.6s cubic-bezier(.34,1.56,.64,1);
+  }
+  .wheel-result.show { opacity: 1; transform: translate(-50%,-50%) scale(1); pointer-events: auto; cursor: pointer; }
+  .wheel-result-name {
+    font-size: 34px; color: var(--gold);
+    text-shadow: 0 0 20px rgba(212,175,55,0.9);
+  }
+  .wheel-result-hint {
+    margin-top: 12px; font-size: 12px; color: #cbbf9e; opacity: 0.8;
+  }
+  .confetti-piece {
+    position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 2px;
+    pointer-events: none;
+    animation: confettiBurst 1.3s ease-out forwards;
+  }
+  @keyframes confettiBurst {
+    0% { transform: translate(-50%,-50%) translate(0,0) rotate(0deg) scale(1); opacity: 1; }
+    100% { transform: translate(-50%,-50%) translate(var(--dx), calc(var(--dy) + 140px)) rotate(var(--rot)) scale(0.4); opacity: 0; }
+  }
+
+  /* --- Gruppen --- */
+  #scene-gruppen {
+    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .gruppen-layout {
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 46px; flex-wrap: wrap; padding: var(--top-clearance) 20px 40px; max-width: 96vw;
+  }
+  .gruppen-panel {
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 18px;
+    padding: 18px 20px;
+    width: min(260px, 88vw);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .gruppen-panel-title { color: var(--gold); font-size: 14px; margin-bottom: 10px; letter-spacing: 0.3px; }
+  #gruppen-names {
+    width: 100%; min-height: 200px; resize: vertical;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 10px; color: #f1e6d0; font-family: inherit; font-size: 13px;
+    padding: 8px 10px; line-height: 1.5;
+  }
+  .gruppen-count-row button.active { background: rgba(212,175,55,0.35); border-color: var(--gold); }
+  .gruppen-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    width: min(640px, 90vw);
+  }
+  .gruppen-card {
+    background: rgba(30,20,12,0.7);
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    animation: gruppeFadeIn 0.4s ease-out backwards;
+  }
+  @keyframes gruppeFadeIn {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .gruppen-card .gruppen-card-title {
+    color: var(--gold); font-size: 14px; margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .gruppen-card ul { list-style: none; margin: 0; padding: 0; }
+  .gruppen-card li { font-size: 14px; padding: 3px 0; color: #f1e6d0; }
+  .gruppen-empty-hint { color: #b8ab8c; font-size: 13px; padding-top: 10px; }
+
+  /* --- Ablauf (Startseite): echtes Stundenplan-Raster --- */
+  /* Eigener, dezenter Hintergrund fuer diese Szene (Bilder/Stundenplan-
+     Hintergrund.png). WICHTIG: nur EIN Bild-Layer plus ein halbtransparenter
+     Abdunkel-Verlauf darueber, kein zweiter opaker Verlauf dazwischen, sonst
+     verdeckt der das Bild komplett (das war der Bug: das radial-gradient
+     hatte keine Transparenz und lag ueber dem Foto). background-color ist
+     der Fallback, falls die Bilddatei mal fehlt/nicht laedt. */
+  #scene-ablauf {
+    background-color: #0c0906;
+    background-image:
+      linear-gradient(rgba(12,9,6,0.55), rgba(12,9,6,0.72)),
+      url('Bilder/Stundenplan-Hintergrund.png');
+    background-size: cover;
+    background-position: center;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .stundenplan-wrap {
+    width: min(1400px, 97vw);
+    padding: var(--top-clearance) 16px 40px;
+    margin: 0 auto;
+  }
+  .stundenplan-kw-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; margin-bottom: 10px;
+  }
+  .sp-nav-btn {
+    font-family: inherit; font-size: 18px; line-height: 1;
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-nav-btn:hover:not(:disabled) { background: rgba(212,175,55,0.25); }
+  .sp-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .stundenplan-kw-label { text-align: center; min-width: 200px; }
+  .sp-kw-main { color: var(--gold); font-size: 19px; letter-spacing: 0.3px; }
+  .sp-kw-sub { color: #9a8f78; font-size: 12px; margin-top: 2px; }
+  .stundenplan-hint {
+    text-align: center; color: #b8ab8c; font-size: 13px; margin-bottom: 14px;
+  }
+  .stundenplan-scroll {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .stundenplan-grid {
+    display: grid;
+    grid-template-columns: 74px repeat(5, minmax(110px, 1fr));
+    min-width: 660px;
+    gap: 7px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  }
+  .sp-head {
+    text-align: center; font-size: 14px; color: var(--gold);
+    padding: 8px 2px; letter-spacing: 0.3px;
+  }
+  .sp-period-label {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .sp-period-num {
+    font-size: 14px; color: #d8cbae;
+  }
+  .sp-period-time {
+    font-size: 10px; color: #8a7f68; white-space: nowrap;
+  }
+  .sp-cell {
+    border-radius: 9px;
+    padding: 10px 8px;
+    min-height: 66px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    font-size: 14px; line-height: 1.3;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s, filter 0.15s;
+  }
+  .sp-cell:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .sp-cell.sp-empty {
+    background: rgba(255,255,255,0.03);
+    color: #6b6151;
+    cursor: default;
+  }
+  .sp-cell.sp-empty:hover { transform: none; filter: none; }
+  /* Lektionen, die zwar stattfinden, aber nicht von Fabian unterrichtet
+     werden (andere Lehrperson/Fach). Bewusst deutlich gedaempft/dunkel und
+     gestrichelt umrandet statt farbig, damit auf einen Blick klar ist: das
+     ist keine anklickbare eigene Lektion, nur eine Info fuer den Ueberblick. */
+  .sp-cell.sp-extern {
+    background: #2a2722;
+    color: #8f8672;
+    cursor: default;
+    font-style: italic;
+    border: 1px dashed rgba(212,175,55,0.3);
+  }
+  .sp-cell.sp-extern:hover { transform: none; filter: none; }
+  /* Kleiner Hinweis in der Zelle selbst, welches Fach in der jeweils
+     ANDEREN Woche stattfindet (bei woechentlich wechselnden Faechern wie
+     Religion/M&I), damit das auch ohne Wochen-Navigation sofort ersichtlich
+     ist und nicht wie ein fixes Fach wirkt. */
+  .sp-extern-alt {
+    font-size: 10px;
+    font-style: normal;
+    opacity: 0.7;
+    margin-top: 3px;
+    letter-spacing: 0.2px;
+  }
+  .sp-note-dot {
+    position: absolute; top: 5px; right: 6px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 5px rgba(212,175,55,0.9);
+  }
+  .sp-divider {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 11px; color: #8a7f68;
+    padding: 2px 0;
+    letter-spacing: 0.5px;
+  }
+  .sp-edit-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 40;
+  }
+  .sp-edit-backdrop.active { display: block; }
+  /* Lektionsfenster: bewusst GROSS (fast so breit wie der Stundenplan selbst),
+     kein kleines Popup mehr. Hoehe ist relativ zur Bildschirmhoehe (vh) statt
+     ein fester Pixelwert begrenzt, damit auf jedem Geraet/jeder Fensterhoehe
+     (auch kleinere Laptop-Bildschirme) das Fenster sicher komplett sichtbar
+     bleibt und nie unter der Navbar verschwindet, wie es beim Rad passiert
+     war. Bei viel Inhalt scrollt der Body-Bereich innen statt das Fenster
+     ueber den Bildschirmrand hinauswachsen zu lassen. */
+  .sp-edit-box {
+    display: none;
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 41;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.55);
+    border-radius: 18px;
+    width: min(1400px, 96vw);
+    max-height: min(82vh, 760px);
+    box-shadow: 0 0 0 1px rgba(212,175,55,0.15) inset, 0 0 70px rgba(212,175,55,0.18), 0 0 40px rgba(0,0,0,0.75);
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .sp-edit-box.active { display: flex; }
+  .sp-edit-header {
+    flex: 0 0 auto;
+    padding: 20px 30px 16px;
+    border-radius: 18px 18px 0 0;
+  }
+  .sp-edit-title {
+    font-size: 24px; margin-bottom: 4px; text-align: center; font-weight: bold;
+  }
+  .sp-edit-week {
+    font-size: 14px; text-align: center; opacity: 0.85;
+  }
+  .sp-edit-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 20px 30px;
+    min-height: 0;
+  }
+  /* Grosser, gut lesbarer Timer, der beim Starten eines Schritts automatisch
+     vergroessert in den Vordergrund "poppt" (fuer die SuS aus der Distanz
+     lesbar, z.B. am Beamer), unabhaengig von der kompakten Zeile pro Schritt.
+     Schwebt als eigene Karte ueber dem Lektionsfenster, laesst sich per
+     Pfeil-Knopf wieder verkleinern (Timer laeuft dabei im Hintergrund weiter,
+     durch Klick auf die kleine Countdown-Anzeige in der Zeile wieder aufklappbar). */
+  .sp-big-timer {
+    position: absolute; top: 96px; left: 50%;
+    transform: translateX(-50%) scale(0.5);
+    z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: rgba(8,6,4,0.88);
+    border: 2px solid var(--gold);
+    border-radius: 20px;
+    padding: 14px 34px 16px;
+    box-shadow: 0 0 40px rgba(212,175,55,0.55), 0 8px 30px rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.25s;
+  }
+  .sp-big-timer.active {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Bleibt blinkend, bis aktiv weggeklickt wird (Klick auf die Karte oder auf
+     den Verkleinern-Pfeil), verschwindet NICHT von selbst nach Ablauf. */
+  @keyframes spBigTimerDoneBlink {
+    0%, 100% { box-shadow: 0 0 40px rgba(212,175,55,0.55), 0 8px 30px rgba(0,0,0,0.6); border-color: var(--gold); }
+    50% { box-shadow: 0 0 70px rgba(212,175,55,1), 0 8px 30px rgba(0,0,0,0.6); border-color: #fff3cf; }
+  }
+  .sp-big-timer.sp-step-done {
+    animation: spBigTimerDoneBlink 0.9s ease-in-out infinite;
+    cursor: pointer;
+  }
+  .sp-big-timer-shrink {
+    position: absolute; top: 6px; right: 8px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: transparent; border: 1px solid rgba(212,175,55,0.4);
+    color: #cbbf9e; cursor: pointer; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-big-timer-shrink:hover { background: rgba(212,175,55,0.2); }
+  .sp-big-timer-label {
+    font-size: 13px; color: #cbbf9e; text-align: center; max-width: 260px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sp-big-timer-value {
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    font-size: 56px; font-weight: bold; color: var(--gold); line-height: 1.1;
+  }
+  .sp-big-timer-pause {
+    margin-top: 2px; font-family: inherit; font-size: 12px;
+    padding: 5px 16px; border-radius: 10px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+  }
+  .sp-big-timer-pause:hover { background: rgba(212,175,55,0.25); }
+  .sp-step-timer-display { cursor: pointer; }
+  @media (max-width: 480px) {
+    .sp-big-timer { top: 80px; padding: 10px 22px 12px; }
+    .sp-big-timer-value { font-size: 38px; }
+    .sp-big-timer-label { max-width: 180px; font-size: 12px; }
+  }
+  /* Lektionsablauf als Liste einzelner Schritte statt Fliesstext/Bulletpoints.
+     Jeder Schritt leuchtet beim Drueberfahren schwach auf (Hover-Glow), damit
+     Fabian im Unterricht mit der Maus/dem Cursor auf den aktuellen Schritt
+     zeigen kann und die Klasse direkt sieht, wo sie gerade sind. */
+  .sp-steps-list { display: flex; flex-direction: column; gap: 7px; }
+  .sp-step {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(212,175,55,0.15);
+    border-radius: 10px;
+    transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .sp-step:hover {
+    background: rgba(212,175,55,0.14);
+    box-shadow: 0 0 16px rgba(212,175,55,0.4);
+    border-color: rgba(212,175,55,0.55);
+  }
+  /* Timer laeuft: Zeile bleibt dauerhaft (nicht nur beim Hover) leicht
+     hervorgehoben, damit man auf einen Blick sieht, welcher Schritt aktiv ist. */
+  .sp-step.sp-step-running {
+    background: rgba(212,175,55,0.16);
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(212,175,55,0.45);
+  }
+  /* Bleibt blinkend, bis der Schritt aktiv weggeklickt wird (Uhr-Symbol oder
+     der grosse Timer), kein automatisches Verschwinden. */
+  @keyframes spStepDoneBlink {
+    0%, 100% { background: rgba(255,255,255,0.03); border-color: rgba(212,175,55,0.15); }
+    50% { background: rgba(212,175,55,0.55); border-color: var(--gold); }
+  }
+  .sp-step.sp-step-done { animation: spStepDoneBlink 0.9s ease-in-out infinite; }
+  .sp-step-num {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(212,175,55,0.2); color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .sp-step-input {
+    flex: 1 1 auto; min-width: 0;
+    background: transparent; border: none; outline: none;
+    color: #f1e6d0; font-family: inherit; font-size: 17px;
+    padding: 4px 6px; border-radius: 6px;
+  }
+  .sp-step-input:focus { background: rgba(0,0,0,0.3); }
+  /* Timer-Steuerung pro Schritt: Minuten-Feld (echtes number-Input, damit
+     Pfeiltasten/Spinner nativ funktionieren), Start/Pause, Countdown-Anzeige,
+     Reset. Eigene Gruppe, damit sie bei schmalen Fenstern zusammen in eine
+     neue Zeile umbrechen kann statt einzeln zu verrutschen. */
+  .sp-step-timer { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  /* Uhr-Symbol ist der Standardzustand (kompakt, unauffaellig), erst ein
+     Klick klappt die eigentliche Timer-Einstellung auf (.sp-step-timer-panel).
+     Laeuft der Timer, leuchtet das Symbol gold, auch eingeklappt sichtbar. */
+  .sp-step-clock { color: #9a8f78; }
+  .sp-step-clock:hover { color: #cbbf9e; }
+  .sp-step-clock-running {
+    color: var(--gold); border-color: rgba(212,175,55,0.6);
+    box-shadow: 0 0 8px rgba(212,175,55,0.5);
+    animation: spClockPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes spClockPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .sp-step-timer-panel {
+    display: flex; align-items: center; gap: 5px;
+    animation: spPanelPop 0.18s ease-out;
+  }
+  @keyframes spPanelPop {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .sp-step-min-input {
+    width: 40px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 6px; color: #f1e6d0; font-family: inherit; font-size: 13px;
+    padding: 4px 3px; text-align: center;
+  }
+  .sp-step-min-label { font-size: 11px; color: #9a8f78; margin-right: 2px; }
+  .sp-step-timer-display {
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    font-size: 16px; font-weight: bold; color: var(--gold);
+    min-width: 50px; text-align: center;
+  }
+  .sp-step-play { color: var(--gold); border-color: rgba(212,175,55,0.5); font-size: 11px; }
+  .sp-step-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .sp-step-btn {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: transparent; border: 1px solid rgba(212,175,55,0.3);
+    color: #cbbf9e; cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit;
+  }
+  .sp-step-btn:hover { background: rgba(212,175,55,0.22); }
+  .sp-step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .sp-step-btn:disabled:hover { background: transparent; }
+  .sp-step-del { color: #d98a8a; border-color: rgba(217,138,138,0.4); }
+  .sp-step-del:hover { background: rgba(217,138,138,0.22); }
+  .sp-steps-empty-hint {
+    color: #9a8f78; font-size: 14px; text-align: center; padding: 24px 0;
+  }
+  .sp-step-add-btn {
+    margin-top: 4px;
+    width: 100%; font-family: inherit; font-size: 14px;
+    padding: 10px; border-radius: 10px;
+    border: 1px dashed rgba(212,175,55,0.4);
+    background: transparent; color: #cbbf9e; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sp-step-add-btn:hover { background: rgba(212,175,55,0.12); }
+  .sp-edit-buttons {
+    flex: 0 0 auto;
+    display: flex; gap: 10px; justify-content: center;
+    padding: 4px 30px 22px;
+  }
+  @media (max-width: 480px) {
+    .sp-edit-header { padding: 16px 18px 12px; }
+    .sp-edit-body { padding: 14px 18px; }
+    .sp-edit-title { font-size: 19px; }
+    .sp-step-input { font-size: 15px; }
+    .sp-step-timer-display { font-size: 14px; min-width: 42px; }
+  }
+  .ablauf-edit-btn {
+    font-family: inherit; font-size: 13px;
+    padding: 8px 18px; border-radius: 12px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .ablauf-edit-btn:hover { background: rgba(212,175,55,0.25); }
+  @media (max-width: 480px) {
+    .stundenplan-kw-nav { gap: 10px; }
+    .sp-kw-main { font-size: 16px; }
+    .stundenplan-kw-label { min-width: 150px; }
+  }
+
+  /* --- Handy/kleine Fenster: Navbar, Badges, Panels enger, damit auf schmalen
+     Bildschirmen nichts abgeschnitten wird oder unnoetig viele Zeilen braucht.
+     Die Grundlayouts oben (flex-wrap, min()/vw-Caps, --top-clearance) tragen
+     schon so, dass hier nur noch Feintuning noetig ist, kein Notfall-Patch. */
+  @media (max-width: 480px) {
+    nav { gap: 6px; padding: 6px; top: 10px; max-width: calc(100vw - 16px); }
+    nav button { padding: 6px 10px; font-size: 12px; }
+    .level-badge, .total-badge { font-size: 11px; padding: 6px 9px; }
+    .top-left-cluster { left: 10px; gap: 6px; }
+    .total-badge { right: 10px; }
+    .level-badge b { font-size: 14px; }
+    .total-badge b { font-size: 13px; }
+    .music-mini #music-volume { width: 40px; }
+    .panel { padding: 22px 20px; }
+    .rewards-grid { grid-template-columns: 1fr; }
+    .wheel-panel, .gruppen-panel { padding: 14px 14px; }
+    .wheel-result { padding: 24px 26px; }
+    .wheel-result-name { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <button id="nav-ablauf" onclick="showScene('ablauf')">Ablauf</button>
+  <button id="nav-trank" class="active" onclick="showScene('trank')">Alchemistenkammer</button>
+  <button id="nav-truhe" onclick="showScene('truhe')">Schatzkammer</button>
+  <button id="nav-rad" onclick="showScene('rad')">Glücksrad</button>
+  <button id="nav-gruppen" onclick="showScene('gruppen')">Gruppen</button>
+</nav>
+
+<audio id="bg-music" src="Musik/Hintergrundmusik.mp3" loop preload="auto"></audio>
+
+<div class="top-left-cluster">
+  <div class="level-badge">Level <b id="level-num">1</b></div>
+  <div class="music-mini" title="Musik">
+    <button id="music-toggle" class="active" onclick="toggleMusic()">
+      <svg class="music-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        <line class="mute-slash" x1="3" y1="3" x2="21" y2="21" stroke="#d98a8a" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <span class="music-label" hidden>Musik AN</span>
+    </button>
+    <input type="range" id="music-volume" min="0" max="100" value="35" oninput="setMusicVolume(this.value)" title="Lautstärke">
+  </div>
+</div>
+<div class="total-badge">Gesamtpunkte diese Periode: <b id="total-points">0</b></div>
+
+<div class="levelup-flash" id="levelup-flash"></div>
+<div class="levelup-text" id="levelup-text">&#10024; Level Up! &#10024;</div>
+
+<div class="pending-rewards" id="pending-rewards">
+  <div class="pending-rewards-title">Preis zugute</div>
+  <div class="pending-rewards-list" id="pending-rewards-list"></div>
+</div>
+
+<!-- Ablauf: Startseite mit echtem Stundenplan-Raster fuer die SuS -->
+<div class="scene" id="scene-ablauf">
+  <div class="stundenplan-wrap">
+    <div class="stundenplan-kw-nav">
+      <button class="sp-nav-btn" id="sp-prev-week" onclick="changeSpWeek(-1)" aria-label="Vorherige Woche">&#8592;</button>
+      <div class="stundenplan-kw-label">
+        <div class="sp-kw-main" id="sp-kw-main">KW33</div>
+        <div class="sp-kw-sub" id="sp-kw-sub">Herbstferien: 27.9.&ndash;18.10.</div>
+      </div>
+      <button class="sp-nav-btn" id="sp-next-week" onclick="changeSpWeek(1)" aria-label="N&auml;chste Woche">&#8594;</button>
+    </div>
+    <div class="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
+    <div class="stundenplan-scroll">
+      <div class="stundenplan-grid" id="stundenplan-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sp-edit-backdrop" id="sp-edit-backdrop" onclick="closeSpEdit()"></div>
+<div class="sp-edit-box" id="sp-edit-box">
+  <div class="sp-edit-header" id="sp-edit-header">
+    <div class="sp-edit-title" id="sp-edit-title"></div>
+    <div class="sp-edit-week" id="sp-edit-week"></div>
+  </div>
+  <div class="sp-big-timer" id="sp-big-timer">
+    <button class="sp-big-timer-shrink" type="button" onclick="hideBigTimer()" title="Verkleinern">&#9660;</button>
+    <div class="sp-big-timer-label" id="sp-big-timer-label"></div>
+    <div class="sp-big-timer-value" id="sp-big-timer-value">05:00</div>
+    <button class="sp-big-timer-pause" type="button" id="sp-big-timer-pause" onclick="toggleBigTimerPause()" title="Pause">&#10074;&#10074;</button>
+  </div>
+  <div class="sp-edit-body">
+    <div class="sp-steps-list" id="sp-steps-list"></div>
+    <button class="sp-step-add-btn" type="button" onclick="addSpStep()">+ Schritt hinzufügen</button>
+  </div>
+  <div class="sp-edit-buttons">
+    <button class="spin-btn" onclick="saveSpNote()">Speichern</button>
+    <button class="ablauf-edit-btn" onclick="closeSpEdit()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
+<div class="scene active" id="scene-trank">
+  <div class="stage">
+    <img class="bg" src="Bilder/Reagenzglas.png" alt="Reagenzglas">
+    <svg class="overlay" viewBox="0 0 2752 1536" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <clipPath id="vial-clip">
+          <path d="M 1329 610 L 1412 610 L 1412 1010 A 41.5 41.5 0 1 1 1329 1010 Z" />
+        </clipPath>
+        <linearGradient id="liquid-gradient" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#2fa8ff"/>
+          <stop offset="55%" stop-color="#7fd8ff"/>
+          <stop offset="100%" stop-color="#e0f7ff"/>
+        </linearGradient>
+        <radialGradient id="flame-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffdf9b" stop-opacity="0.9"/>
+          <stop offset="45%" stop-color="#ffb347" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#ffb347" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <g class="candle-flames">
+        <circle class="flame" cx="646" cy="450" r="30" fill="url(#flame-glow)" style="animation-delay:0s; animation-duration:1.7s"/>
+        <circle class="flame" cx="1010" cy="752" r="34" fill="url(#flame-glow)" style="animation-delay:0.3s; animation-duration:1.5s"/>
+        <circle class="flame" cx="1103" cy="884" r="30" fill="url(#flame-glow)" style="animation-delay:0.9s; animation-duration:1.8s"/>
+        <circle class="flame" cx="1141" cy="177" r="20" fill="url(#flame-glow)" style="animation-delay:0.5s; animation-duration:1.6s"/>
+        <circle class="flame" cx="1248" cy="126" r="20" fill="url(#flame-glow)" style="animation-delay:1.1s; animation-duration:1.4s"/>
+        <circle class="flame" cx="1303" cy="214" r="20" fill="url(#flame-glow)" style="animation-delay:0.2s; animation-duration:1.9s"/>
+        <circle class="flame" cx="1463" cy="215" r="20" fill="url(#flame-glow)" style="animation-delay:0.8s; animation-duration:1.5s"/>
+        <circle class="flame" cx="1512" cy="122" r="20" fill="url(#flame-glow)" style="animation-delay:1.3s; animation-duration:1.7s"/>
+        <circle class="flame" cx="1621" cy="182" r="20" fill="url(#flame-glow)" style="animation-delay:0.4s; animation-duration:1.6s"/>
+        <circle class="flame" cx="1666" cy="895" r="32" fill="url(#flame-glow)" style="animation-delay:0.7s; animation-duration:1.8s"/>
+        <circle class="flame" cx="1737" cy="990" r="30" fill="url(#flame-glow)" style="animation-delay:1.0s; animation-duration:1.5s"/>
+        <circle class="flame" cx="1796" cy="728" r="32" fill="url(#flame-glow)" style="animation-delay:0.15s; animation-duration:1.9s"/>
+        <circle class="flame" cx="2103" cy="471" r="28" fill="url(#flame-glow)" style="animation-delay:0.6s; animation-duration:1.6s"/>
+      </g>
+      <g clip-path="url(#vial-clip)" class="liquid-glow">
+        <rect id="liquid-clip-rect" x="1320" y="1010" width="102" height="0" fill="url(#liquid-gradient)" />
+      </g>
+    </svg>
+  </div>
+
+  <div class="control-bar">
+    <div class="points-readout"><b id="fill-points">0</b> / <span id="fill-max">20</span> Punkte bis zum nächsten Level</div>
+    <div class="ritual-buttons">
+      <button onclick="addPoints(1)">&#10024; Gute Lektion (+1)</button>
+      <button onclick="addPoints(1)">&#128221; Alle Hausaufgaben (+1)</button>
+    </div>
+    <div>
+      <button class="minus-btn" onclick="addPoints(-1)">-1 Punkt (Korrektur)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schatzkammer -->
+<div class="scene" id="scene-truhe">
+  <div class="panel">
+    <h1>Schatzkammer</h1>
+    <div class="sub">Punkte gegen Belohnungen eintauschen</div>
+    <div class="rewards-grid" id="rewards-grid"></div>
+    <div class="redeem-msg" id="redeem-msg"></div>
+  </div>
+</div>
+
+<!-- Gluecksrad -->
+<div class="scene" id="scene-rad">
+  <div class="wheel-layout">
+    <div class="wheel-stage">
+      <div class="rad-frame" id="rad-frame">
+        <img class="rad-bg" src="Bilder/Glücksrad.png" alt="Glücksrad">
+        <svg id="wheel-svg" viewBox="0 0 2816 1536" preserveAspectRatio="xMidYMid slice">
+          <g transform="translate(1411,773)">
+            <g id="wheel-rotor"></g>
+            <circle cx="0" cy="0" r="55" fill="#2a1d12" stroke="#d4af37" stroke-width="4"/>
+            <polygon class="rad-pointer" points="0,-625 -31,-686 31,-686"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="wheel-panel">
+      <div class="wheel-panel-title">Namen fürs Rad</div>
+      <div class="wheel-panel-row">
+        <button onclick="loadClassNames('6')">6. Klasse</button>
+        <button onclick="loadClassNames('5')">5. Klasse</button>
+        <button onclick="loadClassNames('alle')">Ganze Klasse</button>
+      </div>
+      <textarea id="wheel-names" rows="10" placeholder="Ein Name pro Zeile" oninput="onWheelNamesEdited()"></textarea>
+      <button class="spin-btn" id="spin-btn" onclick="spinWheel()">&#127920; Drehen!</button>
+    </div>
+  </div>
+</div>
+
+<div class="wheel-result-backdrop" id="wheel-result-backdrop"></div>
+<div class="wheel-result" id="wheel-result"></div>
+
+<!-- Gruppen -->
+<div class="scene" id="scene-gruppen">
+  <div class="gruppen-layout">
+    <div class="gruppen-panel">
+      <div class="gruppen-panel-title">Namen für die Gruppen</div>
+      <div class="wheel-panel-row">
+        <button onclick="loadGruppenNames('6')">6. Klasse</button>
+        <button onclick="loadGruppenNames('5')">5. Klasse</button>
+        <button onclick="loadGruppenNames('alle')">Ganze Klasse</button>
+      </div>
+      <textarea id="gruppen-names" rows="9" placeholder="Ein Name pro Zeile" oninput="onGruppenNamesEdited()"></textarea>
+      <div class="gruppen-panel-title" style="margin-top:14px;">Gruppengrösse</div>
+      <div class="wheel-panel-row gruppen-count-row" id="gruppen-count-row">
+        <button onclick="setGruppenSize(2)" data-size="2">2er</button>
+        <button onclick="setGruppenSize(3)" data-size="3">3er</button>
+        <button onclick="setGruppenSize(4)" data-size="4">4er</button>
+        <button onclick="setGruppenSize(5)" data-size="5">5er</button>
+      </div>
+      <button class="spin-btn" id="gruppen-btn" onclick="buildGroups()">&#127922; Gruppen bilden!</button>
+    </div>
+    <div class="gruppen-results" id="gruppen-results"></div>
+  </div>
+</div>
+
+<script>
+  const FILL_MAX = 20;
+  const STORAGE_KEY = "klassenApp_v1";
+
+  const REWARDS = [
+    { id: "pause",   name: "5 Min. frühe Pause",        cost: 5 },
+    { id: "musik",   name: "Musik während der Arbeit",    cost: 10 },
+    { id: "werwolf", name: "Klassenspiel: Werwolf",       cost: 15 },
+  ];
+
+  // Klassenlisten fuers Gluecksrad (aus der Notenuebersicht.xlsx)
+  const CLASS_LISTS = {
+    "6": ["Milena", "Amelia", "Fadri", "Dunja", "Nicole", "Leandro", "Marvin", "Ilai", "Melina", "Aaron"],
+    "5": ["Theo E.", "Theo M.", "Yannik", "Kian", "Eliane", "Marla", "Elena", "Sarina", "Mara"],
+  };
+  // schlicht/edel statt bunt: alle Segmente in einem Holzton, goldene Schrift.
+  // Nur noch eine Farbe (Fabian: braucht keine Abwechslung, das helleste
+  // Braun der frueheren drei Toene reicht), die Segmente werden allein durch
+  // die goldene Trennlinie unterschieden.
+  const WHEEL_COLORS = ["#5a3a22"];
+  const WHEEL_TEXT_COLOR = "#e8c96a";
+
+  // Reagenzglas-Koordinaten im Originalbild (2752x1536), per Pixelmessung ermittelt
+  const VIAL_TOP = 610;
+  const VIAL_STRAIGHT_BOTTOM = 1010;
+  const VIAL_RADIUS = 41.5;
+  const VIAL_LEFT = 1329 - 9;   // etwas breiter als das Glas selbst, damit der Glow schoen ins Glas passt
+  const VIAL_RIGHT = 1412 + 9;
+  const VIAL_LOWEST = VIAL_STRAIGHT_BOTTOM + VIAL_RADIUS;
+  const VIAL_FILLABLE_HEIGHT = (VIAL_STRAIGHT_BOTTOM - VIAL_TOP) + VIAL_RADIUS;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { fill: 0, total: 0, level: 1, pendingRewards: [], wheelNames: CLASS_LISTS["6"].slice() };
+  }
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  let state = loadState();
+  if (!state.level) state.level = 1;
+  if (!state.pendingRewards) state.pendingRewards = [];
+  if (!state.wheelNames || !state.wheelNames.length) state.wheelNames = CLASS_LISTS["6"].slice();
+  if (!state.gruppenNames || !state.gruppenNames.length) state.gruppenNames = CLASS_LISTS["6"].slice();
+  if (!state.gruppenSize) state.gruppenSize = state.gruppenCount || 3;
+  if (!state.gruppenResult) state.gruppenResult = null;
+  if (state.musicVolume === undefined || state.musicVolume === null) state.musicVolume = 0.35;
+  if (!state.stundenplanNotes) state.stundenplanNotes = {};
+  // Migration: die allererste Fassung dieser Funktion speicherte Notizen noch
+  // flach (Key "Tag-Lektion", ohne Kalenderwoche). Falls so ein alter Stand
+  // geladen wird, unter KW33 einsortieren statt Daten zu verlieren.
+  (function migrateFlatStundenplanNotes() {
+    const keys = Object.keys(state.stundenplanNotes);
+    const looksFlat = keys.some(k => /^[A-Za-zÄÖÜäöü]+-\d$/.test(k));
+    if (looksFlat) {
+      const old = state.stundenplanNotes;
+      state.stundenplanNotes = { 33: old };
+    }
+  })();
+  // Migration: Lektionsnotizen waren zuerst ein einzelner Fliesstext-String
+  // pro Lektion, sind jetzt eine Liste einzelner Schritte (Array). Alte
+  // String-Notizen beim Laden in ein Ein-Schritt-Array umwandeln, damit
+  // nichts verloren geht und die Schritt-Anzeige/-Bearbeitung ueberall
+  // gleich funktioniert.
+  (function migrateStringNotesToSteps() {
+    Object.keys(state.stundenplanNotes).forEach(week => {
+      const weekNotes = state.stundenplanNotes[week];
+      Object.keys(weekNotes).forEach(key => {
+        if (typeof weekNotes[key] === 'string') {
+          weekNotes[key] = weekNotes[key].trim() ? [weekNotes[key].trim()] : [];
+        }
+      });
+    });
+  })();
+
+  // eigene Sound-Dateien von Fabian, liegen im Musik-Ordner
+  const SND_GAIN = 'Musik/' + encodeURIComponent('+1 Punkt.mp3');
+  const SND_CORRECTION = 'Musik/' + encodeURIComponent('-1 Punkt.mp3');
+  const SND_LEVELUP = 'Musik/' + encodeURIComponent('Lvl up.mp3');
+  const SND_VAULT_DOOR = 'Musik/' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
+  const SND_WHEEL_SPIN = 'Musik/' + encodeURIComponent('Spinning Wheel.mp3');
+  const SND_WINNER = 'Musik/' + encodeURIComponent('Winning.mp3');
+
+  // Alle Soundeffekte (Punkt+/-, Levelup, Schatzkammertuer, Rad-Gewinn, ...)
+  // sind relativ zur Musik-Lautstaerke skaliert (gleiche Rechnung wie bei der
+  // Ambience oben: state.musicVolume / 0.35, 0.35 ist der Referenzwert bei
+  // dem die urspruenglichen Lautstaerken abgestimmt wurden). Ein Regler
+  // steuert also wirklich alle Geraeusche der App, nicht nur die Musik.
+  function scaledEffectVolume(base) {
+    const ratio = state.musicVolume / 0.35;
+    return Math.max(0, Math.min(1, base * ratio));
+  }
+
+  function playClip(url, volume) {
+    try {
+      const a = new Audio(url);
+      a.volume = scaledEffectVolume(volume != null ? volume : 0.6);
+      a.play().catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
+
+  // Navbar kann je nach Fensterbreite 1, 2 oder 3 Reihen hoch sein (siehe
+  // flex-wrap in CSS). Statt einen festen Pixelwert fuer den Abstand von
+  // .wheel-layout/.gruppen-layout zu raten, wird die tatsaechliche Hoehe der
+  // Navbar gemessen und als CSS-Variable gesetzt, damit das Rad auf jedem
+  // Geraet/jeder Fenstergroesse sicher darunter beginnt.
+  function rectsOverlap(a, b) {
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+  }
+
+  // Misst die WIRKLICHE Position von Navbar und Eck-Badges, statt von einer
+  // festen Fensterbreite auf einen Umbruch zu schliessen (Textbreiten haengen
+  // von Schriftart-Rendering/Zoom/Geraet ab, ein Pixel-Schwellwert waere immer
+  // eine Vermutung). Dadurch passt es auf wirklich jedem Geraet/jeder Ratio:
+  // Handy, halb-grosses Laptop-Fenster, breiter Desktop-Monitor, egal wie die
+  // Navbar dabei genau umbricht oder wie breit die Badge-Texte gerade sind.
+  function updateTopClearance() {
+    const nav = document.querySelector('nav');
+    // .top-left-cluster statt nur .level-badge, damit das kleine Musik-Control
+    // daneben (das jetzt mit im Cluster steckt) bei der Kollisionspruefung
+    // mitgezaehlt wird, nicht nur die Level-Badge-Box allein.
+    const levelBadge = document.querySelector('.top-left-cluster');
+    const totalBadge = document.querySelector('.total-badge');
+    const pendingRewards = document.getElementById('pending-rewards');
+    if (!nav) return;
+
+    // Schritt 1: Badges probehalber auf Standardposition (Ecken, neben der
+    // Navbar) setzen und pruefen, ob sie sich mit der (evtl. umgebrochenen)
+    // Navbar tatsaechlich ueberlappen wuerden.
+    document.documentElement.style.setProperty('--badge-top', '18px');
+    const navRect = nav.getBoundingClientRect();
+    let overlaps = false;
+    if (levelBadge && rectsOverlap(navRect, levelBadge.getBoundingClientRect())) overlaps = true;
+    if (totalBadge && rectsOverlap(navRect, totalBadge.getBoundingClientRect())) overlaps = true;
+
+    // Schritt 2: falls Ueberlappung, Badges unter die Navbar schieben statt
+    // daneben zu lassen. .pending-rewards haengt per CSS ohnehin am
+    // gleichen --badge-top-Versatz (siehe CSS), rutscht also automatisch mit.
+    const badgeTop = overlaps ? (Math.ceil(navRect.bottom) + 10) : 18;
+    document.documentElement.style.setProperty('--badge-top', badgeTop + 'px');
+
+    // Schritt 3: JETZT, nach dem Setzen von --badge-top, ALLE tatsaechlich
+    // sichtbaren oben schwebenden Elemente messen (nicht nur die, die eben
+    // mit der Navbar ueberlappt haetten) - so kann nichts vergessen gehen,
+    // das den Tagesplan darunter sonst verdecken wuerde (frueher fehlte hier
+    // z.B. das "Preis zugute"-Fenster komplett, das dadurch die Freitag-
+    // Spalte verdecken konnte).
+    let lowestBottom = navRect.bottom;
+    [levelBadge, totalBadge, (pendingRewards && pendingRewards.classList.contains('show')) ? pendingRewards : null]
+      .forEach(elm => { if (elm) lowestBottom = Math.max(lowestBottom, elm.getBoundingClientRect().bottom); });
+
+    const clearance = Math.max(90, Math.ceil(lowestBottom) + 24);
+    document.documentElement.style.setProperty('--top-clearance', clearance + 'px');
+  }
+  // Misst zweimal: sofort (fuer den Normalfall) und nochmal nach zwei
+  // requestAnimationFrame-Ticks (wartet auf den naechsten fertig gemalten
+  // Frame, statt eine feste Verzoegerung zu raten). Grund: direkt nach einem
+  // Szenenwechsel/Resize kann der Browser die Navbar noch nicht final
+  // umgebrochen/positioniert haben (z.B. wenn sie dabei gerade auf eine neue
+  // Zeile faellt), eine einzelne sofortige Messung waere dann schon wieder
+  // veraltet, sobald der Browser fertig layoutet.
+  function updateTopClearanceSoon() {
+    updateTopClearance();
+    requestAnimationFrame(() => requestAnimationFrame(updateTopClearance));
+  }
+  // Bei Resize/Drehung: erst den Navbar-Abstand neu messen, DANACH (falls
+  // gerade das Rad sichtbar ist) dessen Groesse neu berechnen, die haengt ja
+  // von --top-clearance ab.
+  function handleViewportChange() {
+    updateTopClearanceSoon();
+    const radScene = document.getElementById('scene-rad');
+    if (radScene && radScene.classList.contains('active')) updateRadFrameSize();
+  }
+  window.addEventListener('resize', handleViewportChange);
+  window.addEventListener('orientationchange', () => setTimeout(handleViewportChange, 100));
+
+  function showScene(name) {
+    const wasTruhe = document.getElementById('scene-truhe').classList.contains('active');
+    document.getElementById('scene-ablauf').classList.toggle('active', name === 'ablauf');
+    document.getElementById('scene-trank').classList.toggle('active', name === 'trank');
+    document.getElementById('scene-truhe').classList.toggle('active', name === 'truhe');
+    document.getElementById('scene-rad').classList.toggle('active', name === 'rad');
+    document.getElementById('scene-gruppen').classList.toggle('active', name === 'gruppen');
+    document.getElementById('nav-ablauf').classList.toggle('active', name === 'ablauf');
+    document.getElementById('nav-trank').classList.toggle('active', name === 'trank');
+    document.getElementById('nav-truhe').classList.toggle('active', name === 'truhe');
+    document.getElementById('nav-rad').classList.toggle('active', name === 'rad');
+    document.getElementById('nav-gruppen').classList.toggle('active', name === 'gruppen');
+    if (name === 'ablauf') {
+      updateTopClearanceSoon();
+      renderStundenplan();
+    }
+    if (name === 'truhe') {
+      renderRewards();
+      if (!wasTruhe) playClip(SND_VAULT_DOOR);
+    }
+    if (name === 'rad') {
+      updateTopClearanceSoon();
+      renderWheel();
+    }
+    if (name === 'gruppen') {
+      updateTopClearanceSoon();
+      renderGruppen();
+    }
+  }
+
+  // --- Ablauf (Startseite): echtes Stundenplan-Raster ---
+  // Nur Fabians eigene Lektionen (wo er selber unterrichtet). Endgueltig
+  // bestaetigt 4.8.2026 (siehe Obsidian Kontext.md), aendert sich nicht mehr.
+  // Woche = Mo-Fr, pro Tag ein Array mit 6 Eintraegen (Lektion 1-6), leer
+  // ('') = Fabian unterrichtet da nicht (andere Lehrperson oder keine Lektion).
+  const SP_DAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
+  const STUNDENPLAN = {
+    Montag:     ['ERG', 'Englisch 6.Kl', 'Englisch 5.Kl', 'Mathe', 'Kreativnachmittag', 'Kreativnachmittag'],
+    Dienstag:   ['Sport', 'Sport', 'Deutsch', 'Mathe', '', ''],
+    Mittwoch:   ['Englisch 6.Kl', 'Mathe', 'NMG', 'Englisch 5.Kl', '', ''],
+    Donnerstag: ['TTG', 'TTG', 'TTG', 'Mathe', 'Deutsch', 'NMG'],
+    Freitag:    ['', '', 'Mathe', 'Sport', 'NMG', 'NMG']
+  };
+  // Eine Farbe pro Fach, funktioniert im hellen Panel-Hintergrund als
+  // deckende Flaeche (nicht die echten Schulfarben, aber klar unterscheidbar).
+  const SUBJECT_COLORS = {
+    'ERG': '#8a6fb3',
+    'Englisch 6.Kl': '#4f8fc4',
+    'Englisch 5.Kl': '#5aa3d6',
+    'Mathe': '#c4784f',
+    'Kreativnachmittag': '#c4568f',
+    'Sport': '#4fae6e',
+    'Deutsch': '#c4b04f',
+    'NMG': '#5ec4b0',
+    'TTG': '#b3556f'
+  };
+  const SUBJECT_TEXT = '#fff8ec';
+  // Lektionen, die zwar stattfinden, aber NICHT von Fabian unterrichtet
+  // werden (andere Lehrperson/Fach), nur zur Uebersicht fuer die SuS, damit
+  // sie den ganzen Tagesablauf sehen. Dienstag 5./6. Lektion wechselt
+  // woechentlich zwischen Religion (ungerade KW, Start KW33) und M&I,
+  // Medien und Informatik (gerade KW), von Fabian direkt bestaetigt,
+  // 10.8.2026 (Erstversuch "MGI" war eine Fehllesung des PDF-Vermerks).
+  // Freitag 1./2. Lektion: Deutsch bei Fr. S. Weber, ebenfalls von Fabian
+  // direkt bestaetigt, 10.8.2026 (Erstversuch "Schule (V. Bühler)" beruhte
+  // auf einem missverstandenen Vermerk im PDF).
+  // Gibt { text, alt } zurueck statt nur einem String: "alt" ist NICHT-null
+  // bei woechentlich wechselnden Faechern (zeigt den jeweils ANDEREN Namen
+  // klein in der Zelle an, siehe renderStundenplan), damit auf einen Blick
+  // klar ist, dass das Fach abwechselt, auch ohne durch die Wochen zu
+  // navigieren (sonst sieht man z.B. in einer geraden KW nur "Religion" und
+  // koennte denken, das sei fix so - Fabian hat genau das am 10.8.2026
+  // rueckgemeldet).
+  function externSubjectFor(day, period) {
+    if (day === 'Dienstag' && (period === 5 || period === 6)) {
+      const isReligion = spCurrentWeek % 2 === 1;
+      return { text: isReligion ? 'Religion' : 'M&I', alt: isReligion ? 'M&I' : 'Religion' };
+    }
+    if (day === 'Freitag' && (period === 1 || period === 2)) {
+      return { text: 'Deutsch (Fr. S. Weber)', alt: null };
+    }
+    return null;
+  }
+  // Reihenfolge der Zeilen im Raster, inkl. Pause/Mittag-Trennzeilen
+  // zwischen den Lektionen.
+  const SP_ROW_LAYOUT = [1, 2, 'pause', 3, 4, 'mittag', 5, 6];
+
+  // Echte Lektionszeiten, von Seite 4 des Stundenpläne.pdf ("Stundenplan
+  // 5/6B", offizielles Zeitraster, gilt fuer alle Wochentage gleich). Deckt
+  // sich mit den zwei zuvor bekannten Sport-Zeiten (Di 1.-2. = 08:05-09:45,
+  // Fr 4. = 10:55-11:45), also verifiziert.
+  const SP_PERIOD_TIMES = {
+    1: '08:05–08:55', 2: '08:55–09:45', 3: '10:05–10:55', 4: '10:55–11:45',
+    5: '14:05–14:55', 6: '14:55–15:45'
+  };
+  const SP_PAUSE_TIME = '09:45–10:05';
+  const SP_MITTAG_TIME = '11:45–14:05';
+
+  // Kalenderwochen-Navigation: Periode 1 "Sommer bis Herbst" = KW33-39,
+  // danach Herbstferien (27.9.-18.10.2026). Nur dieser Bereich ist
+  // navigierbar, die Fach-Zuteilung pro Wochentag/Lektion ist immer
+  // gleich (STUNDENPLAN oben), nur die Lektionsnotizen sind pro KW eigen.
+  const SP_WEEK_MIN = 33;
+  const SP_WEEK_MAX = 39;
+  const SP_WEEK_DATES = {
+    33: '10.–14.08.', 34: '17.–21.08.', 35: '24.–28.08.', 36: '31.08.–04.09.',
+    37: '07.–11.09.', 38: '14.–18.09.', 39: '21.–25.09.'
+  };
+  const SP_HERBSTFERIEN_TEXT = 'Herbstferien: 27.9.–18.10.';
+
+  // Echte Kurzinhalte fuer KW33 (erste Schulwoche), aus den bestehenden
+  // Grobplanungen uebernommen (Ethik/Mathe/NMG/Kreativnachmittag haben fuer
+  // KW33 noch kein Material, bleiben bewusst leer zum spaeteren Ausfuellen).
+  // Jede Lektion ist eine Liste einzelner Schritte (nicht ein Fliesstext-Block),
+  // damit sie im Lektionsfenster als Schritt-fuer-Schritt-Liste erscheint.
+  const SP_SEED_KW33 = {
+    'Montag-1': ['Video: "Was ist Philosophie?"', 'Fünffingermethode erklären (Ausdruck mitbringen)', 'Beispiel Schwarzfahren im Plenum', 'Strassenbahndilemma: Video schauen', 'Think-Pair-Share, AB Strassenbahn', 'Reflexion im Kreis'],
+    'Montag-2': ['Two Truths, one Lie', 'Pupilsbook S.6-7 lesen', 'Food-Wortschatz (Pupilsbook S.8-9), 4er-Gruppen', 'Zweite Runde Two Truths (falls Zeit)'],
+    'Montag-3': ['Two Truths, one Lie', 'Activitybook S.4-5, Übungen 1, 2, 3 (Piktogramme)', 'Übung 7', 'Zweite Runde Two Truths'],
+    'Dienstag-1': ['Einwärmen: Rundenlaufen, Mondball', 'Basketballstafette (4 Gruppen)', 'Ballführung mit Ringen üben', 'Zonenball aufbauen (2 Felder, siehe Schema)'],
+    'Dienstag-2': ['Trinkpause', 'Passspiel/Druckpass üben', 'Weiterspielen, Gegnerwechsel', 'Wurftechnik mit Hütchen (siehe Schema)', 'Abschlussspiel, 4 Teams'],
+    'Dienstag-3': ['Einstieg: Die drei Fragezeichen Folge 239 hören (Augen zu)', 'Was habt ihr gehört? Was macht es spannend?', 'Kapitel 2 hören, Fokus auf Geräusche', 'Punkte sammeln: was erzeugt Bilder im Kopf?'],
+    'Mittwoch-1': ['Lesen in Gruppen A bis D', 'Gruppen mischen, austauschen', 'Much/many: Zungenbrecher', 'PPT Wordbank, Pupilsbook S.10 Audio', 'AB Much or Many'],
+    'Mittwoch-4': ["Einstieg: Max' erster Schultag ankündigen", 'Rollen verteilen (Rollenkärtchen)', 'PPT-Geschichte, 9 neue Wörter (Rolle spielt mit)', 'Lückentext-AB, Kontrolle mit Sitznachbar', 'Wörtliste 1.1 austeilen (Wörtertest Mi KW34)'],
+    'Donnerstag-1': ['Werkraum einrichten', 'Projekt Kugelbahn vorstellen', 'Werkzeuge (Falzbein, Cutter) und Sicherheitsregeln', 'Falzen und Schneiden üben', '4 Profile vorstellen', 'Eigenes U-Profil bauen', 'Erster Test mit Murmel'],
+    'Donnerstag-2': ['Werkraum einrichten', 'Projekt Kugelbahn vorstellen', 'Werkzeuge (Falzbein, Cutter) und Sicherheitsregeln', 'Falzen und Schneiden üben', '4 Profile vorstellen', 'Eigenes U-Profil bauen', 'Erster Test mit Murmel'],
+    'Donnerstag-3': ['Stützpfeiler bauen', 'Ans Profil befestigen, Gefälle einstellen', 'Testen und anpassen', 'Aufräumen, Element beschriften'],
+    'Donnerstag-5': ['Falls nötig: Emotionen beim Sprechen nachholen', 'Einstieg mit eigener Hörspielszene', 'Gruppen bekannt geben', 'Skript gemeinsam lesen (Modellieren)'],
+    'Freitag-4': ['Einwärmen: Rumpf, Handgelenke, Dehnen', 'Handstand zeigen (mit Abrollen)', 'Zu zweit üben (Wand oder allein)', 'Abschluss: Spiel nach Wahl']
+  };
+  if (!state.stundenplanNotes[33]) state.stundenplanNotes[33] = {};
+  Object.keys(SP_SEED_KW33).forEach(k => {
+    if (state.stundenplanNotes[33][k] === undefined) state.stundenplanNotes[33][k] = SP_SEED_KW33[k];
+  });
+
+  // Welche Woche ist "jetzt" dran: echte ISO-Kalenderwoche berechnen, auf
+  // den navigierbaren Bereich (KW33-39) begrenzen. Wird NICHT gespeichert,
+  // das App startet also beim naechsten Aufstarten immer bei der aktuellen
+  // Woche, unabhaengig davon, wo zuletzt navigiert wurde.
+  function isoWeekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = (date.getUTCDay() + 6) % 7; // Montag = 0
+    date.setUTCDate(date.getUTCDate() - day + 3);
+    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    const diff = date - firstThursday;
+    return 1 + Math.round(diff / (7 * 24 * 3600 * 1000));
+  }
+  let spCurrentWeek = Math.min(SP_WEEK_MAX, Math.max(SP_WEEK_MIN, isoWeekNumber(new Date())));
+
+  let spEditDay = null, spEditPeriod = null;
+
+  function changeSpWeek(delta) {
+    const next = spCurrentWeek + delta;
+    if (next < SP_WEEK_MIN || next > SP_WEEK_MAX) return;
+    spCurrentWeek = next;
+    renderStundenplan();
+  }
+
+  function renderStundenplan() {
+    const grid = document.getElementById('stundenplan-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    document.getElementById('sp-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
+    document.getElementById('sp-kw-sub').textContent = SP_HERBSTFERIEN_TEXT;
+    document.getElementById('sp-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
+    document.getElementById('sp-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
+
+    const weekNotes = state.stundenplanNotes[spCurrentWeek] || {};
+
+    // Kopfzeile: leere Ecke + 5 Wochentage
+    const corner = document.createElement('div');
+    grid.appendChild(corner);
+    SP_DAYS.forEach(day => {
+      const h = document.createElement('div');
+      h.className = 'sp-head';
+      h.textContent = day;
+      grid.appendChild(h);
+    });
+
+    SP_ROW_LAYOUT.forEach(row => {
+      if (row === 'pause' || row === 'mittag') {
+        const div = document.createElement('div');
+        div.className = 'sp-divider';
+        div.textContent = (row === 'pause' ? 'Pause · ' : 'Mittag · ') + (row === 'pause' ? SP_PAUSE_TIME : SP_MITTAG_TIME);
+        grid.appendChild(div);
+        return;
+      }
+      const period = row;
+      const label = document.createElement('div');
+      label.className = 'sp-period-label';
+      const labelNum = document.createElement('div');
+      labelNum.className = 'sp-period-num';
+      labelNum.textContent = period + '.';
+      const labelTime = document.createElement('div');
+      labelTime.className = 'sp-period-time';
+      labelTime.textContent = SP_PERIOD_TIMES[period];
+      label.appendChild(labelNum);
+      label.appendChild(labelTime);
+      grid.appendChild(label);
+
+      SP_DAYS.forEach(day => {
+        const subject = STUNDENPLAN[day][period - 1] || '';
+        const cell = document.createElement('div');
+        const key = day + '-' + period;
+        const externSubject = !subject ? externSubjectFor(day, period) : null;
+        if (externSubject) {
+          cell.className = 'sp-cell sp-extern';
+          cell.textContent = externSubject.text;
+          cell.title = externSubject.alt
+            ? 'Findet statt, wird aber nicht von dir unterrichtet. Wechselt wöchentlich mit ' + externSubject.alt + '.'
+            : 'Findet statt, wird aber nicht von dir unterrichtet.';
+          if (externSubject.alt) {
+            const altLine = document.createElement('div');
+            altLine.className = 'sp-extern-alt';
+            altLine.textContent = '⇄ ' + externSubject.alt;
+            cell.appendChild(altLine);
+          }
+        } else if (!subject) {
+          cell.className = 'sp-cell sp-empty';
+          cell.textContent = '';
+        } else {
+          cell.className = 'sp-cell';
+          cell.style.background = SUBJECT_COLORS[subject] || '#666';
+          cell.style.color = SUBJECT_TEXT;
+          cell.textContent = subject;
+          cell.onclick = () => openSpEdit(day, period);
+          if (weekNotes[key] && weekNotes[key].length) {
+            const dot = document.createElement('div');
+            dot.className = 'sp-note-dot';
+            cell.appendChild(dot);
+          }
+        }
+        grid.appendChild(cell);
+      });
+    });
+  }
+
+  // Schritte der Lektion, die gerade im Fenster bearbeitet werden (nur
+  // waehrend das Fenster offen ist, wird erst bei "Speichern" committet).
+  // Jeder Schritt: { text, min, remaining }. "remaining" ist rein fluechtig
+  // (Sekunden-Countdown-Stand), wird beim Speichern NICHT mit persistiert.
+  let spEditSteps = [];
+  const SP_DEFAULT_MIN = 5;
+
+  // Wandelt alte Formate (einzelner String, Array von Strings aus einem
+  // frueheren Umbau) und das aktuelle Format (Array von {text,min}) alle
+  // einheitlich in Objekte mit Minuten-Feld um, Default 5 Minuten. Dadurch
+  // heilt sich alter gespeicherter Zustand von selbst beim naechsten Oeffnen.
+  function notesToSteps(val) {
+    let arr = [];
+    if (Array.isArray(val)) arr = val;
+    else if (typeof val === 'string' && val.trim()) arr = [val.trim()];
+    return arr.map(item => {
+      if (typeof item === 'string') return { text: item, min: SP_DEFAULT_MIN };
+      if (item && typeof item === 'object') return { text: item.text || '', min: item.min || SP_DEFAULT_MIN };
+      return { text: String(item), min: SP_DEFAULT_MIN };
+    });
+  }
+
+  // Timer-Zustand: nur EIN Schritt kann gleichzeitig laufen. Index bezieht
+  // sich auf die Position in spEditSteps, wird beim Fenster schliessen immer
+  // zurueckgesetzt (kein Hintergrund-Timer ueber die App hinweg).
+  let spTimerIndex = null;
+  let spTimerIntervalId = null;
+
+  function formatMMSS(totalSeconds) {
+    const t = Math.max(0, Math.round(totalSeconds));
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function stopSpTimerInterval() {
+    if (spTimerIntervalId) {
+      clearInterval(spTimerIntervalId);
+      spTimerIntervalId = null;
+    }
+  }
+
+  // Grosser Timer, der beim Start eines Schritts automatisch aufpoppt (siehe
+  // CSS .sp-big-timer). Bleibt unabhaengig von der kompakten Zeilen-Anzeige,
+  // laesst sich per Pfeil-Knopf verkleinern ohne den Timer zu stoppen, und
+  // durch Klick auf die kompakte Anzeige in der Zeile wieder aufklappen.
+  let spBigTimerVisible = false;
+  // Merkt sich, fuer welchen Schritt der grosse Timer gerade steht, auch
+  // nachdem der Countdown fertig ist und spTimerIndex schon wieder null ist
+  // (wird fuer das Wegklicken beim Blink-Ende gebraucht).
+  let spBigTimerIndex = null;
+
+  function showBigTimer(i) {
+    const step = spEditSteps[i];
+    if (!step) return;
+    spBigTimerVisible = true;
+    spBigTimerIndex = i;
+    const box = document.getElementById('sp-big-timer');
+    document.getElementById('sp-big-timer-label').textContent = 'Schritt ' + (i + 1) + ': ' + (step.text || '');
+    document.getElementById('sp-big-timer-value').textContent = formatMMSS(step.remaining);
+    const pauseBtn = document.getElementById('sp-big-timer-pause');
+    pauseBtn.innerHTML = (spTimerIndex === i) ? '&#10074;&#10074;' : '&#9654;';
+    box.classList.add('active');
+    box.classList.toggle('sp-step-done', !!step.done);
+    box.onclick = (e) => {
+      if (e.target === box || e.target.classList.contains('sp-big-timer-label') || e.target.classList.contains('sp-big-timer-value')) {
+        if (spBigTimerIndex !== null && spEditSteps[spBigTimerIndex] && spEditSteps[spBigTimerIndex].done) hideBigTimer();
+      }
+    };
+  }
+
+  // Verkleinert den grossen Timer UND ist die "wegklicken"-Aktion: ein
+  // fertiger, blinkender Schritt hoert erst hier auf zu blinken, nie von
+  // selbst per Timeout.
+  function hideBigTimer() {
+    spBigTimerVisible = false;
+    const box = document.getElementById('sp-big-timer');
+    box.classList.remove('active');
+    box.classList.remove('sp-step-done');
+    if (spBigTimerIndex !== null && spEditSteps[spBigTimerIndex] && spEditSteps[spBigTimerIndex].done) {
+      spEditSteps[spBigTimerIndex].done = false;
+      updateStepTimerDisplay(spBigTimerIndex);
+    }
+    spBigTimerIndex = null;
+  }
+
+  function toggleBigTimerPause() {
+    if (spTimerIndex !== null) toggleStepTimer(spTimerIndex);
+  }
+
+  function openSpEdit(day, period) {
+    spEditDay = day;
+    spEditPeriod = period;
+    stopSpTimerInterval();
+    spTimerIndex = null;
+    hideBigTimer();
+    const subject = STUNDENPLAN[day][period - 1];
+    const key = day + '-' + period;
+    const header = document.getElementById('sp-edit-header');
+    header.style.background = SUBJECT_COLORS[subject] || 'var(--gold)';
+    header.style.color = SUBJECT_TEXT;
+    document.getElementById('sp-edit-title').textContent = day + ', ' + period + '. Lektion (' + subject + ')';
+    document.getElementById('sp-edit-title').style.color = SUBJECT_TEXT;
+    document.getElementById('sp-edit-week').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek] + ' · ' + SP_PERIOD_TIMES[period];
+    spEditSteps = notesToSteps((state.stundenplanNotes[spCurrentWeek] || {})[key]);
+    renderSpSteps();
+    document.getElementById('sp-edit-backdrop').classList.add('active');
+    document.getElementById('sp-edit-box').classList.add('active');
+  }
+
+  // Schritt-Liste im Lektionsfenster neu zeichnen. Jeder Schritt ist eine
+  // Zeile mit Nummer, Text zum Bearbeiten, Timer (Minuten-Feld, Start/Pause,
+  // Countdown-Anzeige, Reset) und Auf/Ab/Loeschen-Knoepfen. Beim Drueberfahren
+  // (siehe CSS .sp-step:hover) leuchtet die Zeile schwach auf, damit Fabian im
+  // Unterricht mit der Maus auf den aktuellen Schritt zeigen kann und die
+  // Klasse direkt sieht, wo sie gerade sind.
+  function renderSpSteps() {
+    const list = document.getElementById('sp-steps-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (spEditSteps.length === 0) {
+      const hint = document.createElement('div');
+      hint.className = 'sp-steps-empty-hint';
+      hint.textContent = 'Noch keine Schritte. Unten "Schritt hinzufügen" klicken.';
+      list.appendChild(hint);
+      return;
+    }
+    spEditSteps.forEach((step, i) => {
+      if (step.remaining === undefined || step.remaining === null) {
+        step.remaining = step.min * 60;
+      }
+      const row = document.createElement('div');
+      row.className = 'sp-step';
+      if (spTimerIndex === i) row.classList.add('sp-step-running');
+      if (step.done) row.classList.add('sp-step-done');
+      row.dataset.index = i;
+
+      const num = document.createElement('div');
+      num.className = 'sp-step-num';
+      num.textContent = i + 1;
+
+      const input = document.createElement('input');
+      input.className = 'sp-step-input';
+      input.type = 'text';
+      input.value = step.text;
+      input.placeholder = 'Schritt beschreiben...';
+      input.oninput = () => { step.text = input.value; };
+
+      const timer = document.createElement('div');
+      timer.className = 'sp-step-timer';
+
+      // Uhr-Symbol ist immer da, aber unauffaellig. Erst ein Klick drauf
+      // zeigt die eigentliche Timer-Einstellung (Minuten, Start, Countdown,
+      // Reset). Laeuft der Timer fuer diesen Schritt, leuchtet das Symbol
+      // gold, auch wenn die Einstellung gerade eingeklappt ist, damit man
+      // auf einen Blick sieht, welcher Schritt aktiv ist.
+      const clockBtn = document.createElement('button');
+      clockBtn.className = 'sp-step-btn sp-step-clock';
+      clockBtn.type = 'button';
+      clockBtn.title = 'Timer-Einstellung';
+      clockBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>';
+      if (spTimerIndex === i) clockBtn.classList.add('sp-step-clock-running');
+      clockBtn.onclick = () => {
+        // Ein fertiger, blinkender Schritt zaehlt als "weggeklickt", sobald
+        // man aufs Uhr-Symbol klickt, nicht nur ueber den grossen Timer.
+        if (step.done) {
+          step.done = false;
+          if (spBigTimerIndex === i) hideBigTimer();
+        }
+        step.expanded = !step.expanded;
+        renderSpSteps();
+      };
+      timer.appendChild(clockBtn);
+
+      if (step.expanded) {
+        const panel = document.createElement('div');
+        panel.className = 'sp-step-timer-panel';
+
+        const minLabel = document.createElement('span');
+        minLabel.className = 'sp-step-min-label';
+        minLabel.textContent = 'min';
+
+        const minInput = document.createElement('input');
+        minInput.className = 'sp-step-min-input';
+        minInput.type = 'number';
+        minInput.min = '1';
+        minInput.max = '90';
+        minInput.step = '1';
+        minInput.value = step.min;
+        minInput.title = 'Geplante Minuten (Pfeiltasten zum Hoch-/Runterstellen)';
+        minInput.oninput = () => {
+          const v = Math.max(1, Math.min(90, Number(minInput.value) || SP_DEFAULT_MIN));
+          step.min = v;
+          if (spTimerIndex !== i) {
+            step.remaining = v * 60;
+            updateStepTimerDisplay(i);
+          }
+        };
+
+        const playBtn = document.createElement('button');
+        playBtn.className = 'sp-step-btn sp-step-play';
+        playBtn.type = 'button';
+        playBtn.title = spTimerIndex === i ? 'Pause' : 'Start';
+        playBtn.innerHTML = spTimerIndex === i ? '&#10074;&#10074;' : '&#9654;';
+        playBtn.onclick = () => toggleStepTimer(i);
+
+        const display = document.createElement('span');
+        display.className = 'sp-step-timer-display';
+        display.textContent = formatMMSS(step.remaining);
+        display.title = 'Gross anzeigen';
+        display.onclick = () => showBigTimer(i);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'sp-step-btn';
+        resetBtn.type = 'button';
+        resetBtn.title = 'Timer zurücksetzen';
+        resetBtn.innerHTML = '&#8635;';
+        resetBtn.onclick = () => resetStepTimer(i);
+
+        panel.appendChild(minInput);
+        panel.appendChild(minLabel);
+        panel.appendChild(playBtn);
+        panel.appendChild(display);
+        panel.appendChild(resetBtn);
+        timer.appendChild(panel);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'sp-step-actions';
+
+      const up = document.createElement('button');
+      up.className = 'sp-step-btn'; up.type = 'button'; up.title = 'Nach oben'; up.innerHTML = '&#8593;';
+      up.disabled = i === 0;
+      up.onclick = () => moveSpStep(i, -1);
+
+      const down = document.createElement('button');
+      down.className = 'sp-step-btn'; down.type = 'button'; down.title = 'Nach unten'; down.innerHTML = '&#8595;';
+      down.disabled = i === spEditSteps.length - 1;
+      down.onclick = () => moveSpStep(i, 1);
+
+      const del = document.createElement('button');
+      del.className = 'sp-step-btn sp-step-del'; del.type = 'button'; del.title = 'Schritt löschen'; del.innerHTML = '&times;';
+      del.onclick = () => removeSpStep(i);
+
+      actions.appendChild(up);
+      actions.appendChild(down);
+      actions.appendChild(del);
+      row.appendChild(num);
+      row.appendChild(input);
+      row.appendChild(timer);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  }
+
+  // Aktualisiert nur die Timer-Anzeige/den Play-Knopf einer einzelnen Zeile,
+  // ohne die ganze Liste neu zu zeichnen (laeuft ja jede Sekunde, ein voller
+  // Re-Render wuerde unnoetig Fokus/Cursor in den Textfeldern verlieren).
+  function updateStepTimerDisplay(i) {
+    const row = document.querySelector('#sp-steps-list .sp-step[data-index="' + i + '"]');
+    if (row) {
+      const disp = row.querySelector('.sp-step-timer-display');
+      if (disp) disp.textContent = formatMMSS(spEditSteps[i].remaining);
+      const playBtn = row.querySelector('.sp-step-play');
+      if (playBtn) {
+        const running = spTimerIndex === i;
+        playBtn.innerHTML = running ? '&#10074;&#10074;' : '&#9654;';
+        playBtn.title = running ? 'Pause' : 'Start';
+      }
+      const clockBtn = row.querySelector('.sp-step-clock');
+      if (clockBtn) clockBtn.classList.toggle('sp-step-clock-running', spTimerIndex === i);
+      row.classList.toggle('sp-step-running', spTimerIndex === i);
+      row.classList.toggle('sp-step-done', !!spEditSteps[i].done);
+    }
+    // Grossen Timer nur mitziehen, wenn er gerade genau diesen Schritt zeigt.
+    if (spBigTimerVisible && spTimerIndex === i) {
+      const bigVal = document.getElementById('sp-big-timer-value');
+      if (bigVal) bigVal.textContent = formatMMSS(spEditSteps[i].remaining);
+    }
+  }
+
+  // Start/Pause fuer den Timer eines Schritts. Startet man einen anderen
+  // Schritt, wird der vorher laufende automatisch pausiert (sein
+  // Restzeit-Stand bleibt erhalten), es laeuft also immer nur einer.
+  function toggleStepTimer(i) {
+    const step = spEditSteps[i];
+    if (!step) return;
+    if (spTimerIndex === i) {
+      // laeuft schon -> pausieren. Grosser Timer wird ausgeblendet (nichts
+      // laeuft mehr, macht keinen Sinn ihn prominent stehen zu lassen).
+      stopSpTimerInterval();
+      spTimerIndex = null;
+      updateStepTimerDisplay(i);
+      hideBigTimer();
+      return;
+    }
+    if (spTimerIndex !== null) {
+      const prev = spTimerIndex;
+      stopSpTimerInterval();
+      spTimerIndex = null;
+      updateStepTimerDisplay(prev);
+    }
+    if (step.remaining <= 0) step.remaining = step.min * 60;
+    step.done = false;
+    spTimerIndex = i;
+    updateStepTimerDisplay(i);
+    // Automatisch gross anzeigen beim Start, das war der eigentliche Wunsch:
+    // gut sichtbar fuer die SuS, tritt in den Vordergrund.
+    showBigTimer(i);
+    spTimerIntervalId = setInterval(() => {
+      spEditSteps[i].remaining--;
+      updateStepTimerDisplay(i);
+      if (spEditSteps[i].remaining <= 0) {
+        stopSpTimerInterval();
+        spTimerIndex = null;
+        onStepTimerDone(i);
+      }
+    }, 1000);
+  }
+
+  function resetStepTimer(i) {
+    const step = spEditSteps[i];
+    if (!step) return;
+    if (spTimerIndex === i) {
+      stopSpTimerInterval();
+      spTimerIndex = null;
+    }
+    step.done = false;
+    step.remaining = step.min * 60;
+    if (spBigTimerIndex === i) hideBigTimer();
+    updateStepTimerDisplay(i);
+  }
+
+  // Bei 0:00: kurzer Ton (gleiche Lautstaerke-Skalierung wie alle anderen
+  // Soundeffekte), die Zeile UND der grosse Timer blinken dauerhaft weiter,
+  // bis Fabian aktiv wegklickt (Uhr-Symbol oder Klick auf den grossen
+  // Timer/den Verkleinern-Pfeil) - kein automatisches Verschwinden mehr.
+  function onStepTimerDone(i) {
+    const step = spEditSteps[i];
+    if (!step) return;
+    step.done = true;
+    playClip(SND_GAIN, 0.7);
+    updateStepTimerDisplay(i);
+    // Immer gross anzeigen, auch wenn vorher verkleinert, damit der fertige
+    // Schritt nicht uebersehen werden kann.
+    showBigTimer(i);
+  }
+
+  function addSpStep() {
+    spEditSteps.push({ text: '', min: SP_DEFAULT_MIN, remaining: SP_DEFAULT_MIN * 60 });
+    renderSpSteps();
+    const inputs = document.querySelectorAll('#sp-steps-list .sp-step-input');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }
+
+  function removeSpStep(i) {
+    if (spTimerIndex === i) {
+      stopSpTimerInterval();
+      spTimerIndex = null;
+    } else if (spTimerIndex !== null && spTimerIndex > i) {
+      spTimerIndex--; // Indizes ruecken nach, laufender Timer bleibt dem richtigen Schritt zugeordnet
+    }
+    if (spBigTimerIndex === i) {
+      hideBigTimer(); // Karte gehoert zum geloeschten Schritt, gleich mit schliessen
+    } else if (spBigTimerIndex !== null && spBigTimerIndex > i) {
+      spBigTimerIndex--;
+    }
+    spEditSteps.splice(i, 1);
+    renderSpSteps();
+  }
+
+  function moveSpStep(i, delta) {
+    const j = i + delta;
+    if (j < 0 || j >= spEditSteps.length) return;
+    const tmp = spEditSteps[i];
+    spEditSteps[i] = spEditSteps[j];
+    spEditSteps[j] = tmp;
+    if (spTimerIndex === i) spTimerIndex = j;
+    else if (spTimerIndex === j) spTimerIndex = i;
+    if (spBigTimerIndex === i) spBigTimerIndex = j;
+    else if (spBigTimerIndex === j) spBigTimerIndex = i;
+    renderSpSteps();
+  }
+
+  function saveSpNote() {
+    if (!spEditDay || !spEditPeriod) return;
+    const key = spEditDay + '-' + spEditPeriod;
+    const steps = spEditSteps
+      .map(s => ({ text: s.text.trim(), min: s.min || SP_DEFAULT_MIN }))
+      .filter(s => s.text.length > 0);
+    if (!state.stundenplanNotes[spCurrentWeek]) state.stundenplanNotes[spCurrentWeek] = {};
+    if (steps.length) state.stundenplanNotes[spCurrentWeek][key] = steps;
+    else delete state.stundenplanNotes[spCurrentWeek][key];
+    saveState();
+    closeSpEdit();
+    renderStundenplan();
+  }
+
+  function closeSpEdit() {
+    spEditDay = null;
+    spEditPeriod = null;
+    spEditSteps = [];
+    stopSpTimerInterval();
+    spTimerIndex = null;
+    hideBigTimer();
+    document.getElementById('sp-edit-backdrop').classList.remove('active');
+    document.getElementById('sp-edit-box').classList.remove('active');
+  }
+
+  function addPoints(n) {
+    state.fill += n;
+    state.total += n;
+    if (state.total < 0) state.total = 0;
+
+    // Ueberlauf nach oben: Level steigt, Rest wird in den neuen Trank uebernommen
+    while (state.fill >= FILL_MAX) {
+      state.fill -= FILL_MAX;
+      state.level += 1;
+      levelUp();
+    }
+    // Ueberlauf nach unten (Korrektur): Level faellt wieder, bis maximal Level 1 / leerer Trank
+    while (state.fill < 0) {
+      if (state.level <= 1) {
+        state.fill = 0;
+        break;
+      }
+      state.fill += FILL_MAX;
+      state.level -= 1;
+      levelDown();
+    }
+
+    saveState();
+    render();
+    popVialText((n > 0 ? '+' : '') + n, n > 0 ? 'gain' : 'correction');
+    if (n > 0) playGainSound(); else playCorrectionSound();
+  }
+
+  function levelUp() {
+    const flash = document.getElementById('levelup-flash');
+    const text = document.getElementById('levelup-text');
+    text.textContent = `✨ Level ${state.level} erreicht! ✨`;
+    flash.classList.add('show');
+    text.classList.add('show');
+    playLevelUpFanfare();
+    setTimeout(() => {
+      flash.classList.remove('show');
+      text.classList.remove('show');
+    }, 1600);
+  }
+
+  function levelDown() {
+    const badge = document.querySelector('.level-badge');
+    if (!badge) return;
+    badge.classList.add('level-down-flash');
+    setTimeout(() => badge.classList.remove('level-down-flash'), 700);
+  }
+
+  // schwebender Punkte-Text ueber dem Reagenzglas (in Bild-Koordinaten, bleibt bei jeder
+  // Fenstergroesse exakt ausgerichtet, da im selben SVG-Overlay wie das Fluessigkeits-Clip)
+  function popVialText(text, colorClass) {
+    const svg = document.querySelector('#scene-trank svg.overlay');
+    if (!svg) return;
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    el.setAttribute('x', 1370);
+    el.setAttribute('y', 560);
+    el.setAttribute('class', 'float-pop ' + colorClass);
+    el.textContent = text;
+    svg.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+
+  // schwebender Punkte-Text in der Schatzkammer, an der Position des Klicks
+  function popScreenText(clientX, clientY, text) {
+    const el = document.createElement('div');
+    el.className = 'float-pop-html';
+    el.textContent = text;
+    el.style.left = clientX + 'px';
+    el.style.top = clientY + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+
+  function render() {
+    document.getElementById('fill-points').textContent = state.fill;
+    document.getElementById('fill-max').textContent = FILL_MAX;
+    document.getElementById('total-points').textContent = state.total;
+    document.getElementById('level-num').textContent = state.level;
+
+    const pct = Math.max(0, Math.min(1, state.fill / FILL_MAX));
+    const liquidHeight = pct * VIAL_FILLABLE_HEIGHT;
+    const liquidY = VIAL_LOWEST - liquidHeight;
+    const rect = document.getElementById('liquid-clip-rect');
+    rect.setAttribute('x', VIAL_LEFT);
+    rect.setAttribute('width', VIAL_RIGHT - VIAL_LEFT);
+    rect.setAttribute('y', liquidY);
+    rect.setAttribute('height', liquidHeight + VIAL_RADIUS);
+
+    renderRewards();
+    renderPendingRewards();
+  }
+
+  function renderPendingRewards() {
+    const box = document.getElementById('pending-rewards');
+    const list = document.getElementById('pending-rewards-list');
+    if (!box || !list) return;
+    const items = state.pendingRewards || [];
+    box.classList.toggle('show', items.length > 0);
+    list.innerHTML = '';
+    items.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'pending-reward-item';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = item.name;
+      const btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.textContent = '✕';
+      btn.title = 'Eingelöst / erledigt – aus der Liste nehmen';
+      btn.onclick = () => removePendingReward(idx);
+      row.appendChild(nameSpan);
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+    // Neu berechnen, ob/wie weit der Tagesplan wegen des (De-)Aktivierens
+    // dieses Fensters jetzt herunterrutschen muss - sonst bleibt die
+    // Berechnung vom letzten Szenenwechsel stehen und das Fenster kann den
+    // Stundenplan darunter verdecken.
+    updateTopClearance();
+  }
+
+  function removePendingReward(idx) {
+    state.pendingRewards.splice(idx, 1);
+    saveState();
+    renderPendingRewards();
+  }
+
+  function renderRewards() {
+    const grid = document.getElementById('rewards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    REWARDS.forEach(r => {
+      const canAfford = state.total >= r.cost;
+      const card = document.createElement('div');
+      card.className = 'reward-card' + (canAfford ? '' : ' disabled');
+      card.innerHTML = `<div class="name">${r.name}</div><div class="cost">${r.cost} Punkte</div>`;
+      card.onclick = (evt) => redeem(r, canAfford, evt);
+      grid.appendChild(card);
+    });
+  }
+
+  function redeem(reward, canAfford, evt) {
+    const msg = document.getElementById('redeem-msg');
+    if (!canAfford) {
+      msg.textContent = `Noch nicht genug Punkte für "${reward.name}".`;
+      return;
+    }
+    state.total -= reward.cost;
+    state.fill = Math.max(0, state.fill - reward.cost);
+    state.pendingRewards.push({ name: reward.name, redeemedAt: Date.now() });
+    saveState();
+    msg.textContent = `"${reward.name}" eingelöst! Noch ${state.total} Punkte übrig.`;
+    if (evt) popScreenText(evt.clientX, evt.clientY, `-${reward.cost}`);
+    playSpendSound();
+    render();
+  }
+
+  // --- Sounds: alles per Web Audio API synthetisiert, keine Audiodateien noetig ---
+  let audioCtx = null;
+  function getCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function tone(freq, duration, type, delay) {
+    delay = delay || 0;
+    try {
+      const ctx = getCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      const t0 = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.22, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.05);
+    } catch (e) { /* Web Audio evtl. nicht verfuegbar */ }
+  }
+  // eigene Klangdateien, mit synthetischem Ton als Rueckfallebene falls die Datei fehlt
+  function playGainSound() { playClip(SND_GAIN); }
+  function playCorrectionSound() { playClip(SND_CORRECTION); }
+  function playSpendSound() { tone(660, 0.18, 'triangle'); tone(440, 0.22, 'triangle', 0.09); }
+  function playLevelUpFanfare() { playClip(SND_LEVELUP, 0.7); }
+
+  // --- leises Ambient-Summen im Hintergrund, ebenfalls per Web Audio synthetisiert ---
+  let ambience = null;
+  let musicOn = false; // Musik startet NICHT automatisch mehr (31.7.2026: Autoplay entfernt,
+  // da hängende Audio-Prozesse beim Schliessen zu Problemen mit dem Cowork-VM-Service fuehrten).
+  // Einschalten weiterhin jederzeit per Musik-Knopf moeglich.
+
+  function startAmbience() {
+    const ctx = getCtx();
+    const master = ctx.createGain();
+    // 0.05 war der bisherige Fixwert bei Standard-Lautstaerke 0.35, skaliert
+    // jetzt proportional mit dem Lautstaerkeregler mit.
+    master.gain.value = 0.05 * (state.musicVolume / 0.35);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    master.connect(filter).connect(ctx.destination);
+
+    const freqs = [110, 164.81, 220]; // A2, E3, A3 - warmer, ruhiger Klang
+    const oscs = freqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.value = 0.5;
+      osc.connect(g).connect(master);
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 0.05 + i * 0.02;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 1.2;
+      lfo.connect(lfoGain).connect(osc.frequency);
+      lfo.start();
+      osc.start();
+      return { osc, lfo };
+    });
+
+    const swell = ctx.createOscillator();
+    swell.frequency.value = 0.04;
+    const swellGain = ctx.createGain();
+    swellGain.gain.value = 0.015;
+    swell.connect(swellGain).connect(master.gain);
+    swell.start();
+
+    ambience = { master, filter, oscs, swell };
+  }
+
+  function stopAmbience() {
+    if (!ambience) return;
+    ambience.oscs.forEach(o => { o.osc.stop(); o.lfo.stop(); });
+    ambience.swell.stop();
+    ambience = null;
+  }
+
+  // echte Hintergrundmusik (mp3, lokal im Musik-Ordner); synthetisches Summen
+  // dient nur als Rueckfallebene, falls die Datei mal fehlt/nicht laedt
+  function updateMusicButton() {
+    const btn = document.getElementById('music-toggle');
+    if (!btn) return;
+    const label = btn.querySelector('.music-label');
+    if (label) label.textContent = musicOn ? 'Musik AN' : 'Musik AUS';
+    btn.title = musicOn ? 'Musik AN (klicken zum Stummschalten)' : 'Musik AUS (klicken zum Einschalten)';
+    btn.classList.toggle('active', musicOn);
+  }
+
+  function toggleMusic() {
+    musicOn = !musicOn;
+    const audio = document.getElementById('bg-music');
+    if (musicOn) {
+      audio.volume = state.musicVolume;
+      audio.play().catch(() => { startAmbience(); });
+    } else {
+      audio.pause();
+      stopAmbience();
+    }
+    updateMusicButton();
+  }
+
+  // Lautstaerkeregler unter dem Musik-Knopf. Wirkt auf die echte
+  // Hintergrundmusik UND (proportional) auf die synthetische Ambience, falls
+  // die mp3 mal nicht abspielbar ist. Wert wird gespeichert, bleibt also auch
+  // nach Neuladen/naechstem Schuljahr erhalten.
+  function setMusicVolume(val) {
+    const vol = Math.max(0, Math.min(100, Number(val))) / 100;
+    state.musicVolume = vol;
+    saveState();
+    const audio = document.getElementById('bg-music');
+    if (audio) audio.volume = vol;
+    if (ambience && ambience.master) {
+      ambience.master.gain.value = 0.05 * (vol / 0.35);
+    }
+    // Falls gerade das Rad dreht, dessen Loop-Sound live mitziehen (einmalige
+    // Soundeffekte wie Punkt+/- holen sich die aktuelle Lautstaerke ja bei
+    // jedem neuen Abspielen ohnehin frisch über scaledEffectVolume()).
+    if (wheelSpinAudioEl) {
+      wheelSpinAudioEl.volume = scaledEffectVolume(0.55);
+    }
+  }
+
+  // Beim Laden soll die Musik direkt starten. Manche Browser blockieren Audio
+  // ohne vorherige Nutzer-Interaktion (Autoplay-Regel) - falls das passiert,
+  // starten wir beim allerersten Klick/Tastendruck automatisch nach.
+  function initMusic() {
+    const audio = document.getElementById('bg-music');
+    audio.volume = state.musicVolume;
+    const slider = document.getElementById('music-volume');
+    if (slider) slider.value = Math.round(state.musicVolume * 100);
+    updateMusicButton();
+    if (!musicOn) return;
+    audio.play().catch(() => {
+      const resumeOnGesture = () => {
+        if (musicOn && audio.paused) audio.play().catch(() => {});
+        document.removeEventListener('click', resumeOnGesture);
+        document.removeEventListener('keydown', resumeOnGesture);
+      };
+      document.addEventListener('click', resumeOnGesture, { once: true });
+      document.addEventListener('keydown', resumeOnGesture, { once: true });
+    });
+  }
+
+  // --- Gluecksrad ---
+  let wheelAngle = 0;
+  let wheelSpinning = false;
+
+  function loadClassNames(which) {
+    if (wheelSpinning) return;
+    state.wheelNames = which === 'alle'
+      ? CLASS_LISTS["5"].concat(CLASS_LISTS["6"])
+      : CLASS_LISTS[which].slice();
+    saveState();
+    renderWheel();
+  }
+
+  function onWheelNamesEdited() {
+    const ta = document.getElementById('wheel-names');
+    if (!ta) return;
+    state.wheelNames = ta.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    saveState();
+    renderWheelSvgOnly();
+  }
+
+  // --- Gruppen ---
+  function loadGruppenNames(which) {
+    state.gruppenNames = which === 'alle'
+      ? CLASS_LISTS["5"].concat(CLASS_LISTS["6"])
+      : CLASS_LISTS[which].slice();
+    state.gruppenResult = null;
+    saveState();
+    renderGruppen();
+  }
+
+  function onGruppenNamesEdited() {
+    const ta = document.getElementById('gruppen-names');
+    if (!ta) return;
+    state.gruppenNames = ta.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    state.gruppenResult = null;
+    saveState();
+    renderGruppen();
+  }
+
+  function setGruppenSize(n) {
+    state.gruppenSize = n;
+    state.gruppenResult = null;
+    saveState();
+    renderGruppen();
+  }
+
+  // Fisher-Yates, damit die Durchmischung wirklich gleichverteilt zufaellig ist
+  // (nicht Math.random() als Sortier-Vergleichsfunktion, das ist verzerrt)
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function buildGroups() {
+    const names = state.gruppenNames || [];
+    const size = state.gruppenSize || 3;
+    if (names.length < 2) {
+      alert('Es braucht mindestens 2 Namen, um Gruppen zu bilden.');
+      return;
+    }
+    // Fabian will Gruppen EINER GROESSE (z.B. "3er-Gruppen"), nicht eine feste
+    // Anzahl Gruppen. Anzahl Gruppen wird daraus abgeleitet: so viele Gruppen,
+    // dass die durchschnittliche Groesse moeglichst nah an "size" liegt, dann
+    // gleichmaessig verteilt (Groessen unterscheiden sich um maximal 1). Bei
+    // z.B. 10 Namen und "3er" ergibt das 3 Gruppen (4,3,3) statt 4 Gruppen
+    // (3,3,2,2), also wirklich Gruppen "von ungefaehr 3", nicht "irgendwie 3
+    // Gruppen".
+    let numGroups = Math.max(1, Math.round(names.length / size));
+    // Einzelkind-Gruppen vermeiden: z.B. 9 Namen bei "2er" waeren sonst
+    // 2,2,2,2,1 (jemand allein). Lieber eine Gruppe weniger, dafuer etwas
+    // groesser, als ein Kind alleine lassen.
+    while (numGroups > 1 && Math.floor(names.length / numGroups) < 2) {
+      numGroups--;
+    }
+    const mixed = shuffled(names);
+    const groups = Array.from({ length: numGroups }, () => []);
+    mixed.forEach((name, i) => groups[i % numGroups].push(name));
+    state.gruppenResult = groups;
+    saveState();
+    renderGruppen();
+  }
+
+  function renderGruppen() {
+    const ta = document.getElementById('gruppen-names');
+    if (ta) ta.value = (state.gruppenNames || []).join('\n');
+    document.querySelectorAll('#gruppen-count-row button').forEach(btn => {
+      btn.classList.toggle('active', Number(btn.dataset.size) === state.gruppenSize);
+    });
+    const results = document.getElementById('gruppen-results');
+    if (!results) return;
+    results.innerHTML = '';
+    if (!state.gruppenResult) {
+      const hint = document.createElement('div');
+      hint.className = 'gruppen-empty-hint';
+      hint.textContent = 'Namen und Gruppengrösse waehlen, dann auf "Gruppen bilden" klicken.';
+      results.appendChild(hint);
+      return;
+    }
+    state.gruppenResult.forEach((group, i) => {
+      const card = document.createElement('div');
+      card.className = 'gruppen-card';
+      card.style.animationDelay = (i * 0.06) + 's';
+      const title = document.createElement('div');
+      title.className = 'gruppen-card-title';
+      title.textContent = 'Gruppe ' + (i + 1);
+      card.appendChild(title);
+      const ul = document.createElement('ul');
+      group.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+      results.appendChild(card);
+    });
+  }
+
+  function svgSlicePoint(deg, r) {
+    const rad = deg * Math.PI / 180;
+    return [r * Math.sin(rad), -r * Math.cos(rad)];
+  }
+
+  // Rad-Groesse wird aus dem TATSAECHLICH verfuegbaren Platz berechnet (Fenster-
+  // hoehe minus Navbar minus Panel), nicht aus einem geratenen vh/vw-Prozentsatz.
+  // Dadurch nutzt das Rad auf einem grossen Monitor den ganzen freien Platz aus
+  // (statt unnoetig klein zu bleiben), schrumpft aber auf kleinen Fenstern/Handys
+  // trotzdem sauber genug, um nicht abgeschnitten zu werden.
+  function updateRadFrameSize() {
+    const frame = document.getElementById('rad-frame');
+    if (!frame) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const topClearance = parseInt(cs.getPropertyValue('--top-clearance')) || 100;
+    const bottomPad = 40;
+    const sidePad = 40;
+    const panelWidth = 280; // Panel (260px) + etwas Sicherheitsabstand
+    const gap = 46;
+    const MIN = 260;
+    const MAX = 900;
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Fall A: Rad und Panel passen nebeneinander (wie im CSS per flex-wrap) -
+    // dann darf das Rad die volle verfuegbare Hoehe UND Breite ausnutzen.
+    const heightSideBySide = vh - topClearance - bottomPad;
+    const widthSideBySide = vw - panelWidth - gap - sidePad;
+    const sideBySideSize = Math.min(heightSideBySide, widthSideBySide, MAX);
+
+    let size;
+    if (sideBySideSize >= MIN) {
+      size = sideBySideSize;
+    } else {
+      // Fall B: zu schmal fuer nebeneinander, CSS wrapt auf "Rad oben, Panel
+      // darunter" - dann muss auch das Panel selbst noch Hoehe abbekommen.
+      const panelHeightEstimate = 320;
+      const heightStacked = vh - topClearance - panelHeightEstimate - gap - bottomPad;
+      const widthStacked = vw - sidePad;
+      size = Math.min(heightStacked, widthStacked, MAX);
+    }
+    size = Math.max(MIN, Math.round(size));
+    frame.style.width = size + 'px';
+  }
+
+  function renderWheelSvgOnly() {
+    const rotor = document.getElementById('wheel-rotor');
+    if (!rotor) return;
+    const names = state.wheelNames || [];
+    updateRadFrameSize();
+    rotor.innerHTML = '';
+    if (names.length < 2) return;
+    // Rad bewusst gross, bis nahe an den Goldrahmen des Hintergrundbilds
+    // (Fabian: Rad war zu weit innen, verschenkt Platz vor der Verzierung).
+    // Pixelgenau vermessen (31.7.2026): Zentrum (1411,773), Goldrahmen beginnt
+    // bei r=647-666 je nach Winkel (Fit ueber 147 Randpunkte, Residuum +-9px).
+    // r=640 laesst ueberall einen kleinen Sicherheitsabstand.
+    const r = 640;
+    const segAngle = 360 / names.length;
+    // Namen radial, nahe am aeusseren Rand platziert (mehr Sehnenbreite pro Segment
+    // als weiter innen). BEWUSST KEINE lokale 180-Grad-Korrektur fuer die untere
+    // Haelfte (frueher hier vorhanden, aber falsch): das Rad dreht sich beim Spin,
+    // und jeder Name kann am Zeiger (12 Uhr) landen. Die Gesamt-Rotation eines
+    // Namens im Moment, in dem sein Segment am Zeiger steht, ist immer 0 (Spin-
+    // Winkel + eigener Ruhewinkel heben sich exakt auf, siehe spinWheel()). Mit
+    // einer zusaetzlichen lokalen Korrektur stuenden dadurch ausgerechnet die
+    // Namen, die in Ruhestellung unten waren, verkehrt herum da, sobald sie
+    // gewinnen. Ohne Korrektur ist jeder Name oben an 12 Uhr lesbar, in
+    // Ruhestellung unten dafuer auf dem Kopf (Fabian: das ist so gewuenscht).
+    const textRadiusFactor = 0.80;
+    let fontSize = 34;
+    if (names.length > 6) fontSize = 28;
+    if (names.length > 10) fontSize = 22;
+    if (names.length > 14) fontSize = 18;
+
+    names.forEach((name, i) => {
+      const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+      const [ex, ey] = svgSlicePoint(segAngle, r);
+      const largeArc = segAngle > 180 ? 1 : 0;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', `rotate(${i * segAngle})`);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M 0 0 L 0 ${-r} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey} Z`);
+      path.setAttribute('fill', color);
+      path.setAttribute('stroke', '#d4af37');
+      path.setAttribute('stroke-width', '1.5');
+      g.appendChild(path);
+      rotor.appendChild(g);
+
+      const midAngle = i * segAngle + segAngle / 2;
+      const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      labelG.setAttribute('transform', `rotate(${midAngle})`);
+      const textY = -r * textRadiusFactor;
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', '0');
+      text.setAttribute('y', String(textY));
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', WHEEL_TEXT_COLOR);
+      text.setAttribute('font-size', String(fontSize));
+      text.setAttribute('font-weight', '700');
+      text.setAttribute('font-family', 'Georgia, serif');
+      text.setAttribute('style', 'paint-order: stroke; stroke: rgba(20,12,4,0.75); stroke-width: 3px;');
+      text.textContent = name;
+      labelG.appendChild(text);
+      rotor.appendChild(labelG);
+    });
+  }
+
+  function renderWheel() {
+    const ta = document.getElementById('wheel-names');
+    if (ta) ta.value = (state.wheelNames || []).join('\n');
+    renderWheelSvgOnly();
+  }
+
+  let wheelSpinAudioEl = null;
+  function startWheelSpinSound() {
+    stopWheelSpinSound();
+    try {
+      wheelSpinAudioEl = new Audio(SND_WHEEL_SPIN);
+      wheelSpinAudioEl.volume = scaledEffectVolume(0.55);
+      wheelSpinAudioEl.loop = true;
+      wheelSpinAudioEl.play().catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
+  function stopWheelSpinSound() {
+    if (wheelSpinAudioEl) {
+      try { wheelSpinAudioEl.pause(); wheelSpinAudioEl.currentTime = 0; } catch (e) {}
+      wheelSpinAudioEl = null;
+    }
+  }
+  function playWheelFanfare() { playClip(SND_WINNER, 0.7); }
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function spinWheel() {
+    if (wheelSpinning) return;
+    const names = state.wheelNames || [];
+    if (names.length < 2) {
+      alert('Bitte mindestens 2 Namen eintragen, bevor gedreht wird.');
+      return;
+    }
+    wheelSpinning = true;
+    document.getElementById('spin-btn').disabled = true;
+    document.getElementById('wheel-names').disabled = true;
+    document.getElementById('wheel-result').classList.remove('show');
+    startWheelSpinSound();
+
+    const segAngle = 360 / names.length;
+    const idx = Math.floor(Math.random() * names.length);
+    const jitter = segAngle * 0.15 + Math.random() * segAngle * 0.7;
+    const targetAngleAtPointer = idx * segAngle + jitter;
+    const desiredMod = (360 - targetAngleAtPointer + 360) % 360;
+    const currentMod = ((wheelAngle % 360) + 360) % 360;
+    const delta = (desiredMod - currentMod + 360) % 360;
+    const extraFullSpins = 5 + Math.floor(Math.random() * 3);
+    const startAngle = wheelAngle;
+    const endAngle = wheelAngle + extraFullSpins * 360 + delta;
+    const duration = 4200;
+    const startTime = performance.now();
+
+    function frame(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = easeOutCubic(t);
+      const current = startAngle + (endAngle - startAngle) * eased;
+      wheelAngle = current;
+      document.getElementById('wheel-rotor').setAttribute('transform', `rotate(${current})`);
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        wheelSpinning = false;
+        stopWheelSpinSound();
+        document.getElementById('spin-btn').disabled = false;
+        document.getElementById('wheel-names').disabled = false;
+        showWheelResult(names[idx]);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const CONFETTI_COLORS = ['#d4af37', '#e8c96a', '#fff3d0', '#b8860b', '#8a5a2b'];
+
+  function spawnConfetti(container, count) {
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 60 + Math.random() * 130;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance - 40;
+      el.style.setProperty('--dx', dx + 'px');
+      el.style.setProperty('--dy', dy + 'px');
+      el.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      el.style.animationDelay = (Math.random() * 0.15) + 's';
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 1600);
+    }
+  }
+
+  function showWheelResult(name) {
+    playWheelFanfare();
+    const el = document.getElementById('wheel-result');
+    el.innerHTML = '';
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'wheel-result-name';
+    nameDiv.textContent = `🎉 ${name} 🎉`;
+    const hint = document.createElement('div');
+    hint.className = 'wheel-result-hint';
+    hint.textContent = 'Antippen zum Schliessen';
+    el.appendChild(nameDiv);
+    el.appendChild(hint);
+    el.classList.add('show');
+    el.onclick = () => dismissWheelResult(name);
+    const backdrop = document.getElementById('wheel-result-backdrop');
+    backdrop.classList.add('show');
+    backdrop.onclick = () => dismissWheelResult(name);
+    spawnConfetti(el, 36);
+  }
+
+  function dismissWheelResult(name) {
+    const el = document.getElementById('wheel-result');
+    const backdrop = document.getElementById('wheel-result-backdrop');
+    el.classList.remove('show');
+    el.onclick = null;
+    backdrop.classList.remove('show');
+    backdrop.onclick = null;
+    const idx = state.wheelNames.indexOf(name);
+    if (idx !== -1) {
+      state.wheelNames.splice(idx, 1);
+      saveState();
+      renderWheel();
+    }
+  }
+
+  render();
+  renderWheel();
+  initMusic();
+  updateTopClearanceSoon();
+</script>
+
+</body>
+</html>
