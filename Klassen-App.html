@@ -106,6 +106,17 @@
   }
   nav button.active { background: rgba(212,175,55,0.25); border-color: var(--gold); }
   nav button:hover { background: rgba(212,175,55,0.18); }
+  /* Menü wird langsam groesser (Fabian, 13.8.2026), darum nur die ersten 3
+     Reiter immer sichtbar, der Rest steckt in .nav-more und wird per Pfeil
+     ein-/ausgeklappt (toggleNavMore()). Wenn eine Szene aus der versteckten
+     Gruppe aktiv ist, klappt showScene() automatisch auf. */
+  .nav-more { display: none; gap: 8px; }
+  .nav-more.show { display: flex; }
+  .nav-more-toggle {
+    padding: 8px 12px !important;
+    transition: background 0.2s, transform 0.2s !important;
+  }
+  .nav-more-toggle.open { transform: rotate(180deg); }
 
   /* Musik ist bewusst klein/unauffaellig neben dem Level-Badge statt als
      eigener Reiter in der Haupt-Navbar (die ist fuer die Szenen-Wechsel da,
@@ -176,24 +187,6 @@
     font-size: 15px; line-height: 1; padding: 0 3px; flex-shrink: 0;
   }
   .pending-reward-item .remove-btn:hover { color: #f0a0a0; }
-
-  .level-badge {
-    background: var(--panel-bg);
-    border: 1px solid rgba(212,175,55,0.5);
-    border-radius: 12px;
-    padding: 8px 14px;
-    font-size: 13px;
-    color: var(--gold);
-    max-width: 30vw;
-    flex-shrink: 0;
-  }
-  .level-badge b { font-size: 16px; }
-  .level-badge.level-down-flash { animation: levelDownPulse 0.7s ease; }
-  @keyframes levelDownPulse {
-    0% { box-shadow: 0 0 0 rgba(200,90,90,0); border-color: rgba(212,175,55,0.5); }
-    30% { box-shadow: 0 0 18px rgba(200,90,90,0.9); border-color: #c85a5a; }
-    100% { box-shadow: 0 0 0 rgba(200,90,90,0); border-color: rgba(212,175,55,0.5); }
-  }
 
   /* --- schwebende Punkte-Texte --- */
   .float-pop {
@@ -273,29 +266,12 @@
   .ritual-buttons button:hover { background: rgba(212,175,55,0.32); transform: translateY(-2px); }
   .ritual-buttons button:active { transform: translateY(0); }
   .minus-btn {
-    margin-top: 10px;
     background: none !important;
     border: 1px solid rgba(200,90,90,0.4) !important;
     color: #d9a3a3 !important;
     font-size: 12px !important;
     padding: 6px 12px !important;
   }
-
-  .levelup-flash {
-    position: fixed; inset: 0; z-index: 50;
-    background: radial-gradient(circle, rgba(127,216,255,0.35), rgba(127,216,255,0) 60%);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.5s;
-  }
-  .levelup-flash.show { opacity: 1; }
-  .levelup-text {
-    position: fixed; top: 22%; left: 50%; transform: translate(-50%,-50%) scale(0.6);
-    z-index: 51; font-size: 34px; color: var(--gold);
-    text-shadow: 0 0 20px rgba(212,175,55,0.9);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.4s, transform 0.6s cubic-bezier(.34,1.56,.64,1);
-  }
-  .levelup-text.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 
   /* --- Schatzkammer --- */
   .panel {
@@ -348,48 +324,101 @@
     gap: 46px; flex-wrap: wrap; padding: var(--top-clearance) 20px 40px; max-width: 96vw;
   }
   .wheel-stage { display: flex; flex-direction: column; align-items: center; }
-  .rad-frame {
+  /* Namensspule V7 (Fabian, 13.8.2026): den dunklen Rand, der im Bild noch
+     als Leerraum um die Plakette lag, per background-size/-position
+     weggezoomt/gecroppt (nur noch die Plakette selbst ist zu sehen, per
+     Pixelmessung auf x 8.75%-91.25%, y 11.9%-88.2% des Originalbilds
+     ermittelt). .reel-frame's eigenes Seitenverhaeltnis in
+     updateReelFrameSize() darum auch auf die GECROPPTE Plakette angepasst
+     (2508x1074 statt 3040x1408), sonst waere die Box wieder zu breit/leer.
+     Fenster-Koordinaten entsprechend auf die gecroppte Ansicht umgerechnet:
+     x 5%-94.7%, y 16.4%-83.2%. Zeiger/Spitzen komplett entfernt (Fabian:
+     unnoetig, verursachten nur Probleme), Funken kommen jetzt direkt von
+     den Fensterkanten statt von Zeigerspitzen. */
+  .reel-frame {
     position: relative;
-    width: min(560px, 80vw);
-    aspect-ratio: 1 / 1;
-    border-radius: 50%;
+    width: min(640px, 58vw);
+    height: min(274px, 25vw);
+    background-image: url('Spinning-Wheel.jpg');
+    background-size: 121.2% 131.1%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 14px 30px rgba(0,0,0,0.55));
+    overflow: visible;
+  }
+  .reel-window {
+    position: absolute;
+    left: 5%; top: 16.4%; width: 89.7%; height: 66.8%;
+    border-radius: 6px;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(255,150,50,0.28) 0px, rgba(255,150,50,0.28) 2px,
+        transparent 2px, transparent 10px),
+      radial-gradient(ellipse at center, #7c1a12 0%, #34090a 68%, #1c0405 100%);
     overflow: hidden;
-    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
-    transition: width 0.3s;
+    z-index: 2;
   }
-  .rad-frame img.rad-bg {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  .reel-track {
+    position: absolute; top: 0; left: 0; width: 100%;
+    display: flex; flex-direction: column; align-items: center;
   }
-  .rad-frame #wheel-svg {
-    position: absolute; inset: 0; width: 100%; height: 100%;
+  .reel-tile {
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
+    padding: 4px 10px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 34px; font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #ffe7a8;
+    text-shadow: 0 0 14px rgba(255,180,60,0.75), 0 2px 2px rgba(0,0,0,0.85);
+    text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  #wheel-rotor { transition: none; }
-  .rad-pointer {
-    fill: #ffe9a8; stroke: #3a2410; stroke-width: 3;
-    filter: drop-shadow(0 0 8px rgba(255,220,140,0.9));
+  .reel-fade {
+    position: absolute; left: 0; right: 0; height: 20%; z-index: 4; pointer-events: none;
   }
+  .reel-fade-top { top: 0; background: linear-gradient(180deg, #1c0405, transparent); }
+  .reel-fade-bottom { bottom: 0; background: linear-gradient(0deg, #1c0405, transparent); }
+  /* Zeiger/Spitzen entfernt (Fabian, 13.8.2026: unnoetig, machten nur
+     Probleme). Funken kommen jetzt direkt von den linken/rechten Kanten
+     des Fensters statt von Zeigerspitzen, siehe spawnSparks(). */
+  .reel-sparks { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 6; }
+  .spark-piece {
+    position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle, #fff3d0, #ffb020 55%, transparent 75%);
+    pointer-events: none;
+    animation: sparkFly 0.55s ease-out forwards;
+  }
+  @keyframes sparkFly {
+    0% { transform: translate(-50%,-50%) translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(-50%,-50%) translate(var(--sx), var(--sy)) scale(0.2); opacity: 0; }
+  }
+  /* Panel etwas grosszuegiger, passend zur jetzt groesseren Spule (Fabian,
+     13.8.2026: "der Kasten Name fuers Rad darf auch groesser sein"). */
   .wheel-panel {
     background: var(--panel-bg);
     border: 1px solid rgba(212,175,55,0.45);
     border-radius: 18px;
-    padding: 18px 20px;
-    width: min(260px, 88vw);
+    padding: 24px 26px;
+    width: min(320px, 90vw);
     box-shadow: 0 0 30px rgba(0,0,0,0.5);
   }
-  .wheel-panel-title { color: var(--gold); font-size: 14px; margin-bottom: 10px; letter-spacing: 0.3px; }
-  .wheel-panel-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .wheel-panel-title { color: var(--gold); font-size: 15px; margin-bottom: 12px; letter-spacing: 0.3px; }
+  .wheel-panel-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .wheel-panel-row button {
-    flex: 1 1 28%; font-family: inherit; font-size: 12px; padding: 8px 4px;
+    flex: 1 1 28%; font-family: inherit; font-size: 13px; padding: 9px 4px;
     border-radius: 10px; border: 1px solid rgba(212,175,55,0.5);
     background: rgba(212,175,55,0.1); color: #f1e6d0; cursor: pointer;
     transition: background 0.2s;
   }
   .wheel-panel-row button:hover { background: rgba(212,175,55,0.25); }
   #wheel-names {
-    width: 100%; min-height: 240px; resize: vertical;
+    width: 100%; min-height: 300px; resize: vertical;
     background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.3);
-    border-radius: 10px; color: #f1e6d0; font-family: inherit; font-size: 13px;
-    padding: 8px 10px; line-height: 1.5;
+    border-radius: 10px; color: #f1e6d0; font-family: inherit; font-size: 14px;
+    padding: 10px 12px; line-height: 1.6;
   }
   .spin-btn {
     display: block; width: 100%; margin-top: 12px;
@@ -403,33 +432,10 @@
   .spin-btn:hover:not(:disabled) { background: rgba(212,175,55,0.4); transform: translateY(-2px); }
   .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .wheel-result-backdrop {
-    position: fixed; inset: 0; z-index: 50;
-    background: rgba(8,6,4,0.55);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.4s;
-  }
-  .wheel-result-backdrop.show { opacity: 1; pointer-events: auto; cursor: pointer; }
-  .wheel-result {
-    position: fixed; top: 44%; left: 50%; transform: translate(-50%,-50%) scale(0.6);
-    z-index: 51; text-align: center;
-    background: var(--panel-bg);
-    border: 1px solid rgba(212,175,55,0.6);
-    border-radius: 22px;
-    padding: 34px 50px;
-    max-width: 90vw;
-    box-shadow: 0 0 50px rgba(0,0,0,0.7);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.4s, transform 0.6s cubic-bezier(.34,1.56,.64,1);
-  }
-  .wheel-result.show { opacity: 1; transform: translate(-50%,-50%) scale(1); pointer-events: auto; cursor: pointer; }
-  .wheel-result-name {
-    font-size: 34px; color: var(--gold);
-    text-shadow: 0 0 20px rgba(212,175,55,0.9);
-  }
-  .wheel-result-hint {
-    margin-top: 12px; font-size: 12px; color: #cbbf9e; opacity: 0.8;
-  }
+  /* Kein Popup mehr fuer den Gewinner (Fabian, 13.8.2026: der Name steht ja
+     schon klar im Fenster der Spule, keine Notwendigkeit ihn nochmal in
+     einer Karte zu wiederholen). Nur noch Konfetti + Fanfare direkt an der
+     Spule, siehe celebrateWinner(). */
   .confetti-piece {
     position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 2px;
     pointer-events: none;
@@ -467,17 +473,22 @@
     padding: 8px 10px; line-height: 1.5;
   }
   .gruppen-count-row button.active { background: rgba(212,175,55,0.35); border-color: var(--gold); }
+  /* Ergebnis-Karten duerfen den vorhandenen Platz nutzen (Fabian,
+     13.8.2026: "genug Platz", soll auf PC UND Laptop passen). Obere Grenze
+     bewusst hoch (1200px) fuer grosse Bildschirme, faellt dank vw-Deckel
+     und auto-fit-Grid auf schmaleren Laptop-Fenstern automatisch kleiner
+     aus, ganz ohne JS-Messung noetig. */
   .gruppen-results {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    width: min(640px, 90vw);
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 22px;
+    width: min(1200px, 94vw);
   }
   .gruppen-card {
     background: rgba(30,20,12,0.7);
     border: 1px solid rgba(212,175,55,0.35);
-    border-radius: 14px;
-    padding: 14px 16px;
+    border-radius: 16px;
+    padding: 20px 22px;
     animation: gruppeFadeIn 0.4s ease-out backwards;
   }
   @keyframes gruppeFadeIn {
@@ -485,11 +496,275 @@
     100% { opacity: 1; transform: translateY(0); }
   }
   .gruppen-card .gruppen-card-title {
-    color: var(--gold); font-size: 14px; margin-bottom: 8px; letter-spacing: 0.3px;
+    color: var(--gold); font-size: 18px; margin-bottom: 12px; letter-spacing: 0.3px;
   }
   .gruppen-card ul { list-style: none; margin: 0; padding: 0; }
-  .gruppen-card li { font-size: 14px; padding: 3px 0; color: #f1e6d0; }
+  .gruppen-card li { font-size: 16px; padding: 5px 0; color: #f1e6d0; }
   .gruppen-empty-hint { color: #b8ab8c; font-size: 13px; padding-top: 10px; }
+
+  /* --- To-do-Listen (Fabian, 13.8.2026): Kaertchen wie auf dem Pult, eine
+     Liste fuer SuS und eine fuer die Lehrperson (Umschalter oben). Vorne
+     ein Schlagwort, Klick dreht die Karte per 3D-Flip fuer mehr Text +
+     Datum + Loeschen. Farbe je nach Dringlichkeit (siehe todoUrgency() im
+     Script): gruen genug Zeit, gelb wichtig, rot umgehend. Max. 3 Spalten,
+     quadratische Karten, absichtlich schlicht/symmetrisch gehalten. */
+  #scene-todo {
+    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .todo-layout {
+    width: min(700px, 96vw);
+    margin: 0 auto;
+    padding: var(--top-clearance) 20px 40px;
+    text-align: center;
+  }
+  .todo-layout h1 { font-size: 22px; margin: 0 0 4px; color: var(--gold); letter-spacing: 0.5px; }
+  .todo-layout .sub { font-size: 13px; color: #b8ab8c; margin-bottom: 18px; }
+  .todo-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; }
+  .todo-toggle-btn {
+    font-family: inherit; font-size: 14px; padding: 10px 22px;
+    border-radius: 12px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.08); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .todo-toggle-btn:hover { background: rgba(212,175,55,0.2); }
+  .todo-toggle-btn.active { background: rgba(212,175,55,0.32); border-color: var(--gold); }
+  .todo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    width: min(560px, 92vw);
+    margin: 0 auto 24px;
+  }
+  .todo-card {
+    aspect-ratio: 1 / 1;
+    perspective: 900px;
+    cursor: pointer;
+    animation: gruppeFadeIn 0.35s ease-out backwards;
+    /* Kein Text markieren beim (mehrfachen) Klicken zum Drehen (Fabian,
+       13.8.2026: stoert, wenn beim Klicken auf die Karte Text blau markiert
+       wird statt sie nur umzudrehen). */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .todo-card-inner {
+    position: relative; width: 100%; height: 100%;
+    transition: transform 0.5s cubic-bezier(.4,.2,.2,1);
+    transform-style: preserve-3d;
+  }
+  .todo-card.flipped .todo-card-inner { transform: rotateY(180deg); }
+  .todo-card-front, .todo-card-back {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    border: 2px solid rgba(212,175,55,0.4);
+    background: rgba(30,20,12,0.8);
+    padding: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .todo-card-back {
+    transform: rotateY(180deg);
+    justify-content: space-between;
+  }
+  .todo-card.urgency-green .todo-card-front,
+  .todo-card.urgency-green .todo-card-back { border-color: #4fae6e; box-shadow: 0 0 14px rgba(79,174,110,0.25) inset; }
+  .todo-card.urgency-yellow .todo-card-front,
+  .todo-card.urgency-yellow .todo-card-back { border-color: #d4af37; box-shadow: 0 0 14px rgba(212,175,55,0.3) inset; }
+  .todo-card.urgency-red .todo-card-front,
+  .todo-card.urgency-red .todo-card-back { border-color: #d9534f; box-shadow: 0 0 14px rgba(217,83,79,0.3) inset; }
+  .todo-card-keyword {
+    font-size: 15px; font-weight: bold; color: #f1e6d0;
+    word-break: break-word; line-height: 1.25;
+  }
+  .todo-card-date { font-size: 11px; color: #b8ab8c; margin-top: 8px; }
+  .todo-card-detail {
+    font-size: 12px; color: #e8dcc3; line-height: 1.4;
+    overflow-y: auto; max-height: 100%; word-break: break-word;
+  }
+  .todo-card-delete {
+    margin-top: 8px; font-family: inherit; font-size: 11px;
+    padding: 5px 10px; border-radius: 8px;
+    border: 1px solid rgba(200,90,90,0.5);
+    background: none; color: #d9a3a3; cursor: pointer;
+  }
+  .todo-card-delete:hover { background: rgba(200,90,90,0.15); }
+  .todo-empty-hint { grid-column: 1 / -1; color: #b8ab8c; font-size: 13px; padding: 20px 0; }
+  .todo-add {
+    display: flex; flex-direction: column; gap: 10px;
+    width: min(360px, 92vw); margin: 0 auto;
+    background: var(--panel-bg); border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 16px; padding: 18px 20px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  }
+  .todo-add-title { color: var(--gold); font-size: 14px; margin-bottom: 2px; letter-spacing: 0.3px; }
+  .todo-add input, .todo-add textarea {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 10px; color: #f1e6d0; font-family: inherit; font-size: 13px;
+    padding: 8px 10px; line-height: 1.5;
+  }
+  .todo-add textarea { resize: vertical; }
+  .todo-add-legend { font-size: 11px; color: #b8ab8c; text-align: left; line-height: 1.6; }
+
+  /* --- Wandtafel (Fabian, 13.8.2026): digitale Zeichenflaeche, Stift per
+     Smartboard/Maus/Touch (Pointer Events, damit alle drei gleich
+     funktionieren). Hintergrund umschaltbar weiss/liniert/kariert wie
+     echtes Schreibpapier. Bewusst NICHT gespeichert (localStorage waere bei
+     Zeichnungen schnell riesig), ist als Wegwisch-Tafel gedacht, nicht als
+     Dokument.
+     Echt VOLLBILD (Fabian, 13.8.2026, Nachtrag: "die komplette Seite,
+     damit ich mehr Flaeche zum Arbeiten habe"): sobald diese Szene aktiv
+     ist, bekommt <body> die Klasse tafel-fullscreen, die Navbar und die
+     Eck-Badges werden dadurch ausgeblendet (siehe Regeln unten), kein
+     top-clearance-Abstand mehr noetig. Zurueck geht's ueber den eigenen
+     X-Knopf (.tafel-close), der zur Szene zurueckspringt, aus der man kam
+     (showScene() merkt sich das in tafelReturnScene). */
+  body.tafel-fullscreen nav,
+  body.tafel-fullscreen .top-left-cluster,
+  body.tafel-fullscreen .total-badge,
+  body.tafel-fullscreen .pending-rewards {
+    display: none !important;
+  }
+  #scene-tafel {
+    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .tafel-layout {
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 14px 14px 16px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .tafel-close {
+    position: fixed; top: 14px; right: 14px; z-index: 25;
+    width: 40px; height: 40px; padding: 0;
+    border-radius: 50%;
+    font-family: inherit; font-size: 22px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: var(--panel-bg); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .tafel-close:hover { background: rgba(212,175,55,0.25); }
+  .tafel-toolbar {
+    display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; align-items: center;
+    margin-bottom: 14px;
+    max-width: calc(100vw - 76px);
+    background: var(--panel-bg); border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 14px; padding: 10px 18px;
+  }
+  .tafel-group { display: flex; gap: 8px; align-items: center; }
+  .tafel-toolbar button {
+    font-family: inherit; font-size: 13px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.08); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .tafel-toolbar button:hover { background: rgba(212,175,55,0.2); }
+  .tafel-toolbar button.active { background: rgba(212,175,55,0.32); border-color: var(--gold); }
+  .tafel-color-btn {
+    width: 28px; height: 28px; padding: 0 !important;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3) !important;
+    background: var(--c);
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .tafel-color-btn:hover { transform: scale(1.12); background: var(--c); }
+  .tafel-color-btn.active { border-color: var(--gold) !important; transform: scale(1.18); }
+  .tafel-board {
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid rgba(212,175,55,0.45);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    background-color: #fdfdf8;
+    /* Sonst versucht der Browser bei Touch/Stift zu scrollen/zoomen statt
+       das Zeichnen ans Canvas weiterzugeben. */
+    touch-action: none;
+  }
+  /* Generisch (nicht nur .tafel-board), damit auch die Galerie-Vorschauen
+     (.tafel-gallery-item) das passende Muster zeigen koennen. */
+  .tafel-board.bg-liniert, .tafel-gallery-item.bg-liniert {
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 31px, #b9c8dd 32px);
+  }
+  .tafel-board.bg-kariert, .tafel-gallery-item.bg-kariert {
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, #cfd8e3 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 31px, #cfd8e3 32px);
+  }
+  #tafel-canvas { display: block; cursor: crosshair; }
+
+  /* Galerie der gespeicherten Tafeln (Fabian, 13.8.2026: "gespeichert, dann
+     in einem neuen Feld weiterarbeiten, und die gespeicherten in kleinen
+     Rechtecken sehen, die beim Anklicken wieder gross werden"). Speichern
+     legt jedes Mal einen neuen Eintrag an und leert danach die Tafel, die
+     Galerie zeigt alle Eintraege verkleinert, Klick laedt einen zurueck auf
+     die grosse Zeichenflaeche. */
+  .tafel-gallery-backdrop {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(8,6,4,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .tafel-gallery-backdrop.show { opacity: 1; pointer-events: auto; }
+  .tafel-gallery {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.95);
+    z-index: 41;
+    width: min(820px, 92vw); max-height: 82vh; overflow-y: auto;
+    background: var(--panel-bg); border: 1px solid rgba(212,175,55,0.5);
+    border-radius: 18px; padding: 22px 24px;
+    box-shadow: 0 0 50px rgba(0,0,0,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .tafel-gallery.show { opacity: 1; transform: translate(-50%,-50%) scale(1); pointer-events: auto; }
+  .tafel-gallery-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .tafel-gallery-header h2 { margin: 0; font-size: 18px; color: var(--gold); }
+  .tafel-gallery-close {
+    width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 18px;
+    border: 1px solid rgba(212,175,55,0.5); background: rgba(212,175,55,0.08);
+    color: #f1e6d0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tafel-gallery-close:hover { background: rgba(212,175,55,0.25); }
+  .tafel-gallery-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+  .tafel-gallery-item {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #fdfdf8;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .tafel-gallery-item:hover { transform: scale(1.04); border-color: var(--gold); }
+  .tafel-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tafel-gallery-date {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55); color: #f1e6d0; font-size: 11px;
+    padding: 3px 6px; text-align: center;
+  }
+  .tafel-gallery-delete {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; padding: 0; border-radius: 50%;
+    border: none; background: rgba(0,0,0,0.55); color: #e08a8a;
+    font-size: 13px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tafel-gallery-delete:hover { background: rgba(200,60,60,0.75); color: #fff; }
+  .tafel-gallery-empty { grid-column: 1 / -1; color: #b8ab8c; font-size: 13px; padding: 20px 0; text-align: center; }
 
   /* --- Ablauf (Startseite): echtes Stundenplan-Raster --- */
   /* Eigener, dezenter Hintergrund fuer diese Szene (Stundenplan-
@@ -527,6 +802,16 @@
   }
   .sp-nav-btn:hover:not(:disabled) { background: rgba(212,175,55,0.25); }
   .sp-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  /* Uhr-Icon neben der KW-Navigation, gleicher runder Knopf-Stil wie die
+     Pfeile, oeffnet die grosse Uhrzeit-Anzeige (Fabians Rechnerzeit). */
+  .sp-clock-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-clock-btn:hover { background: rgba(212,175,55,0.25); }
   .stundenplan-kw-label { text-align: center; min-width: 200px; }
   .sp-kw-main { color: var(--gold); font-size: 19px; letter-spacing: 0.3px; }
   .sp-kw-sub { color: #9a8f78; font-size: 12px; margin-top: 2px; }
@@ -609,6 +894,33 @@
     background: var(--gold);
     box-shadow: 0 0 5px rgba(212,175,55,0.9);
   }
+  /* Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
+     Klasse ausser Haus ist. Tageskopf bekommt ein auffaelliges Badge, die
+     betroffenen Lektionszellen werden einheitlich eingefaerbt und sind nicht
+     anklickbar (kein Unterricht zum Bearbeiten). Bewusst eine andere Farbe
+     (Gruen/Erdton) als alle Faecher, damit es sofort als "kein normaler
+     Unterricht" erkennbar ist. */
+  .sp-head.sp-head-special { color: #7fbf6a; }
+  .sp-head-special-badge {
+    display: block;
+    font-size: 10px;
+    color: #1a2e12;
+    background: #7fbf6a;
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin: 3px auto 0;
+    max-width: fit-content;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .sp-cell.sp-special-day {
+    background: #3a4a2e;
+    color: #d6ecc9;
+    cursor: default;
+    border: 1px solid rgba(127,191,106,0.5);
+    font-size: 12px;
+  }
+  .sp-cell.sp-special-day:hover { transform: none; filter: none; }
   .sp-divider {
     grid-column: 1 / -1;
     text-align: center;
@@ -725,6 +1037,146 @@
     .sp-big-timer-value { font-size: 38px; }
     .sp-big-timer-label { max-width: 180px; font-size: 12px; }
   }
+  /* Uhr/Stoppuhr/Timer-Widget: ueber das Uhr-Icon neben der KW-Navigation
+     im Ablauf oeffenbar. Bewusst KEIN abdunkelndes Vollbild-Modal (anders
+     als die anderen Overlays), sondern ein frei verschiebbares Fenster,
+     das ueber allen Szenen schwebt (Fabian, 13.8.2026: "die Uhr verschieben
+     koennen, ausserdem Stoppuhr und Timer als Auswahl"). Position wird per
+     Pointer Events auf der Kopfzeile gezogen, siehe clockOverlayPointerDown
+     im Script. Start oben rechts, damit sie nichts Wichtiges verdeckt. */
+  .clock-overlay {
+    display: none;
+    position: fixed; top: 90px; right: 24px; left: auto;
+    z-index: 61;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.55);
+    border-radius: 18px;
+    width: min(300px, 90vw);
+    box-shadow: 0 0 0 1px rgba(212,175,55,0.15) inset, 0 0 50px rgba(212,175,55,0.16), 0 10px 34px rgba(0,0,0,0.7);
+    flex-direction: column;
+    /* Groesse per Ziehen am Eck-Griff (clock-resize-handle): skaliert das
+       ganze Fenster gleichmaessig via transform (Fabian, 13.8.2026, Nachtrag:
+       "gleichmaessig groesser oder kleiner werden"). Ecke oben links bleibt
+       beim Skalieren fix, deckt sich mit der links/oben gesetzten Position. */
+    transform-origin: top left;
+  }
+  .clock-overlay.show { display: flex; }
+  .clock-overlay-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 40px 10px 12px;
+    border-bottom: 1px solid rgba(212,175,55,0.25);
+    cursor: grab;
+    touch-action: none;
+    user-select: none; -webkit-user-select: none;
+  }
+  .clock-overlay-header:active { cursor: grabbing; }
+  .clock-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .clock-tab {
+    font-family: inherit; font-size: 12px; padding: 6px 10px;
+    border-radius: 9px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.08); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .clock-tab:hover { background: rgba(212,175,55,0.2); }
+  .clock-tab.active { background: rgba(212,175,55,0.32); border-color: var(--gold); }
+  .clock-overlay-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: transparent; border: 1px solid rgba(212,175,55,0.4);
+    color: #cbbf9e; cursor: pointer; font-size: 16px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .clock-overlay-close:hover { background: rgba(212,175,55,0.2); }
+  .clock-overlay-body {
+    padding: 20px 22px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .clock-mode-panel {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    width: 100%;
+  }
+  .clock-overlay-time {
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    font-size: 44px; font-weight: bold; color: var(--gold); line-height: 1.1;
+  }
+  .clock-overlay-date {
+    font-size: 13px; color: #cbbf9e;
+  }
+  .clock-overlay-buttons { display: flex; gap: 8px; margin-top: 4px; }
+  .clock-overlay-buttons button {
+    font-family: inherit; font-size: 13px; padding: 8px 16px;
+    border-radius: 10px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .clock-overlay-buttons button:hover { background: rgba(212,175,55,0.25); }
+  /* Timer-Minutenwahl als einklappbares Menue statt vieler gleichzeitig
+     sichtbarer Knoepfe (Fabian, 16.8.2026: "so viele Optionen, sieht nicht
+     schoen aus, sollte einen Pfeil haben, dann ein Menue fuer die
+     Minutenzahl, das wieder verschwindet, wenn man eine Zeit ausgewaehlt hat
+     und der Timer beginnt"). Idle-Ansicht zeigt nur die Uhranzeige + diesen
+     einen Pfeil-Knopf, Pause/Zuruecksetzen erscheinen erst nach dem Start
+     (siehe updateTimerPanelState() im Script). */
+  .clock-timer-picker { display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .clock-timer-adjust-btn {
+    font-family: inherit; font-size: 12px; line-height: 1;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .clock-timer-adjust-btn:hover { background: rgba(212,175,55,0.25); }
+  .clock-timer-picker-menu {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+    width: 100%;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 12px;
+    padding: 12px 10px;
+  }
+  .clock-timer-presets { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .clock-timer-presets button {
+    font-family: inherit; font-size: 12px; padding: 6px 10px;
+    border-radius: 9px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.08); color: #f1e6d0; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .clock-timer-presets button:hover { background: rgba(212,175,55,0.2); }
+  .clock-timer-custom-row { display: flex; align-items: center; gap: 8px; }
+  .clock-timer-custom-value {
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    font-size: 14px; color: #f1e6d0; min-width: 46px; text-align: center;
+  }
+  .clock-timer-custom-start {
+    font-family: inherit; font-size: 12px; padding: 6px 14px;
+    border-radius: 9px; border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.18); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .clock-timer-custom-start:hover { background: rgba(212,175,55,0.3); }
+  /* Eck-Griff unten rechts zum Skalieren des ganzen Fensters. */
+  .clock-resize-handle {
+    position: absolute; right: 2px; bottom: 2px;
+    width: 18px; height: 18px;
+    cursor: nwse-resize;
+    touch-action: none;
+    opacity: 0.55;
+  }
+  .clock-resize-handle:hover { opacity: 1; }
+  .clock-resize-handle::before {
+    content: ''; position: absolute; right: 3px; bottom: 3px;
+    width: 9px; height: 9px;
+    border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold);
+  }
+  /* Timer bei 0:00: bleibt blinkend, bis aktiv weggeklickt/zurueckgesetzt,
+     gleiches Muster wie der Lektionsschritt-Timer. */
+  @keyframes clockTimerDoneBlink {
+    0%, 100% { color: var(--gold); }
+    50% { color: #fff3cf; }
+  }
+  .clock-overlay-time.clock-timer-done { animation: clockTimerDoneBlink 0.9s ease-in-out infinite; }
   /* Lektionsablauf als Liste einzelner Schritte statt Fliesstext/Bulletpoints.
      Jeder Schritt leuchtet beim Drueberfahren schwach auf (Hover-Glow), damit
      Fabian im Unterricht mit der Maus/dem Cursor auf den aktuellen Schritt
@@ -868,17 +1320,17 @@
   @media (max-width: 480px) {
     nav { gap: 6px; padding: 6px; top: 10px; max-width: calc(100vw - 16px); }
     nav button { padding: 6px 10px; font-size: 12px; }
-    .level-badge, .total-badge { font-size: 11px; padding: 6px 9px; }
+    .total-badge { font-size: 11px; padding: 6px 9px; right: 10px; }
     .top-left-cluster { left: 10px; gap: 6px; }
-    .total-badge { right: 10px; }
-    .level-badge b { font-size: 14px; }
     .total-badge b { font-size: 13px; }
     .music-mini #music-volume { width: 40px; }
     .panel { padding: 22px 20px; }
     .rewards-grid { grid-template-columns: 1fr; }
     .wheel-panel, .gruppen-panel { padding: 14px 14px; }
-    .wheel-result { padding: 24px 26px; }
-    .wheel-result-name { font-size: 26px; }
+    .gruppen-results { gap: 12px; }
+    .gruppen-card { padding: 14px 16px; }
+    .gruppen-card .gruppen-card-title { font-size: 14px; margin-bottom: 8px; }
+    .gruppen-card li { font-size: 14px; padding: 3px 0; }
   }
 </style>
 </head>
@@ -888,14 +1340,18 @@
   <button id="nav-ablauf" onclick="showScene('ablauf')">Ablauf</button>
   <button id="nav-trank" class="active" onclick="showScene('trank')">Alchemistenkammer</button>
   <button id="nav-truhe" onclick="showScene('truhe')">Schatzkammer</button>
-  <button id="nav-rad" onclick="showScene('rad')">Glücksrad</button>
-  <button id="nav-gruppen" onclick="showScene('gruppen')">Gruppen</button>
+  <span class="nav-more" id="nav-more">
+    <button id="nav-rad" onclick="showScene('rad')">Glücksrad</button>
+    <button id="nav-gruppen" onclick="showScene('gruppen')">Gruppen</button>
+    <button id="nav-todo" onclick="showScene('todo')">To-do-Listen</button>
+    <button id="nav-tafel" onclick="showScene('tafel')">Wandtafel</button>
+  </span>
+  <button id="nav-more-toggle" class="nav-more-toggle" onclick="toggleNavMore()" title="Weitere Reiter" aria-label="Weitere Reiter">&#9662;</button>
 </nav>
 
 <audio id="bg-music" src="Hintergrundmusik.mp3" loop preload="auto"></audio>
 
 <div class="top-left-cluster">
-  <div class="level-badge">Level <b id="level-num">1</b></div>
   <div class="music-mini" title="Musik">
     <button id="music-toggle" class="active" onclick="toggleMusic()">
       <svg class="music-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -908,9 +1364,6 @@
   </div>
 </div>
 <div class="total-badge">Gesamtpunkte diese Periode: <b id="total-points">0</b></div>
-
-<div class="levelup-flash" id="levelup-flash"></div>
-<div class="levelup-text" id="levelup-text">&#10024; Level Up! &#10024;</div>
 
 <div class="pending-rewards" id="pending-rewards">
   <div class="pending-rewards-title">Preis zugute</div>
@@ -927,6 +1380,12 @@
         <div class="sp-kw-sub" id="sp-kw-sub">Herbstferien: 27.9.&ndash;18.10.</div>
       </div>
       <button class="sp-nav-btn" id="sp-next-week" onclick="changeSpWeek(1)" aria-label="N&auml;chste Woche">&#8594;</button>
+      <button class="sp-clock-btn" id="sp-clock-btn" onclick="openClockOverlay()" aria-label="Uhrzeit anzeigen" title="Uhrzeit anzeigen">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v5l3.3 2"/>
+        </svg>
+      </button>
     </div>
     <div class="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
     <div class="stundenplan-scroll">
@@ -955,6 +1414,59 @@
     <button class="spin-btn" onclick="saveSpNote()">Speichern</button>
     <button class="ablauf-edit-btn" onclick="closeSpEdit()">Abbrechen</button>
   </div>
+</div>
+
+<!-- Uhr/Stoppuhr/Timer-Widget: ueber das Uhr-Icon neben der KW-Navigation im
+     Ablauf oeffenbar, frei verschiebbar (Kopfzeile ziehen), schwebt ueber
+     allen Szenen statt den Bildschirm abzudunkeln. -->
+<div class="clock-overlay" id="clock-overlay">
+  <div class="clock-overlay-header" id="clock-overlay-header">
+    <div class="clock-tabs">
+      <button class="clock-tab active" id="clock-tab-uhr" onclick="setClockMode('uhr')">Uhrzeit</button>
+      <button class="clock-tab" id="clock-tab-stoppuhr" onclick="setClockMode('stoppuhr')">Stoppuhr</button>
+      <button class="clock-tab" id="clock-tab-timer" onclick="setClockMode('timer')">Timer</button>
+    </div>
+  </div>
+  <button class="clock-overlay-close" onclick="closeClockOverlay()" aria-label="Schliessen">&times;</button>
+  <div class="clock-overlay-body">
+    <div class="clock-mode-panel" id="clock-mode-uhr">
+      <div class="clock-overlay-time" id="clock-overlay-time">00:00:00</div>
+      <div class="clock-overlay-date" id="clock-overlay-date"></div>
+    </div>
+    <div class="clock-mode-panel" id="clock-mode-stoppuhr" style="display:none">
+      <div class="clock-overlay-time" id="stoppuhr-value">00:00.0</div>
+      <div class="clock-overlay-buttons">
+        <button type="button" id="stoppuhr-toggle" onclick="toggleStoppuhr()">Start</button>
+        <button type="button" onclick="resetStoppuhr()">Zurücksetzen</button>
+      </div>
+    </div>
+    <div class="clock-mode-panel" id="clock-mode-timer" style="display:none">
+      <div class="clock-overlay-time" id="timer-value">05:00</div>
+      <div class="clock-timer-picker" id="timer-picker">
+        <button type="button" class="clock-timer-adjust-btn" id="timer-picker-toggle" onclick="toggleTimerPicker()" title="Minuten wählen" aria-label="Minuten wählen">&#9662;</button>
+        <div class="clock-timer-picker-menu" id="timer-picker-menu" style="display:none">
+          <div class="clock-timer-presets">
+            <button type="button" onclick="pickTimerMinutes(5)">5&nbsp;min</button>
+            <button type="button" onclick="pickTimerMinutes(10)">10&nbsp;min</button>
+            <button type="button" onclick="pickTimerMinutes(15)">15&nbsp;min</button>
+            <button type="button" onclick="pickTimerMinutes(20)">20&nbsp;min</button>
+            <button type="button" onclick="pickTimerMinutes(30)">30&nbsp;min</button>
+          </div>
+          <div class="clock-timer-custom-row">
+            <button type="button" class="clock-timer-adjust-btn" onclick="adjustTimerPickerCustom(-1)" title="1 Minute weniger" aria-label="1 Minute weniger">&#9660;</button>
+            <div class="clock-timer-custom-value" id="timer-picker-custom-value">5&nbsp;min</div>
+            <button type="button" class="clock-timer-adjust-btn" onclick="adjustTimerPickerCustom(1)" title="1 Minute mehr" aria-label="1 Minute mehr">&#9650;</button>
+            <button type="button" class="clock-timer-custom-start" onclick="startTimerFromPicker()">Start</button>
+          </div>
+        </div>
+      </div>
+      <div class="clock-overlay-buttons" id="timer-controls" style="display:none">
+        <button type="button" id="timer-toggle" onclick="toggleTimer()">Pause</button>
+        <button type="button" onclick="resetTimer()">Zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+  <div class="clock-resize-handle" id="clock-resize-handle" title="Grösse ändern (ziehen)"></div>
 </div>
 
 <!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
@@ -999,13 +1511,10 @@
   </div>
 
   <div class="control-bar">
-    <div class="points-readout"><b id="fill-points">0</b> / <span id="fill-max">20</span> Punkte bis zum nächsten Level</div>
+    <div class="points-readout"><b id="fill-points">0</b> / <span id="fill-max">50</span> Punkte</div>
     <div class="ritual-buttons">
-      <button onclick="addPoints(1)">&#10024; Gute Lektion (+1)</button>
-      <button onclick="addPoints(1)">&#128221; Alle Hausaufgaben (+1)</button>
-    </div>
-    <div>
-      <button class="minus-btn" onclick="addPoints(-1)">-1 Punkt (Korrektur)</button>
+      <button onclick="addPoints(1)">+1</button>
+      <button class="minus-btn" onclick="addPoints(-1)">-1</button>
     </div>
   </div>
 </div>
@@ -1024,15 +1533,13 @@
 <div class="scene" id="scene-rad">
   <div class="wheel-layout">
     <div class="wheel-stage">
-      <div class="rad-frame" id="rad-frame">
-        <img class="rad-bg" src="Glücksrad.png" alt="Glücksrad">
-        <svg id="wheel-svg" viewBox="0 0 2816 1536" preserveAspectRatio="xMidYMid slice">
-          <g transform="translate(1411,773)">
-            <g id="wheel-rotor"></g>
-            <circle cx="0" cy="0" r="55" fill="#2a1d12" stroke="#d4af37" stroke-width="4"/>
-            <polygon class="rad-pointer" points="0,-625 -31,-686 31,-686"/>
-          </g>
-        </svg>
+      <div class="reel-frame" id="reel-frame">
+        <div class="reel-window" id="reel-window">
+          <div class="reel-track" id="reel-track"></div>
+          <div class="reel-fade reel-fade-top"></div>
+          <div class="reel-fade reel-fade-bottom"></div>
+        </div>
+        <div class="reel-sparks" id="reel-sparks"></div>
       </div>
     </div>
     <div class="wheel-panel">
@@ -1047,9 +1554,6 @@
     </div>
   </div>
 </div>
-
-<div class="wheel-result-backdrop" id="wheel-result-backdrop"></div>
-<div class="wheel-result" id="wheel-result"></div>
 
 <!-- Gruppen -->
 <div class="scene" id="scene-gruppen">
@@ -1075,14 +1579,82 @@
   </div>
 </div>
 
+<!-- To-do-Listen -->
+<div class="scene" id="scene-todo">
+  <div class="todo-layout">
+    <h1>To-do-Listen</h1>
+    <div class="sub">Kärtchen fürs Pult, digital</div>
+    <div class="todo-toggle">
+      <button class="todo-toggle-btn active" id="todo-tab-sus" onclick="setTodoList('sus')">Für SuS</button>
+      <button class="todo-toggle-btn" id="todo-tab-lehrperson" onclick="setTodoList('lehrperson')">Für Lehrperson</button>
+    </div>
+    <div class="todo-grid" id="todo-grid"></div>
+    <div class="todo-add">
+      <div class="todo-add-title">Neues Kärtchen</div>
+      <input type="text" id="todo-keyword" placeholder="Schlagwort" maxlength="30">
+      <textarea id="todo-detail" rows="2" placeholder="Genauer beschrieben (optional)"></textarea>
+      <input type="date" id="todo-due">
+      <button class="spin-btn" onclick="addTodo()">+ Kärtchen hinzufügen</button>
+      <div class="todo-add-legend">
+        &#128994; ab 3 Tagen &nbsp; &#128993; noch 1-2 Tage &nbsp; &#128308; heute/überfällig<br>
+        Farbe richtet sich automatisch nach dem Datum. Kein Datum = genug Zeit.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wandtafel -->
+<div class="scene" id="scene-tafel">
+  <div class="tafel-layout">
+    <button class="tafel-close" onclick="showScene(tafelReturnScene)" title="Wandtafel schliessen" aria-label="Wandtafel schliessen">&times;</button>
+    <div class="tafel-toolbar">
+      <div class="tafel-group">
+        <button class="tafel-bg-btn active" data-bg="weiss" onclick="setTafelBg('weiss')">Weiss</button>
+        <button class="tafel-bg-btn" data-bg="liniert" onclick="setTafelBg('liniert')">Liniert</button>
+        <button class="tafel-bg-btn" data-bg="kariert" onclick="setTafelBg('kariert')">Kariert</button>
+      </div>
+      <div class="tafel-group">
+        <button class="tafel-color-btn active" style="--c:#1a1a1a" onclick="setTafelColor('#1a1a1a', this)" title="Schwarz" aria-label="Schwarz"></button>
+        <button class="tafel-color-btn" style="--c:#c0392b" onclick="setTafelColor('#c0392b', this)" title="Rot" aria-label="Rot"></button>
+        <button class="tafel-color-btn" style="--c:#2166c4" onclick="setTafelColor('#2166c4', this)" title="Blau" aria-label="Blau"></button>
+        <button class="tafel-color-btn" style="--c:#2c9e4d" onclick="setTafelColor('#2c9e4d', this)" title="Grün" aria-label="Grün"></button>
+      </div>
+      <div class="tafel-group">
+        <button id="tafel-eraser-btn" onclick="toggleTafelEraser()">&#129529; Radierer</button>
+        <button onclick="clearTafel()">&#128465; Löschen</button>
+        <button onclick="saveTafel(event)">&#128190; Speichern</button>
+        <button onclick="openTafelGallery()">&#128193; Gespeicherte</button>
+      </div>
+    </div>
+    <div class="tafel-board" id="tafel-board">
+      <canvas id="tafel-canvas"></canvas>
+    </div>
+  </div>
+  <div class="tafel-gallery-backdrop" id="tafel-gallery-backdrop" onclick="closeTafelGallery()"></div>
+  <div class="tafel-gallery" id="tafel-gallery">
+    <div class="tafel-gallery-header">
+      <h2>Gespeicherte Tafeln</h2>
+      <button class="tafel-gallery-close" onclick="closeTafelGallery()" aria-label="Schliessen">&times;</button>
+    </div>
+    <div class="tafel-gallery-grid" id="tafel-gallery-grid"></div>
+  </div>
+</div>
+
 <script>
-  const FILL_MAX = 20;
+  // Kein Level-System mehr (Fabian, 16.8.2026: "können wir wieder entfernen,
+  // die Level bringen ihnen ja nichts, sie kaufen eh mit den Punkten").
+  // Das Reagenzglas fuellt sich jetzt direkt mit state.total (derselben
+  // Waehrung, die auch in der Schatzkammer ausgegeben wird) bis zu diesem
+  // festen Maximum, statt pro Level zu ueberlaufen/zurueckzusetzen.
+  const VIAL_MAX = 50;
   const STORAGE_KEY = "klassenApp_v1";
 
+  // Neue Preisliste (Fabian, 16.8.2026), ersetzt die alte komplett.
   const REWARDS = [
-    { id: "pause",   name: "5 Min. frühe Pause",        cost: 5 },
-    { id: "musik",   name: "Musik während der Arbeit",    cost: 10 },
-    { id: "werwolf", name: "Klassenspiel: Werwolf",       cost: 15 },
+    { id: "werwolf",     name: "Eine Runde Werwolf", cost: 10 },
+    { id: "zmorgen",     name: "Zmorgen",            cost: 15 },
+    { id: "freilektion", name: "Freilektion",        cost: 20 },
+    { id: "ausflug",     name: "Ausflug",            cost: 30 },
   ];
 
   // Klassenlisten fuers Gluecksrad (aus der Notenuebersicht.xlsx)
@@ -1090,13 +1662,6 @@
     "6": ["Milena", "Amelia", "Fadri", "Dunja", "Nicole", "Leandro", "Marvin", "Ilai", "Melina", "Aaron"],
     "5": ["Theo E.", "Theo M.", "Yannik", "Kian", "Eliane", "Marla", "Elena", "Sarina", "Mara"],
   };
-  // schlicht/edel statt bunt: alle Segmente in einem Holzton, goldene Schrift.
-  // Nur noch eine Farbe (Fabian: braucht keine Abwechslung, das helleste
-  // Braun der frueheren drei Toene reicht), die Segmente werden allein durch
-  // die goldene Trennlinie unterschieden.
-  const WHEEL_COLORS = ["#5a3a22"];
-  const WHEEL_TEXT_COLOR = "#e8c96a";
-
   // Reagenzglas-Koordinaten im Originalbild (2752x1536), per Pixelmessung ermittelt
   const VIAL_TOP = 610;
   const VIAL_STRAIGHT_BOTTOM = 1010;
@@ -1111,20 +1676,32 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return { fill: 0, total: 0, level: 1, pendingRewards: [], wheelNames: CLASS_LISTS["6"].slice() };
+    return { total: 0, pendingRewards: [], wheelNames: CLASS_LISTS["6"].slice() };
   }
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   let state = loadState();
-  if (!state.level) state.level = 1;
+  if (state.total === undefined || state.total === null) state.total = 0;
   if (!state.pendingRewards) state.pendingRewards = [];
   if (!state.wheelNames || !state.wheelNames.length) state.wheelNames = CLASS_LISTS["6"].slice();
   if (!state.gruppenNames || !state.gruppenNames.length) state.gruppenNames = CLASS_LISTS["6"].slice();
   if (!state.gruppenSize) state.gruppenSize = state.gruppenCount || 3;
   if (!state.gruppenResult) state.gruppenResult = null;
   if (state.musicVolume === undefined || state.musicVolume === null) state.musicVolume = 0.35;
+  if (!state.todos) state.todos = { sus: [], lehrperson: [] };
+  if (!state.todos.sus) state.todos.sus = [];
+  if (!state.todos.lehrperson) state.todos.lehrperson = [];
+  if (!state.tafelBoards) state.tafelBoards = [];
+  // Migration von der alten Einzel-Speicherung (13.8.2026, erste Version)
+  // auf die neue Galerie mit mehreren Speicherungen (gleicher Tag,
+  // Nachtrag): alten Snapshot als ersten Galerie-Eintrag uebernehmen.
+  if (state.tafelSaved) {
+    state.tafelBoards.push({ id: 'tafel-' + Date.now(), dataUrl: state.tafelSaved, savedAt: Date.now() });
+  }
+  state.tafelSaved = undefined;
+  delete state.tafelSaved;
   if (!state.stundenplanNotes) state.stundenplanNotes = {};
   // Migration: die allererste Fassung dieser Funktion speicherte Notizen noch
   // flach (Key "Tag-Lektion", ohne Kalenderwoche). Falls so ein alter Stand
@@ -1156,7 +1733,6 @@
   // eigene Sound-Dateien von Fabian, liegen im Musik-Ordner
   const SND_GAIN = '' + encodeURIComponent('+1 Punkt.mp3');
   const SND_CORRECTION = '' + encodeURIComponent('-1 Punkt.mp3');
-  const SND_LEVELUP = '' + encodeURIComponent('Lvl up.mp3');
   const SND_VAULT_DOOR = '' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
   const SND_WHEEL_SPIN = '' + encodeURIComponent('Spinning Wheel.mp3');
   const SND_WINNER = '' + encodeURIComponent('Winning.mp3');
@@ -1196,10 +1772,10 @@
   // Navbar dabei genau umbricht oder wie breit die Badge-Texte gerade sind.
   function updateTopClearance() {
     const nav = document.querySelector('nav');
-    // .top-left-cluster statt nur .level-badge, damit das kleine Musik-Control
-    // daneben (das jetzt mit im Cluster steckt) bei der Kollisionspruefung
-    // mitgezaehlt wird, nicht nur die Level-Badge-Box allein.
-    const levelBadge = document.querySelector('.top-left-cluster');
+    // .top-left-cluster enthaelt nur noch das Musik-Control (Level-Badge
+    // wurde 16.8.2026 entfernt), zaehlt aber bei der Kollisionspruefung
+    // weiterhin mit.
+    const topLeftCluster = document.querySelector('.top-left-cluster');
     const totalBadge = document.querySelector('.total-badge');
     const pendingRewards = document.getElementById('pending-rewards');
     if (!nav) return;
@@ -1210,7 +1786,7 @@
     document.documentElement.style.setProperty('--badge-top', '18px');
     const navRect = nav.getBoundingClientRect();
     let overlaps = false;
-    if (levelBadge && rectsOverlap(navRect, levelBadge.getBoundingClientRect())) overlaps = true;
+    if (topLeftCluster && rectsOverlap(navRect, topLeftCluster.getBoundingClientRect())) overlaps = true;
     if (totalBadge && rectsOverlap(navRect, totalBadge.getBoundingClientRect())) overlaps = true;
 
     // Schritt 2: falls Ueberlappung, Badges unter die Navbar schieben statt
@@ -1226,7 +1802,7 @@
     // z.B. das "Preis zugute"-Fenster komplett, das dadurch die Freitag-
     // Spalte verdecken konnte).
     let lowestBottom = navRect.bottom;
-    [levelBadge, totalBadge, (pendingRewards && pendingRewards.classList.contains('show')) ? pendingRewards : null]
+    [topLeftCluster, totalBadge, (pendingRewards && pendingRewards.classList.contains('show')) ? pendingRewards : null]
       .forEach(elm => { if (elm) lowestBottom = Math.max(lowestBottom, elm.getBoundingClientRect().bottom); });
 
     const clearance = Math.max(90, Math.ceil(lowestBottom) + 24);
@@ -1241,7 +1817,14 @@
   // veraltet, sobald der Browser fertig layoutet.
   function updateTopClearanceSoon() {
     updateTopClearance();
-    requestAnimationFrame(() => requestAnimationFrame(updateTopClearance));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      updateTopClearance();
+      // Falls sich die Navbar-Hoehe nachtraeglich noch veraendert hat und
+      // gerade das Rad sichtbar ist: Zentrierung mit dem finalen Wert neu
+      // berechnen, sonst koennte sie leicht daneben liegen.
+      const radScene = document.getElementById('scene-rad');
+      if (radScene && radScene.classList.contains('active') && !wheelSpinning) centerReelLayout();
+    }));
   }
   // Bei Resize/Drehung: erst den Navbar-Abstand neu messen, DANACH (falls
   // gerade das Rad sichtbar ist) dessen Groesse neu berechnen, die haengt ja
@@ -1249,23 +1832,52 @@
   function handleViewportChange() {
     updateTopClearanceSoon();
     const radScene = document.getElementById('scene-rad');
-    if (radScene && radScene.classList.contains('active')) updateRadFrameSize();
+    if (radScene && radScene.classList.contains('active') && !wheelSpinning) {
+      updateReelFrameSize();
+      renderReelIdle();
+      centerReelLayout();
+    }
+    const tafelScene = document.getElementById('scene-tafel');
+    if (tafelScene && tafelScene.classList.contains('active')) resizeTafelCanvas();
   }
   window.addEventListener('resize', handleViewportChange);
   window.addEventListener('orientationchange', () => setTimeout(handleViewportChange, 100));
 
+  // Wenn die aktive Szene in der eingeklappten Gruppe liegt, automatisch
+  // aufklappen, sonst waere unklar warum kein Reiter aktiv aussieht.
+  function toggleNavMore(forceOpen) {
+    const more = document.getElementById('nav-more');
+    const btn = document.getElementById('nav-more-toggle');
+    const open = forceOpen !== undefined ? forceOpen : !more.classList.contains('show');
+    more.classList.toggle('show', open);
+    btn.classList.toggle('open', open);
+  }
+
+  // Merkt sich, aus welcher Szene man in die Wandtafel gewechselt ist,
+  // damit der X-Knopf dorthin zurueckspringt statt fest auf eine Szene.
+  let currentSceneName = 'trank';
+  let tafelReturnScene = 'trank';
+
   function showScene(name) {
+    if (name === 'tafel' && currentSceneName !== 'tafel') tafelReturnScene = currentSceneName;
+    document.body.classList.toggle('tafel-fullscreen', name === 'tafel');
+    currentSceneName = name;
     const wasTruhe = document.getElementById('scene-truhe').classList.contains('active');
     document.getElementById('scene-ablauf').classList.toggle('active', name === 'ablauf');
     document.getElementById('scene-trank').classList.toggle('active', name === 'trank');
     document.getElementById('scene-truhe').classList.toggle('active', name === 'truhe');
     document.getElementById('scene-rad').classList.toggle('active', name === 'rad');
     document.getElementById('scene-gruppen').classList.toggle('active', name === 'gruppen');
+    document.getElementById('scene-todo').classList.toggle('active', name === 'todo');
+    document.getElementById('scene-tafel').classList.toggle('active', name === 'tafel');
     document.getElementById('nav-ablauf').classList.toggle('active', name === 'ablauf');
     document.getElementById('nav-trank').classList.toggle('active', name === 'trank');
     document.getElementById('nav-truhe').classList.toggle('active', name === 'truhe');
     document.getElementById('nav-rad').classList.toggle('active', name === 'rad');
     document.getElementById('nav-gruppen').classList.toggle('active', name === 'gruppen');
+    document.getElementById('nav-todo').classList.toggle('active', name === 'todo');
+    document.getElementById('nav-tafel').classList.toggle('active', name === 'tafel');
+    if (['rad', 'gruppen', 'todo', 'tafel'].includes(name)) toggleNavMore(true);
     if (name === 'ablauf') {
       updateTopClearanceSoon();
       renderStundenplan();
@@ -1281,6 +1893,14 @@
     if (name === 'gruppen') {
       updateTopClearanceSoon();
       renderGruppen();
+    }
+    if (name === 'todo') {
+      updateTopClearanceSoon();
+      renderTodos();
+    }
+    if (name === 'tafel') {
+      updateTopClearanceSoon();
+      setupTafelCanvas();
     }
   }
 
@@ -1337,6 +1957,29 @@
     }
     return null;
   }
+  // Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
+  // Klasse den ganzen Morgen ausser Haus ist (Fabian, 16.8.2026, aus
+  // "Umweltmorgen.docx"). Key = 'KW-Wochentag', eindeutig innerhalb eines
+  // Schuljahrs (Wochennummern wiederholen sich erst im naechsten Jahr, das
+  // Schuljahr Aug.-Jul. ueberschneidet sich nicht). "periods" = welche
+  // Lektionen betroffen sind (hier immer der ganze Morgen, 1.-4. Lektion).
+  // WICHTIG: nur Wochen innerhalb SP_WEEK_MIN..SP_WEEK_MAX sind aktuell
+  // ueberhaupt navigierbar/sichtbar. KW39 (22.9.2026) ist bereits im
+  // aktuellen Bereich (Periode 1) und erscheint sofort. Die anderen drei
+  // Termine liegen in spaeteren Perioden (Herbst/Winter/Fruehling), die noch
+  // nicht als Wochen-Navigation ergaenzt sind - sie sind hier aber schon
+  // hinterlegt und erscheinen automatisch, sobald diese Perioden spaeter
+  // ergaenzt werden (SP_WEEK_MAX + SP_WEEK_DATES erweitert), siehe Kontext.md.
+  const SP_SPECIAL_DAYS = {
+    '39-Dienstag': { label: 'Umweltmorgen', detail: '22.09.2026: Landwirtschaft, Thema Reben, Hof Rutishauser', periods: [1, 2, 3, 4] },
+    '47-Dienstag': { label: 'Umweltmorgen', detail: '17.11.2026: Landwirtschaft, Thema Wursten, Hof Wider', periods: [1, 2, 3, 4] },
+    '9-Dienstag':  { label: 'Umweltmorgen', detail: '02.03.2027: Landwirtschaft, Thema Landmaschinen, Hof Alther', periods: [1, 2, 3, 4] },
+    '22-Dienstag': { label: 'Umweltmorgen', detail: '01.06.2027: Landwirtschaft, Thema Biodiversität, Hof Rutishauser', periods: [1, 2, 3, 4] }
+  };
+  function specialDayFor(day) {
+    return SP_SPECIAL_DAYS[spCurrentWeek + '-' + day] || null;
+  }
+
   // Reihenfolge der Zeilen im Raster, inkl. Pause/Mittag-Trennzeilen
   // zwischen den Lektionen.
   const SP_ROW_LAYOUT = [1, 2, 'pause', 3, 4, 'mittag', 5, 6];
@@ -1389,6 +2032,18 @@
     if (state.stundenplanNotes[33][k] === undefined) state.stundenplanNotes[33][k] = SP_SEED_KW33[k];
   });
 
+  // Echter Ablauf fuer Montag 1. Lektion (ERG) in KW34, von Fabian direkt in
+  // der App eingetragen (16.8.2026). Als Seed im Code hinterlegt statt nur im
+  // localStorage, damit er ueberall erscheint (auch online, unabhaengig vom
+  // Geraet/Browser, siehe Kontext.md "synct nicht automatisch").
+  const SP_SEED_KW34 = {
+    'Montag-1': ['Was ist Philosophie? Kennt ihr Philosophen?', 'Erklärvideo', 'Das Fünffingermodell', 'Jemanden töten, um mehrere zu retten? - Ein Dilemma', 'Besprechung in der Gruppe', 'Reflexion / Ende']
+  };
+  if (!state.stundenplanNotes[34]) state.stundenplanNotes[34] = {};
+  Object.keys(SP_SEED_KW34).forEach(k => {
+    if (state.stundenplanNotes[34][k] === undefined) state.stundenplanNotes[34][k] = SP_SEED_KW34[k];
+  });
+
   // Welche Woche ist "jetzt" dran: echte ISO-Kalenderwoche berechnen, auf
   // den navigierbaren Bereich (KW33-39) begrenzen. Wird NICHT gespeichert,
   // das App startet also beim naechsten Aufstarten immer bei der aktuellen
@@ -1412,6 +2067,269 @@
     renderStundenplan();
   }
 
+  // Uhr/Stoppuhr/Timer-Widget: Icon neben KW/Datum im Ablauf oeffnet ein
+  // frei verschiebbares Fenster (Fabian, 13.8.2026, Nachtrag: "verschieben
+  // koennen, ausserdem Stoppuhr und Timer als Auswahl"). Ein einziges
+  // Intervall aktualisiert je nach aktivem Reiter die Uhrzeit, die Stoppuhr
+  // oder den Countdown, solange das Fenster offen ist. Laeuft alle 100ms
+  // (nicht nur 1x/Sekunde): die Uhrzeit/der Timer brauchen das zwar nicht,
+  // aber die Stoppuhr-Zehntelanzeige schon, sonst wirkt sie eingefroren/
+  // ruckelig (Fabians gemeldeter Bug, 13.8.2026: "zeigt eine an, stockt,
+  // bleibt stehen"). Timer laeuft intern ueber einen Ziel-Zeitstempel
+  // (`timerEndTs`) statt per Sekunden-Dekrement pro Tick, dadurch bleibt er
+  // exakt, egal wie oft/unregelmaessig der Tick tatsaechlich feuert.
+  let clockOverlayInterval = null;
+  let clockMode = 'uhr'; // 'uhr' | 'stoppuhr' | 'timer'
+  const CLOCK_WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+  function openClockOverlay() {
+    updateClockOverlay();
+    document.getElementById('clock-overlay').classList.add('show');
+    setupClockDrag();
+    if (clockOverlayInterval) clearInterval(clockOverlayInterval);
+    clockOverlayInterval = setInterval(clockOverlayTick, 100);
+  }
+  function closeClockOverlay() {
+    document.getElementById('clock-overlay').classList.remove('show');
+    if (clockOverlayInterval) { clearInterval(clockOverlayInterval); clockOverlayInterval = null; }
+  }
+  function clockOverlayTick() {
+    if (clockMode === 'uhr') updateClockOverlay();
+    else if (clockMode === 'stoppuhr') updateStoppuhrDisplay();
+    else if (clockMode === 'timer') tickTimer();
+  }
+  function updateClockOverlay() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('clock-overlay-time').textContent =
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById('clock-overlay-date').textContent =
+      `${CLOCK_WEEKDAYS[now.getDay()]}, ${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
+  }
+
+  // Reiter wechseln: passendes Panel zeigen, Rest ausblenden. Laufende
+  // Stoppuhr/Timer laufen im Hintergrund weiter, auch wenn man kurz auf
+  // die Uhrzeit wechselt.
+  function setClockMode(mode) {
+    clockMode = mode;
+    ['uhr', 'stoppuhr', 'timer'].forEach(m => {
+      document.getElementById('clock-mode-' + m).style.display = (m === mode) ? 'flex' : 'none';
+      document.getElementById('clock-tab-' + m).classList.toggle('active', m === mode);
+    });
+    if (mode === 'uhr') updateClockOverlay();
+    if (mode === 'stoppuhr') updateStoppuhrDisplay();
+    if (mode === 'timer') { updateTimerDisplay(); updateTimerPanelState(); }
+  }
+
+  // --- Stoppuhr ---
+  let stoppuhrRunning = false;
+  let stoppuhrStartTs = 0;
+  let stoppuhrElapsedBase = 0; // ms, aus vorherigen Laeufen vor der letzten Pause
+
+  function toggleStoppuhr() {
+    if (stoppuhrRunning) {
+      stoppuhrElapsedBase += Date.now() - stoppuhrStartTs;
+      stoppuhrRunning = false;
+    } else {
+      stoppuhrStartTs = Date.now();
+      stoppuhrRunning = true;
+    }
+    document.getElementById('stoppuhr-toggle').textContent = stoppuhrRunning ? 'Pause' : 'Start';
+    updateStoppuhrDisplay();
+  }
+  function resetStoppuhr() {
+    stoppuhrRunning = false;
+    stoppuhrElapsedBase = 0;
+    document.getElementById('stoppuhr-toggle').textContent = 'Start';
+    updateStoppuhrDisplay();
+  }
+  function updateStoppuhrDisplay() {
+    const elapsedMs = stoppuhrElapsedBase + (stoppuhrRunning ? Date.now() - stoppuhrStartTs : 0);
+    const totalSec = elapsedMs / 1000;
+    const min = Math.floor(totalSec / 60);
+    const sec = Math.floor(totalSec % 60);
+    const tenth = Math.floor((totalSec * 10) % 10);
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('stoppuhr-value').textContent = `${pad(min)}:${pad(sec)}.${tenth}`;
+  }
+
+  // --- Timer (frei waehlbarer Countdown, unabhaengig vom Lektionsschritt-
+  // Timer im Ablauf) ---
+  // timerRemaining ist die "eingefrorene" Restzeit in Sekunden, gueltig
+  // wenn NICHT gestartet/laufend. Waehrend des Laufens zaehlt stattdessen
+  // timerEndTs (Ziel-Zeitstempel) exakt, timerRemaining wird bei jedem Tick
+  // nur fuer die Anzeige nachgefuehrt. timerStarted unterscheidet Idle
+  // (nur Minuten-Picker sichtbar) von aktiv/pausiert (Pause+Zuruecksetzen
+  // sichtbar), siehe updateTimerPanelState().
+  let timerRunning = false;
+  let timerRemaining = 5 * 60; // Sekunden
+  let timerEndTs = 0;
+  let timerDone = false;
+  let timerStarted = false;
+  let timerPickerCustomMin = 5;
+  const TIMER_MAX_SEC = 99 * 60;
+
+  // --- Minuten-Picker (Fabian, 16.8.2026: "so viele Optionen, sieht nicht
+  // schoen aus, sollte einen Pfeil haben, dann ein Menue fuer die
+  // Minutenzahl, das wieder verschwindet, wenn man eine Zeit ausgewaehlt hat
+  // und der Timer beginnt"). Idle zeigt nur die Anzeige + den Pfeil-Knopf,
+  // das Menue klappt per Klick auf noch/zu, eine Auswahl startet sofort. ---
+  function toggleTimerPicker() {
+    const menu = document.getElementById('timer-picker-menu');
+    const open = menu.style.display === 'flex';
+    menu.style.display = open ? 'none' : 'flex';
+  }
+  function closeTimerPicker() {
+    document.getElementById('timer-picker-menu').style.display = 'none';
+  }
+  function adjustTimerPickerCustom(delta) {
+    timerPickerCustomMin = Math.min(Math.floor(TIMER_MAX_SEC / 60), Math.max(1, timerPickerCustomMin + delta));
+    document.getElementById('timer-picker-custom-value').textContent = timerPickerCustomMin + ' min';
+  }
+  function startTimerFromPicker() {
+    startTimerWithMinutes(timerPickerCustomMin);
+  }
+  function pickTimerMinutes(min) {
+    startTimerWithMinutes(min);
+  }
+  function startTimerWithMinutes(min) {
+    timerRemaining = min * 60;
+    timerDone = false;
+    timerStarted = true;
+    timerEndTs = Date.now() + timerRemaining * 1000;
+    timerRunning = true;
+    document.getElementById('timer-toggle').textContent = 'Pause';
+    closeTimerPicker();
+    updateTimerPanelState();
+    updateTimerDisplay();
+  }
+  // Zeigt Picker (Idle) ODER Pause/Zuruecksetzen (gestartet), nie beides.
+  function updateTimerPanelState() {
+    document.getElementById('timer-picker').style.display = timerStarted ? 'none' : 'flex';
+    document.getElementById('timer-controls').style.display = timerStarted ? 'flex' : 'none';
+    if (!timerStarted) closeTimerPicker();
+  }
+  function toggleTimer() {
+    if (!timerStarted) return; // Start passiert nur ueber den Picker
+    if (timerRunning) {
+      // Pausieren: Restzeit einfrieren.
+      timerRemaining = Math.max(0, Math.ceil((timerEndTs - Date.now()) / 1000));
+      timerRunning = false;
+    } else {
+      if (timerRemaining <= 0) return;
+      timerDone = false;
+      timerEndTs = Date.now() + timerRemaining * 1000;
+      timerRunning = true;
+    }
+    document.getElementById('timer-toggle').textContent = timerRunning ? 'Pause' : 'Start';
+    updateTimerDisplay();
+  }
+  // Zurueck zum Idle-Zustand: Timer stoppt, Picker erscheint wieder.
+  function resetTimer() {
+    timerRunning = false;
+    timerDone = false;
+    timerStarted = false;
+    timerRemaining = 5 * 60;
+    updateTimerDisplay();
+    updateTimerPanelState();
+  }
+  function tickTimer() {
+    if (!timerRunning) return;
+    const remainingMs = timerEndTs - Date.now();
+    if (remainingMs <= 0) {
+      timerRemaining = 0;
+      timerRunning = false;
+      timerDone = true;
+      document.getElementById('timer-toggle').textContent = 'Start';
+      playClip(SND_GAIN, 0.7);
+    } else {
+      timerRemaining = Math.ceil(remainingMs / 1000);
+    }
+    updateTimerDisplay();
+  }
+  function updateTimerDisplay() {
+    const min = Math.floor(timerRemaining / 60);
+    const sec = timerRemaining % 60;
+    const pad = n => String(n).padStart(2, '0');
+    const el = document.getElementById('timer-value');
+    el.textContent = `${pad(min)}:${pad(sec)}`;
+    el.classList.toggle('clock-timer-done', timerDone);
+  }
+
+  // --- Verschieben (Drag) ---
+  // Kopfzeile ziehen bewegt das ganze Fenster, per Pointer Events (Maus,
+  // Touch UND Smartboard-Stift gleich behandelt, wie bei der Wandtafel).
+  // Nur einmal verdrahten, auch wenn das Fenster mehrfach geoeffnet wird.
+  let clockDragOffset = null;
+  let clockDragWired = false;
+  // Groesse per Eck-Griff, gleichmaessig (ein Faktor fuers ganze Fenster
+  // statt nur breiter/hoeher), Fabian 13.8.2026 Nachtrag: "gleichmaessig
+  // groesser oder kleiner werden". transform-origin ist top-left (siehe
+  // CSS), darum bleibt die per Drag gesetzte links/oben-Position beim
+  // Skalieren stabil.
+  let clockScale = 1;
+  const CLOCK_SCALE_MIN = 0.7;
+  const CLOCK_SCALE_MAX = 1.8;
+  let clockResizeStart = null;
+
+  function setupClockDrag() {
+    if (clockDragWired) return;
+    const header = document.getElementById('clock-overlay-header');
+    const handle = document.getElementById('clock-resize-handle');
+    if (!header) return;
+    header.addEventListener('pointerdown', clockDragStart);
+    window.addEventListener('pointermove', clockDragMove);
+    window.addEventListener('pointerup', clockDragEnd);
+    if (handle) {
+      handle.addEventListener('pointerdown', clockResizeStartFn);
+      window.addEventListener('pointermove', clockResizeMove);
+      window.addEventListener('pointerup', clockResizeEnd);
+    }
+    clockDragWired = true;
+  }
+  function clockDragStart(evt) {
+    const panel = document.getElementById('clock-overlay');
+    const rect = panel.getBoundingClientRect();
+    panel.style.left = rect.left + 'px';
+    panel.style.top = rect.top + 'px';
+    panel.style.right = 'auto';
+    clockDragOffset = { dx: evt.clientX - rect.left, dy: evt.clientY - rect.top };
+    evt.preventDefault();
+  }
+  function clockDragMove(evt) {
+    if (!clockDragOffset) return;
+    const panel = document.getElementById('clock-overlay');
+    // offsetWidth/-Height sind die UNskalierten Masse, fuers Clamping gegen
+    // den Bildschirmrand zaehlt aber die tatsaechliche (skalierte) Groesse.
+    const scaledWidth = panel.offsetWidth * clockScale;
+    const scaledHeight = panel.offsetHeight * clockScale;
+    const maxLeft = Math.max(4, window.innerWidth - scaledWidth - 4);
+    const maxTop = Math.max(4, window.innerHeight - scaledHeight - 4);
+    const left = Math.min(Math.max(4, evt.clientX - clockDragOffset.dx), maxLeft);
+    const top = Math.min(Math.max(4, evt.clientY - clockDragOffset.dy), maxTop);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+  function clockDragEnd() {
+    clockDragOffset = null;
+  }
+  function clockResizeStartFn(evt) {
+    const panel = document.getElementById('clock-overlay');
+    clockResizeStart = { x: evt.clientX, y: evt.clientY, scale: clockScale, width: panel.offsetWidth };
+    evt.preventDefault();
+    evt.stopPropagation();
+  }
+  function clockResizeMove(evt) {
+    if (!clockResizeStart) return;
+    const dx = evt.clientX - clockResizeStart.x;
+    const newScale = clockResizeStart.scale + dx / clockResizeStart.width;
+    clockScale = Math.min(CLOCK_SCALE_MAX, Math.max(CLOCK_SCALE_MIN, newScale));
+    document.getElementById('clock-overlay').style.transform = `scale(${clockScale})`;
+  }
+  function clockResizeEnd() {
+    clockResizeStart = null;
+  }
+
   function renderStundenplan() {
     const grid = document.getElementById('stundenplan-grid');
     if (!grid) return;
@@ -1431,6 +2349,15 @@
       const h = document.createElement('div');
       h.className = 'sp-head';
       h.textContent = day;
+      const special = specialDayFor(day);
+      if (special) {
+        h.classList.add('sp-head-special');
+        h.title = special.detail;
+        const badge = document.createElement('span');
+        badge.className = 'sp-head-special-badge';
+        badge.textContent = '🌾 ' + special.label;
+        h.appendChild(badge);
+      }
       grid.appendChild(h);
     });
 
@@ -1459,8 +2386,13 @@
         const subject = STUNDENPLAN[day][period - 1] || '';
         const cell = document.createElement('div');
         const key = day + '-' + period;
+        const special = specialDayFor(day);
         const externSubject = !subject ? externSubjectFor(day, period) : null;
-        if (externSubject) {
+        if (special && special.periods.includes(period)) {
+          cell.className = 'sp-cell sp-special-day';
+          cell.textContent = '🌾 ' + special.label;
+          cell.title = special.detail;
+        } else if (externSubject) {
           cell.className = 'sp-cell sp-extern';
           cell.textContent = externSubject.text;
           cell.title = externSubject.alt
@@ -1902,51 +2834,13 @@
   }
 
   function addPoints(n) {
-    state.fill += n;
     state.total += n;
     if (state.total < 0) state.total = 0;
-
-    // Ueberlauf nach oben: Level steigt, Rest wird in den neuen Trank uebernommen
-    while (state.fill >= FILL_MAX) {
-      state.fill -= FILL_MAX;
-      state.level += 1;
-      levelUp();
-    }
-    // Ueberlauf nach unten (Korrektur): Level faellt wieder, bis maximal Level 1 / leerer Trank
-    while (state.fill < 0) {
-      if (state.level <= 1) {
-        state.fill = 0;
-        break;
-      }
-      state.fill += FILL_MAX;
-      state.level -= 1;
-      levelDown();
-    }
 
     saveState();
     render();
     popVialText((n > 0 ? '+' : '') + n, n > 0 ? 'gain' : 'correction');
     if (n > 0) playGainSound(); else playCorrectionSound();
-  }
-
-  function levelUp() {
-    const flash = document.getElementById('levelup-flash');
-    const text = document.getElementById('levelup-text');
-    text.textContent = `✨ Level ${state.level} erreicht! ✨`;
-    flash.classList.add('show');
-    text.classList.add('show');
-    playLevelUpFanfare();
-    setTimeout(() => {
-      flash.classList.remove('show');
-      text.classList.remove('show');
-    }, 1600);
-  }
-
-  function levelDown() {
-    const badge = document.querySelector('.level-badge');
-    if (!badge) return;
-    badge.classList.add('level-down-flash');
-    setTimeout(() => badge.classList.remove('level-down-flash'), 700);
   }
 
   // schwebender Punkte-Text ueber dem Reagenzglas (in Bild-Koordinaten, bleibt bei jeder
@@ -1975,12 +2869,11 @@
   }
 
   function render() {
-    document.getElementById('fill-points').textContent = state.fill;
-    document.getElementById('fill-max').textContent = FILL_MAX;
+    document.getElementById('fill-points').textContent = Math.min(state.total, VIAL_MAX);
+    document.getElementById('fill-max').textContent = VIAL_MAX;
     document.getElementById('total-points').textContent = state.total;
-    document.getElementById('level-num').textContent = state.level;
 
-    const pct = Math.max(0, Math.min(1, state.fill / FILL_MAX));
+    const pct = Math.max(0, Math.min(1, state.total / VIAL_MAX));
     const liquidHeight = pct * VIAL_FILLABLE_HEIGHT;
     const liquidY = VIAL_LOWEST - liquidHeight;
     const rect = document.getElementById('liquid-clip-rect');
@@ -2049,7 +2942,6 @@
       return;
     }
     state.total -= reward.cost;
-    state.fill = Math.max(0, state.fill - reward.cost);
     state.pendingRewards.push({ name: reward.name, redeemedAt: Date.now() });
     saveState();
     msg.textContent = `"${reward.name}" eingelöst! Noch ${state.total} Punkte übrig.`;
@@ -2086,7 +2978,6 @@
   function playGainSound() { playClip(SND_GAIN); }
   function playCorrectionSound() { playClip(SND_CORRECTION); }
   function playSpendSound() { tone(660, 0.18, 'triangle'); tone(440, 0.22, 'triangle', 0.09); }
-  function playLevelUpFanfare() { playClip(SND_LEVELUP, 0.7); }
 
   // --- leises Ambient-Summen im Hintergrund, ebenfalls per Web Audio synthetisiert ---
   let ambience = null;
@@ -2207,14 +3098,19 @@
   }
 
   // --- Gluecksrad ---
-  let wheelAngle = 0;
   let wheelSpinning = false;
+  // Wer in dieser Session (nicht gespeichert, nur im Arbeitsspeicher) schon
+  // gezogen wurde, damit nicht zweimal hintereinander dieselbe Person kommt
+  // (Fabian, 13.8.2026). Der Name bleibt dabei im Fenster stehen, bis das
+  // naechste Mal gedreht wird, die Namensliste selbst wird nicht veraendert.
+  let wheelDrawnThisSession = [];
 
   function loadClassNames(which) {
     if (wheelSpinning) return;
     state.wheelNames = which === 'alle'
       ? CLASS_LISTS["5"].concat(CLASS_LISTS["6"])
       : CLASS_LISTS[which].slice();
+    wheelDrawnThisSession = []; // neue Liste = neue Runde
     saveState();
     renderWheel();
   }
@@ -2223,8 +3119,9 @@
     const ta = document.getElementById('wheel-names');
     if (!ta) return;
     state.wheelNames = ta.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    wheelDrawnThisSession = []; // Liste geaendert = neue Runde
     saveState();
-    renderWheelSvgOnly();
+    renderReelIdle();
   }
 
   // --- Gruppen ---
@@ -2328,120 +3225,228 @@
     });
   }
 
-  function svgSlicePoint(deg, r) {
-    const rad = deg * Math.PI / 180;
-    return [r * Math.sin(rad), -r * Math.cos(rad)];
+  // --- To-do-Listen ---
+  // Zwei getrennte Listen (SuS/Lehrperson), reines Frontend-State, keine
+  // Serverlogik. Farbe pro Kaertchen wird nicht gespeichert, sondern immer
+  // frisch aus dem Datum berechnet (todoUrgency), damit sie automatisch
+  // "nachrueckt" je naeher der Termin kommt, auch ohne dass Fabian etwas tut.
+  let currentTodoList = 'sus';
+
+  function setTodoList(which) {
+    currentTodoList = which;
+    document.getElementById('todo-tab-sus').classList.toggle('active', which === 'sus');
+    document.getElementById('todo-tab-lehrperson').classList.toggle('active', which === 'lehrperson');
+    renderTodos();
   }
 
-  // Rad-Groesse wird aus dem TATSAECHLICH verfuegbaren Platz berechnet (Fenster-
-  // hoehe minus Navbar minus Panel), nicht aus einem geratenen vh/vw-Prozentsatz.
-  // Dadurch nutzt das Rad auf einem grossen Monitor den ganzen freien Platz aus
-  // (statt unnoetig klein zu bleiben), schrumpft aber auf kleinen Fenstern/Handys
-  // trotzdem sauber genug, um nicht abgeschnitten zu werden.
-  function updateRadFrameSize() {
-    const frame = document.getElementById('rad-frame');
-    if (!frame) return;
+  // Tage bis zum Datum (heute Mitternacht als Basis, damit "heute faellig"
+  // auch wirklich als heute zaehlt statt als negative Zahl durch die
+  // Uhrzeit). < 0 = bereits ueberfaellig.
+  function daysUntil(dueStr) {
+    if (!dueStr) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueStr + 'T00:00:00');
+    return Math.round((due - today) / 86400000);
+  }
 
-    const cs = getComputedStyle(document.documentElement);
-    const topClearance = parseInt(cs.getPropertyValue('--top-clearance')) || 100;
-    const bottomPad = 40;
-    const sidePad = 40;
-    const panelWidth = 280; // Panel (260px) + etwas Sicherheitsabstand
-    const gap = 46;
-    const MIN = 260;
-    const MAX = 900;
+  // Schwellenwerte nach Fabians Praezisierung (13.8.2026): rot = heute
+  // faellig oder ueberfaellig, gelb = noch 1-2 Tage, gruen = 3 Tage oder
+  // mehr (oder gar kein Datum gesetzt, dann draengt ja nichts).
+  function todoUrgency(dueStr) {
+    const d = daysUntil(dueStr);
+    if (d === null) return 'green';
+    if (d <= 0) return 'red';
+    if (d <= 2) return 'yellow';
+    return 'green';
+  }
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+  function formatTodoDate(dueStr) {
+    if (!dueStr) return '';
+    const [y, m, d] = dueStr.split('-');
+    return `bis ${d}.${m}.`;
+  }
 
-    // Fall A: Rad und Panel passen nebeneinander (wie im CSS per flex-wrap) -
-    // dann darf das Rad die volle verfuegbare Hoehe UND Breite ausnutzen.
-    const heightSideBySide = vh - topClearance - bottomPad;
-    const widthSideBySide = vw - panelWidth - gap - sidePad;
-    const sideBySideSize = Math.min(heightSideBySide, widthSideBySide, MAX);
-
-    let size;
-    if (sideBySideSize >= MIN) {
-      size = sideBySideSize;
-    } else {
-      // Fall B: zu schmal fuer nebeneinander, CSS wrapt auf "Rad oben, Panel
-      // darunter" - dann muss auch das Panel selbst noch Hoehe abbekommen.
-      const panelHeightEstimate = 320;
-      const heightStacked = vh - topClearance - panelHeightEstimate - gap - bottomPad;
-      const widthStacked = vw - sidePad;
-      size = Math.min(heightStacked, widthStacked, MAX);
+  function addTodo() {
+    const kwEl = document.getElementById('todo-keyword');
+    const detailEl = document.getElementById('todo-detail');
+    const dueEl = document.getElementById('todo-due');
+    const keyword = kwEl.value.trim();
+    if (!keyword) {
+      alert('Bitte ein Schlagwort eintragen.');
+      return;
     }
-    size = Math.max(MIN, Math.round(size));
-    frame.style.width = size + 'px';
+    state.todos[currentTodoList].push({
+      id: 'todo-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      keyword,
+      detail: detailEl.value.trim(),
+      due: dueEl.value || null,
+    });
+    kwEl.value = '';
+    detailEl.value = '';
+    dueEl.value = '';
+    saveState();
+    renderTodos();
   }
 
-  function renderWheelSvgOnly() {
-    const rotor = document.getElementById('wheel-rotor');
-    if (!rotor) return;
-    const names = state.wheelNames || [];
-    updateRadFrameSize();
-    rotor.innerHTML = '';
-    if (names.length < 2) return;
-    // Rad bewusst gross, bis nahe an den Goldrahmen des Hintergrundbilds
-    // (Fabian: Rad war zu weit innen, verschenkt Platz vor der Verzierung).
-    // Pixelgenau vermessen (31.7.2026): Zentrum (1411,773), Goldrahmen beginnt
-    // bei r=647-666 je nach Winkel (Fit ueber 147 Randpunkte, Residuum +-9px).
-    // r=640 laesst ueberall einen kleinen Sicherheitsabstand.
-    const r = 640;
-    const segAngle = 360 / names.length;
-    // Namen radial, nahe am aeusseren Rand platziert (mehr Sehnenbreite pro Segment
-    // als weiter innen). BEWUSST KEINE lokale 180-Grad-Korrektur fuer die untere
-    // Haelfte (frueher hier vorhanden, aber falsch): das Rad dreht sich beim Spin,
-    // und jeder Name kann am Zeiger (12 Uhr) landen. Die Gesamt-Rotation eines
-    // Namens im Moment, in dem sein Segment am Zeiger steht, ist immer 0 (Spin-
-    // Winkel + eigener Ruhewinkel heben sich exakt auf, siehe spinWheel()). Mit
-    // einer zusaetzlichen lokalen Korrektur stuenden dadurch ausgerechnet die
-    // Namen, die in Ruhestellung unten waren, verkehrt herum da, sobald sie
-    // gewinnen. Ohne Korrektur ist jeder Name oben an 12 Uhr lesbar, in
-    // Ruhestellung unten dafuer auf dem Kopf (Fabian: das ist so gewuenscht).
-    const textRadiusFactor = 0.80;
-    let fontSize = 34;
-    if (names.length > 6) fontSize = 28;
-    if (names.length > 10) fontSize = 22;
-    if (names.length > 14) fontSize = 18;
+  function deleteTodo(id) {
+    const list = state.todos[currentTodoList];
+    const idx = list.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      list.splice(idx, 1);
+      saveState();
+      renderTodos();
+    }
+  }
 
-    names.forEach((name, i) => {
-      const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
-      const [ex, ey] = svgSlicePoint(segAngle, r);
-      const largeArc = segAngle > 180 ? 1 : 0;
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('transform', `rotate(${i * segAngle})`);
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M 0 0 L 0 ${-r} A ${r} ${r} 0 ${largeArc} 1 ${ex} ${ey} Z`);
-      path.setAttribute('fill', color);
-      path.setAttribute('stroke', '#d4af37');
-      path.setAttribute('stroke-width', '1.5');
-      g.appendChild(path);
-      rotor.appendChild(g);
+  function renderTodos() {
+    const grid = document.getElementById('todo-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const list = state.todos[currentTodoList] || [];
+    if (!list.length) {
+      const hint = document.createElement('div');
+      hint.className = 'todo-empty-hint';
+      hint.textContent = 'Noch keine Kärtchen. Unten eins hinzufügen.';
+      grid.appendChild(hint);
+      return;
+    }
+    list.forEach((todo, i) => {
+      const card = document.createElement('div');
+      card.className = 'todo-card urgency-' + todoUrgency(todo.due);
+      card.style.animationDelay = (i * 0.05) + 's';
+      card.onclick = () => card.classList.toggle('flipped');
 
-      const midAngle = i * segAngle + segAngle / 2;
-      const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      labelG.setAttribute('transform', `rotate(${midAngle})`);
-      const textY = -r * textRadiusFactor;
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', '0');
-      text.setAttribute('y', String(textY));
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', WHEEL_TEXT_COLOR);
-      text.setAttribute('font-size', String(fontSize));
-      text.setAttribute('font-weight', '700');
-      text.setAttribute('font-family', 'Georgia, serif');
-      text.setAttribute('style', 'paint-order: stroke; stroke: rgba(20,12,4,0.75); stroke-width: 3px;');
-      text.textContent = name;
-      labelG.appendChild(text);
-      rotor.appendChild(labelG);
+      const inner = document.createElement('div');
+      inner.className = 'todo-card-inner';
+
+      const front = document.createElement('div');
+      front.className = 'todo-card-front';
+      const kw = document.createElement('div');
+      kw.className = 'todo-card-keyword';
+      kw.textContent = todo.keyword;
+      front.appendChild(kw);
+      if (todo.due) {
+        const dateEl = document.createElement('div');
+        dateEl.className = 'todo-card-date';
+        dateEl.textContent = formatTodoDate(todo.due);
+        front.appendChild(dateEl);
+      }
+
+      const back = document.createElement('div');
+      back.className = 'todo-card-back';
+      const detail = document.createElement('div');
+      detail.className = 'todo-card-detail';
+      detail.textContent = todo.detail || todo.keyword;
+      back.appendChild(detail);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'todo-card-delete';
+      delBtn.textContent = 'Erledigt / Löschen';
+      delBtn.onclick = (evt) => { evt.stopPropagation(); deleteTodo(todo.id); };
+      back.appendChild(delBtn);
+
+      inner.appendChild(front);
+      inner.appendChild(back);
+      card.appendChild(inner);
+      grid.appendChild(card);
     });
+  }
+
+  // Baut einen langen Namens-Streifen durch mehrfaches Wiederholen der
+  // ganzen Namensliste (jede Wiederholung identisch, welche davon am Ende
+  // als "Ziel" gewaehlt wird, ist fuers Ergebnis egal).
+  function buildReelStrip(names, repeats) {
+    const strip = [];
+    for (let r = 0; r < repeats; r++) strip.push(...names);
+    return strip;
+  }
+
+  function makeReelTile(name, tileSize) {
+    const tile = document.createElement('div');
+    tile.className = 'reel-tile';
+    tile.textContent = name;
+    tile.style.height = tileSize + 'px';
+    return tile;
+  }
+
+  // Spulen-Groesse: nutzt die verfuegbare Bildschirmhoehe dynamisch aus
+  // (wie frueher das runde Rad), statt eine feste kleine Groesse zu haben.
+  // Rechnet zuerst mit der verfuegbaren Hoehe, faellt aber auf die
+  // verfuegbare Breite zurueck, falls die Spule bei dem Seitenverhaeltnis
+  // sonst breiter als der Platz neben dem Panel waere.
+  // V5: breite Plakette (~2.15:1) statt Quadrat, damit bei "1 Name
+  // sichtbar" kaum ungenutzte Flaeche uebrig bleibt. Nutzt vor allem die
+  // verfuegbare Breite aus, faellt aber auf die Hoehe zurueck, falls es
+  // sonst zu hoch wuerde. Bewusst grosszuegige Mindest-/Maximalgroesse,
+  // damit der Name auch auf einem Laptop-Bildschirm gut lesbar bleibt.
+  // Verhaeltnis der GECROPPTEN Plakette (ohne den dunklen Bildrand), nicht
+  // des ganzen Originalbilds, siehe Kommentar bei .reel-frame im CSS.
+  const REEL_RATIO = (0.825 * 3040) / (0.763 * 1408);
+  function updateReelFrameSize() {
+    const frame = document.getElementById('reel-frame');
+    if (!frame) return;
+    const clearance = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--top-clearance')) || 100;
+    const PANEL_WIDTH = 340, GAP = 46, SIDE_PAD = 40, BOTTOM_PAD = 40;
+    const MIN_W = 380, MAX_W = 640;
+    const availableHeight = window.innerHeight - clearance - BOTTOM_PAD;
+    const availableWidth = window.innerWidth - PANEL_WIDTH - GAP - SIDE_PAD;
+
+    let width = availableWidth;
+    let height = width / REEL_RATIO;
+    if (height > availableHeight) {
+      height = Math.max(availableHeight, 160);
+      width = height * REEL_RATIO;
+    }
+    width = Math.max(MIN_W, Math.min(MAX_W, Math.round(width)));
+    height = Math.round(width / REEL_RATIO);
+
+    frame.style.width = width + 'px';
+    frame.style.height = height + 'px';
+  }
+
+  // Spule+Panel sollen mehr in der Mitte der Seite stehen statt oben zu
+  // kleben mit viel Leerraum darunter (Fabian, 13.8.2026). Zusaetzlich zum
+  // Navbar-Abstand (--top-clearance, garantiert keine Ueberlappung) wird
+  // hier so viel weiterer Abstand oben draufgerechnet, wie noetig ist, um
+  // den Inhalt im restlichen Platz darunter vertikal zu zentrieren. Nie
+  // WENIGER als die Navbar-Clearance, darum kein Ueberlapp-Risiko, nur
+  // zusaetzlicher Puffer nach unten hin ausgleichen.
+  function centerReelLayout() {
+    const layout = document.querySelector('.wheel-layout');
+    const frame = document.getElementById('reel-frame');
+    if (!layout || !frame) return;
+    const clearance = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--top-clearance')) || 100;
+    const BOTTOM_PAD = 40;
+    const panel = document.querySelector('.wheel-panel');
+    const contentHeight = Math.max(
+      frame.getBoundingClientRect().height,
+      panel ? panel.getBoundingClientRect().height : 0
+    );
+    const extra = Math.max(0, (window.innerHeight - clearance - BOTTOM_PAD - contentHeight) / 2);
+    layout.style.paddingTop = Math.round(clearance + extra) + 'px';
+  }
+
+  // Ruhezustand: genau 1 Kachel, die exakt das Fenster fuellt (kein
+  // Zufalls-Ziel, keine Animation, klar zentriert, kein Nachbar sichtbar).
+  function renderReelIdle() {
+    const track = document.getElementById('reel-track');
+    const win = document.getElementById('reel-window');
+    if (!track || !win) return;
+    const names = state.wheelNames || [];
+    track.innerHTML = '';
+    track.style.transition = 'none';
+    track.style.transform = 'translateY(0px)';
+    if (names.length < 2) return;
+    const tileSize = win.getBoundingClientRect().height || 90;
+    track.appendChild(makeReelTile(names[0], tileSize));
   }
 
   function renderWheel() {
     const ta = document.getElementById('wheel-names');
     if (ta) ta.value = (state.wheelNames || []).join('\n');
-    renderWheelSvgOnly();
+    updateReelFrameSize();
+    renderReelIdle();
+    centerReelLayout();
   }
 
   let wheelSpinAudioEl = null;
@@ -2464,6 +3469,40 @@
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
+  // Kurzer Ueberschwinger am Ende, der wieder auf 1 einschwingt (das
+  // "kurz Bouncen/Ausschwingen" von Fabian). c1 bewusst moderat gewaehlt,
+  // sonst wirkt der Bounce uebertrieben statt "kurz".
+  function easeOutBack(t) {
+    const c1 = 1.3, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+
+  // Funken entstehen genau an den beiden Zeigerspitzen (links/rechts am
+  // Fenster, vertikal auf dessen Mitte), so wie im Hearthstone-BG-
+  // Referenzbild, das Fabian geschickt hat.
+  function spawnSparks(container, count, side) {
+    if (!container) return;
+    // container ist .reel-sparks (spannt den ganzen Rahmen), darum hier die
+    // Fensterkanten (siehe .reel-window: left 5%, Breite 89.7%) als
+    // Prozentwerte des Rahmens angeben, nicht 0%/100% des Rahmens selbst.
+    const posX = side === 'right' ? '94.7%' : '5%';
+    const outward = side === 'right' ? 1 : -1;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'spark-piece';
+      el.style.left = posX;
+      el.style.top = '50%';
+      const angle = Math.random() * Math.PI - Math.PI / 2;
+      const distance = 14 + Math.random() * 38;
+      const sx = Math.cos(angle) * distance * outward;
+      const sy = Math.sin(angle) * distance - 6;
+      el.style.setProperty('--sx', sx + 'px');
+      el.style.setProperty('--sy', sy + 'px');
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 650);
+    }
+  }
+
   function spinWheel() {
     if (wheelSpinning) return;
     const names = state.wheelNames || [];
@@ -2474,40 +3513,77 @@
     wheelSpinning = true;
     document.getElementById('spin-btn').disabled = true;
     document.getElementById('wheel-names').disabled = true;
-    document.getElementById('wheel-result').classList.remove('show');
     startWheelSpinSound();
 
-    const segAngle = 360 / names.length;
-    const idx = Math.floor(Math.random() * names.length);
-    const jitter = segAngle * 0.15 + Math.random() * segAngle * 0.7;
-    const targetAngleAtPointer = idx * segAngle + jitter;
-    const desiredMod = (360 - targetAngleAtPointer + 360) % 360;
-    const currentMod = ((wheelAngle % 360) + 360) % 360;
-    const delta = (desiredMod - currentMod + 360) % 360;
-    const extraFullSpins = 5 + Math.floor(Math.random() * 3);
-    const startAngle = wheelAngle;
-    const endAngle = wheelAngle + extraFullSpins * 360 + delta;
+    const track = document.getElementById('reel-track');
+    const win = document.getElementById('reel-window');
+    const sparksEl = document.getElementById('reel-sparks');
+    const tileSize = win.getBoundingClientRect().height;
+
+    // Gewinner aus dem Pool der in dieser Session noch nicht Gezogenen
+    // waehlen, damit nicht zweimal hintereinander dieselbe Person kommt.
+    // Falls (fast) alle schon dran waren, Pool zuruecksetzen statt
+    // haengenzubleiben. Die Namensliste selbst (state.wheelNames) bleibt
+    // dabei unangetastet, das ist nur eine temporaere Ausschlussliste.
+    let pool = names.filter(n => !wheelDrawnThisSession.includes(n));
+    if (pool.length < 1) { wheelDrawnThisSession = []; pool = names.slice(); }
+    const winnerName = pool[Math.floor(Math.random() * pool.length)];
+    wheelDrawnThisSession.push(winnerName);
+    // Danach: einen langen Streifen bauen und darin eine der hinteren
+    // Wiederholungen des Gewinners als Ziel-Kachel waehlen. Alle Kopien eines
+    // Namens sind identisch, welche Wiederholung als Ziel dient ist daher fuers
+    // Ergebnis egal, sorgt aber fuer einen langen, spannenden Lauf.
+    const winnerIdx = names.indexOf(winnerName);
+
+    const repeats = 22 + Math.floor(Math.random() * 6);
+    track.innerHTML = '';
+    buildReelStrip(names, repeats).forEach(name => track.appendChild(makeReelTile(name, tileSize)));
+
+    const targetRepeat = repeats - 2 - Math.floor(Math.random() * 2);
+    const targetIdx = targetRepeat * names.length + winnerIdx;
+    // Kein Jitter mehr (Fabian: soll wirklich exakt mittig landen). Fensterhoehe
+    // = Kachelhoehe exakt, darum reicht -(targetIdx * tileSize), damit die
+    // Ziel-Kachel das Fenster passgenau fuellt.
+    const endOffset = -(targetIdx * tileSize);
+    const startOffset = 0;
+
+    track.style.transition = 'none';
+    track.style.transform = `translateY(${startOffset}px)`;
+    void track.offsetWidth; // Reflow erzwingen, damit der Start sicher greift
+
     const duration = 4200;
     const startTime = performance.now();
+    let lastSparkTime = 0;
 
-    function frame(now) {
+    function step(now) {
       const t = Math.min(1, (now - startTime) / duration);
-      const eased = easeOutCubic(t);
-      const current = startAngle + (endAngle - startAngle) * eased;
-      wheelAngle = current;
-      document.getElementById('wheel-rotor').setAttribute('transform', `rotate(${current})`);
+      const eased = easeOutBack(t);
+      const current = startOffset + (endOffset - startOffset) * eased;
+      track.style.transform = `translateY(${current}px)`;
+
+      // Funken haeufiger am Anfang (schneller Lauf), seltener gegen Schluss.
+      const speedFactor = 1 - Math.min(1, t / 0.85);
+      const sparkInterval = 35 + (1 - speedFactor) * 150;
+      if (now - lastSparkTime > sparkInterval) {
+        const n = speedFactor > 0.3 ? 2 : 1;
+        spawnSparks(sparksEl, n, 'left');
+        spawnSparks(sparksEl, n, 'right');
+        lastSparkTime = now;
+      }
 
       if (t < 1) {
-        requestAnimationFrame(frame);
+        requestAnimationFrame(step);
       } else {
         wheelSpinning = false;
         stopWheelSpinSound();
         document.getElementById('spin-btn').disabled = false;
         document.getElementById('wheel-names').disabled = false;
-        showWheelResult(names[idx]);
+        spawnSparks(sparksEl, 8, 'left');
+        spawnSparks(sparksEl, 8, 'right');
+        celebrateWinner(winnerName);
       }
     }
-    requestAnimationFrame(frame);
+    requestAnimationFrame(step);
   }
 
   const CONFETTI_COLORS = ['#d4af37', '#e8c96a', '#fff3d0', '#b8860b', '#8a5a2b'];
@@ -2530,39 +3606,316 @@
     }
   }
 
-  function showWheelResult(name) {
+  // Kein Popup mehr: der Name steht schon klar im Fenster der Spule, das
+  // reicht (Fabian, 13.8.2026). Nur noch Fanfare + Konfetti direkt an der
+  // Spule. Das Fenster wird NICHT neu gerendert, der Name soll einfach so
+  // lange stehen bleiben, bis das naechste Mal gedreht wird (der Ausschluss
+  // "nicht zweimal hintereinander dieselbe Person" laeuft ueber
+  // wheelDrawnThisSession in spinWheel(), nicht ueber die Namensliste).
+  function celebrateWinner(name) {
     playWheelFanfare();
-    const el = document.getElementById('wheel-result');
-    el.innerHTML = '';
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'wheel-result-name';
-    nameDiv.textContent = `🎉 ${name} 🎉`;
-    const hint = document.createElement('div');
-    hint.className = 'wheel-result-hint';
-    hint.textContent = 'Antippen zum Schliessen';
-    el.appendChild(nameDiv);
-    el.appendChild(hint);
-    el.classList.add('show');
-    el.onclick = () => dismissWheelResult(name);
-    const backdrop = document.getElementById('wheel-result-backdrop');
-    backdrop.classList.add('show');
-    backdrop.onclick = () => dismissWheelResult(name);
-    spawnConfetti(el, 36);
+    const frame = document.getElementById('reel-frame');
+    if (frame) spawnConfetti(frame, 36);
   }
 
-  function dismissWheelResult(name) {
-    const el = document.getElementById('wheel-result');
-    const backdrop = document.getElementById('wheel-result-backdrop');
-    el.classList.remove('show');
-    el.onclick = null;
-    backdrop.classList.remove('show');
-    backdrop.onclick = null;
-    const idx = state.wheelNames.indexOf(name);
-    if (idx !== -1) {
-      state.wheelNames.splice(idx, 1);
-      saveState();
-      renderWheel();
+  // --- Wandtafel ---
+  // Pointer Events statt separater Maus-/Touch-Handler, damit Maus, Finger
+  // UND Smartboard-Stift alle gleich funktionieren. Wird bewusst NICHT
+  // gespeichert (siehe CSS-Kommentar oben), ist eine Wegwisch-Tafel.
+  let tafelCtx = null;
+  let tafelDrawing = false;
+  let tafelColor = '#1a1a1a';
+  let tafelErasing = false;
+  // Aktuell gewaehlter Hintergrund (weiss/liniert/kariert). Wird pro
+  // Speicherung mitgespeichert, damit beim spaeteren Laden wieder der
+  // richtige Hintergrund erscheint (Fabian, 13.8.2026: "der richtige
+  // Hintergrund muss erhalten bleiben, nicht immer weiss").
+  let tafelCurrentBg = 'weiss';
+  let tafelLastX = 0, tafelLastY = 0;
+  const TAFEL_LINE_WIDTH = 3;
+  const TAFEL_ERASER_WIDTH = 26;
+  // Welcher Galerie-Eintrag gerade in Bearbeitung ist (von dort geladen).
+  // null = frisches, noch nicht gespeichertes Feld. Wird beim Speichern
+  // gebraucht, um eine bereits geladene Tafel zu AKTUALISIEREN statt jede
+  // kleine Ergaenzung als neuen Extra-Eintrag abzulegen (Fabian, 13.8.2026:
+  // "nicht immer jede version neu speichern und die alte behalten").
+  let currentTafelBoardId = null;
+
+  function setupTafelCanvas() {
+    const canvas = document.getElementById('tafel-canvas');
+    if (!canvas) return;
+    if (!tafelCtx) tafelCtx = canvas.getContext('2d');
+    resizeTafelCanvas();
+    if (!canvas.dataset.wired) {
+      canvas.addEventListener('pointerdown', tafelPointerDown);
+      canvas.addEventListener('pointermove', tafelPointerMove);
+      window.addEventListener('pointerup', tafelPointerUp);
+      canvas.dataset.wired = '1';
     }
+  }
+
+  // Groesse richtet sich nach dem Platz unter der Werkzeugleiste, passt
+  // sich also automatisch an PC und Laptop an (echt vollflaechig, kein
+  // Navbar-Abstand noetig, die ist ja ausgeblendet, siehe
+  // body.tafel-fullscreen im CSS). Aendert sich die Canvas-Groesse, wird
+  // ihr Inhalt vom Browser normalerweise geloescht, darum wird die aktuelle
+  // Zeichnung vorher gesichert und danach passend neu eingezeichnet, damit
+  // ein Fenster-Resize waehrend des Zeichnens nichts wegwischt.
+  function resizeTafelCanvas() {
+    const canvas = document.getElementById('tafel-canvas');
+    const board = document.getElementById('tafel-board');
+    const toolbar = document.querySelector('.tafel-toolbar');
+    if (!canvas || !board) return;
+    const toolbarHeight = toolbar ? toolbar.getBoundingClientRect().height + 14 : 60;
+    const availableHeight = window.innerHeight - toolbarHeight - 30;
+    const availableWidth = window.innerWidth - 28;
+    const width = Math.max(320, Math.round(availableWidth));
+    const height = Math.max(220, Math.round(availableHeight));
+
+    let prevDataUrl = null;
+    if (canvas.width > 0 && canvas.height > 0) {
+      try { prevDataUrl = canvas.toDataURL('image/png'); } catch (e) { /* ignore */ }
+    }
+    board.style.width = width + 'px';
+    board.style.height = height + 'px';
+    canvas.width = width;
+    canvas.height = height;
+    if (prevDataUrl) tafelDrawImageFit(prevDataUrl);
+  }
+
+  // Zeichnet ein gespeichertes/gesichertes Bild passend auf die aktuelle
+  // Canvas-Groesse (gestreckt, kein Ausschnitt/Buendig-Croppen noetig, eine
+  // kleine Verzerrung bei starkem Seitenverhaeltnis-Wechsel ist fuer eine
+  // Wandtafel-Notiz unproblematisch).
+  function tafelDrawImageFit(dataUrl) {
+    const canvas = document.getElementById('tafel-canvas');
+    if (!canvas || !tafelCtx) return;
+    const img = new Image();
+    img.onload = () => {
+      tafelCtx.globalCompositeOperation = 'source-over';
+      tafelCtx.imageSmoothingEnabled = true;
+      tafelCtx.imageSmoothingQuality = 'high';
+      tafelCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = dataUrl;
+  }
+
+  // Speichert den aktuellen Stand (Fabian, 13.8.2026, Nachtrag: "gespeichert,
+  // dann in einem neuen Feld weiterarbeiten, und die gespeicherten in
+  // kleinen Rechtecken sehen"; Korrektur nach Test: "nicht immer jede
+  // version neu speichern und die alte behalten"). Wurde die aktuelle Tafel
+  // ueber die Galerie geladen (currentTafelBoardId gesetzt), wird DIESER
+  // Eintrag aktualisiert statt ein neuer angelegt, sonst haeufen sich
+  // Duplikate der gleichen Arbeit an. Nur wenn wirklich frisch (nichts
+  // geladen) begonnen wurde, entsteht ein neuer Galerie-Eintrag. Danach
+  // wird die Tafel geleert, damit sofort auf einem frischen Feld
+  // weitergearbeitet werden kann.
+  function saveTafel(evt) {
+    const canvas = document.getElementById('tafel-canvas');
+    if (!canvas) return;
+    try {
+      const dataUrl = tafelShrinkForStorage(canvas);
+      const existing = currentTafelBoardId && state.tafelBoards.find(b => b.id === currentTafelBoardId);
+      if (existing) {
+        existing.dataUrl = dataUrl;
+        existing.savedAt = Date.now();
+        existing.bg = tafelCurrentBg;
+      } else {
+        state.tafelBoards.push({ id: 'tafel-' + Date.now(), dataUrl, savedAt: Date.now(), bg: tafelCurrentBg });
+      }
+      saveState();
+      if (evt) popScreenText(evt.clientX, evt.clientY, 'Gespeichert ✓');
+      clearTafel();
+    } catch (e) {
+      alert('Speichern hat leider nicht geklappt.');
+    }
+  }
+
+  // Verkleinert vor dem Speichern nur, wenn die Tafel wirklich gross ist
+  // (laengere Seite max. 1600px), und speichert verlustfrei als PNG statt
+  // JPEG. Handschrift/Skizzen sind duenne Linien auf fast weissem Grund,
+  // JPEG-Kompression hat das sichtbar verwaschen (Fabians Feedback: "die
+  // Qualitaet verschlechtert sich massgeblich beim Wiederoeffnen"). PNG
+  // komprimiert genau solche Flaechen sehr gut, bleibt also trotzdem klein.
+  // WICHTIG: die Zeichenflaeche selbst ist transparent (liniert/kariert ist
+  // nur eine CSS-Musterung des Kastens dahinter, nicht Teil des Canvas).
+  // Darum hier bewusst KEIN weisses fillRect mehr einfuegen, sonst wird
+  // beim erneuten Laden ein opaker weisser Fleck ueber den eigentlich
+  // gewaehlten Hintergrund gelegt (das war der gemeldete Bug: liniert/
+  // kariert "verschwindet" beim Speichern/Laden zu weiss).
+  function tafelShrinkForStorage(canvas) {
+    const MAX_SIDE = 1600;
+    const scale = Math.min(1, MAX_SIDE / Math.max(canvas.width, canvas.height));
+    if (scale >= 1) return canvas.toDataURL('image/png');
+    const tmp = document.createElement('canvas');
+    tmp.width = Math.round(canvas.width * scale);
+    tmp.height = Math.round(canvas.height * scale);
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(canvas, 0, 0, tmp.width, tmp.height);
+    return tmp.toDataURL('image/png');
+  }
+
+  function formatTafelDate(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}. ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function openTafelGallery() {
+    renderTafelGallery();
+    document.getElementById('tafel-gallery-backdrop').classList.add('show');
+    document.getElementById('tafel-gallery').classList.add('show');
+  }
+  function closeTafelGallery() {
+    document.getElementById('tafel-gallery-backdrop').classList.remove('show');
+    document.getElementById('tafel-gallery').classList.remove('show');
+  }
+
+  function renderTafelGallery() {
+    const grid = document.getElementById('tafel-gallery-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const boards = state.tafelBoards || [];
+    if (!boards.length) {
+      const hint = document.createElement('div');
+      hint.className = 'tafel-gallery-empty';
+      hint.textContent = 'Noch nichts gespeichert.';
+      grid.appendChild(hint);
+      return;
+    }
+    // neueste zuerst
+    boards.slice().reverse().forEach(board => {
+      const item = document.createElement('div');
+      item.className = 'tafel-gallery-item';
+      if (board.bg === 'liniert' || board.bg === 'kariert') item.classList.add('bg-' + board.bg);
+      item.onclick = () => loadTafelBoard(board.id);
+
+      const img = document.createElement('img');
+      img.src = board.dataUrl;
+      img.alt = 'Gespeicherte Tafel';
+      item.appendChild(img);
+
+      const date = document.createElement('div');
+      date.className = 'tafel-gallery-date';
+      date.textContent = formatTafelDate(board.savedAt);
+      item.appendChild(date);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'tafel-gallery-delete';
+      delBtn.textContent = '×';
+      delBtn.title = 'Löschen';
+      delBtn.onclick = (evt) => { evt.stopPropagation(); deleteTafelBoard(board.id); };
+      item.appendChild(delBtn);
+
+      grid.appendChild(item);
+    });
+  }
+
+  // Laedt eine gespeicherte Tafel wieder gross auf die Zeichenflaeche
+  // (ersetzt den aktuellen Inhalt, statt ihn zu ueberlagern). Merkt sich,
+  // welcher Eintrag geladen wurde, damit ein spaeteres Speichern DIESEN
+  // aktualisiert statt einen weiteren Duplikat-Eintrag anzulegen. Stellt
+  // auch den beim Speichern aktiven Hintergrund (weiss/liniert/kariert)
+  // wieder her, statt immer bei weiss zu bleiben.
+  function loadTafelBoard(id) {
+    const board = (state.tafelBoards || []).find(b => b.id === id);
+    if (!board) return;
+    closeTafelGallery();
+    clearTafel();
+    currentTafelBoardId = id;
+    setTafelBg(board.bg || 'weiss');
+    tafelDrawImageFit(board.dataUrl);
+  }
+
+  function deleteTafelBoard(id) {
+    const idx = (state.tafelBoards || []).findIndex(b => b.id === id);
+    if (idx !== -1) {
+      state.tafelBoards.splice(idx, 1);
+      if (currentTafelBoardId === id) currentTafelBoardId = null;
+      saveState();
+      renderTafelGallery();
+    }
+  }
+
+  function tafelPointerPos(evt) {
+    const canvas = document.getElementById('tafel-canvas');
+    const rect = canvas.getBoundingClientRect();
+    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+  }
+
+  function tafelPointerDown(evt) {
+    evt.preventDefault();
+    tafelDrawing = true;
+    const pos = tafelPointerPos(evt);
+    tafelLastX = pos.x; tafelLastY = pos.y;
+    tafelDrawSegment(pos.x, pos.y, pos.x, pos.y); // Punkt bei reinem Tippen ohne Ziehen
+  }
+  function tafelPointerMove(evt) {
+    if (!tafelDrawing) return;
+    evt.preventDefault();
+    const pos = tafelPointerPos(evt);
+    tafelDrawSegment(tafelLastX, tafelLastY, pos.x, pos.y);
+    tafelLastX = pos.x; tafelLastY = pos.y;
+  }
+  function tafelPointerUp() {
+    tafelDrawing = false;
+  }
+  function tafelDrawSegment(x0, y0, x1, y1) {
+    if (!tafelCtx) return;
+    tafelCtx.lineJoin = 'round';
+    tafelCtx.lineCap = 'round';
+    if (tafelErasing) {
+      tafelCtx.globalCompositeOperation = 'destination-out';
+      tafelCtx.lineWidth = TAFEL_ERASER_WIDTH;
+    } else {
+      tafelCtx.globalCompositeOperation = 'source-over';
+      tafelCtx.strokeStyle = tafelColor;
+      tafelCtx.lineWidth = TAFEL_LINE_WIDTH;
+    }
+    tafelCtx.beginPath();
+    tafelCtx.moveTo(x0, y0);
+    tafelCtx.lineTo(x1, y1);
+    tafelCtx.stroke();
+  }
+
+  function setTafelBg(which) {
+    const board = document.getElementById('tafel-board');
+    if (!board) return;
+    tafelCurrentBg = which;
+    board.classList.remove('bg-liniert', 'bg-kariert');
+    if (which === 'liniert') board.classList.add('bg-liniert');
+    if (which === 'kariert') board.classList.add('bg-kariert');
+    document.querySelectorAll('.tafel-bg-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.bg === which);
+    });
+  }
+
+  function setTafelColor(color, btn) {
+    tafelColor = color;
+    tafelErasing = false;
+    const eraserBtn = document.getElementById('tafel-eraser-btn');
+    if (eraserBtn) eraserBtn.classList.remove('active');
+    document.querySelectorAll('.tafel-color-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  function toggleTafelEraser() {
+    tafelErasing = !tafelErasing;
+    document.getElementById('tafel-eraser-btn').classList.toggle('active', tafelErasing);
+    if (tafelErasing) document.querySelectorAll('.tafel-color-btn').forEach(b => b.classList.remove('active'));
+  }
+
+  // Loescht die Zeichenflaeche UND loest die Verknuepfung zu einem evtl.
+  // geladenen Galerie-Eintrag (ein leeres Feld ist etwas Neues, kein
+  // Update einer geladenen Tafel). loadTafelBoard() setzt
+  // currentTafelBoardId direkt danach wieder, falls es sich um einen
+  // Lade-Vorgang handelt.
+  function clearTafel() {
+    const canvas = document.getElementById('tafel-canvas');
+    if (canvas && tafelCtx) tafelCtx.clearRect(0, 0, canvas.width, canvas.height);
+    currentTafelBoardId = null;
   }
 
   render();
