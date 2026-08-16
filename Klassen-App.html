@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -1639,7 +1639,7 @@
       </div>
       <div class="tafel-group">
         <button id="tafel-eraser-btn" onclick="toggleTafelEraser()">&#129529; Radierer</button>
-        <button onclick="clearTafel()">&#128465; Löschen</button>
+        <button onclick="confirmClearTafel()">&#128465; Löschen</button>
         <button onclick="saveTafel(event)">&#128190; Speichern</button>
         <button onclick="openTafelGallery()">&#128193; Gespeicherte</button>
       </div>
@@ -1696,8 +1696,24 @@
     } catch (e) {}
     return { total: 0, pendingRewards: [], wheelNames: CLASS_LISTS["6"].slice() };
   }
+  // Speichert ALLES (Punkte, Gruppen, To-dos, Stundenplan-Notizen, Tafel-
+  // Galerie, ...) in einem Objekt in localStorage. Ist der Speicher voll
+  // (z.B. durch viele gespeicherte Tafelbilder), wirft setItem eine
+  // Exception, die frueher an allen >15 Aufrufstellen ungefangen durchschlug:
+  // ab dann wurde STILL nichts mehr gespeichert, ohne dass Fabian das
+  // gemerkt haette. Jetzt hier zentral abgefangen, einmal pro Sitzung
+  // gewarnt (kein Alert bei jedem einzelnen Klick).
+  let saveStateFailedWarned = false;
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Speichern fehlgeschlagen:', e);
+      if (!saveStateFailedWarned) {
+        saveStateFailedWarned = true;
+        alert('Achtung: Speichern hat nicht geklappt (Speicher evtl. voll). Neue Änderungen gehen beim Schliessen der Seite evtl. verloren. Ggf. alte gespeicherte Wandtafel-Bilder löschen, um Platz zu schaffen.');
+      }
+    }
   }
 
   let state = loadState();
@@ -1906,7 +1922,7 @@
     }
     if (name === 'rad') {
       updateTopClearanceSoon();
-      renderWheel();
+      if (!wheelSpinning) renderWheel();
     }
     if (name === 'gruppen') {
       updateTopClearanceSoon();
@@ -2989,7 +3005,14 @@
       const canAfford = state.total >= r.cost;
       const card = document.createElement('div');
       card.className = 'reward-card' + (canAfford ? '' : ' disabled');
-      card.innerHTML = `<div class="name">${r.name}</div><div class="cost">${r.cost} Punkte</div>`;
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = r.name;
+      const costEl = document.createElement('div');
+      costEl.className = 'cost';
+      costEl.textContent = r.cost + ' Punkte';
+      card.appendChild(nameEl);
+      card.appendChild(costEl);
       card.onclick = (evt) => redeem(r, canAfford, evt);
       grid.appendChild(card);
     });
@@ -3782,6 +3805,13 @@
         existing.bg = tafelCurrentBg;
       } else {
         state.tafelBoards.push({ id: 'tafel-' + Date.now(), dataUrl, savedAt: Date.now(), bg: tafelCurrentBg });
+        // Deckel gegen unbegrenztes Wachstum (jedes Bild landet komplett in
+        // localStorage, das hat nur ein paar MB Platz insgesamt): aelteste
+        // Eintraege fallen raus, sobald mehr als 40 gespeichert sind.
+        const MAX_TAFEL_BOARDS = 40;
+        if (state.tafelBoards.length > MAX_TAFEL_BOARDS) {
+          state.tafelBoards.splice(0, state.tafelBoards.length - MAX_TAFEL_BOARDS);
+        }
       }
       saveState();
       if (evt) popScreenText(evt.clientX, evt.clientY, 'Gespeichert ✓');
@@ -3890,6 +3920,7 @@
   }
 
   function deleteTafelBoard(id) {
+    if (!confirm('Diese gespeicherte Tafel wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
     const idx = (state.tafelBoards || []).findIndex(b => b.id === id);
     if (idx !== -1) {
       state.tafelBoards.splice(idx, 1);
@@ -3972,6 +4003,15 @@
   // Update einer geladenen Tafel). loadTafelBoard() setzt
   // currentTafelBoardId direkt danach wieder, falls es sich um einen
   // Lade-Vorgang handelt.
+  // Fuer den Toolbar-Knopf: fragt nach, da die Tafel bewusst nicht
+  // automatisch gespeichert wird (ein Fehlklick wuerde sonst ungesicherte
+  // Arbeit ersatzlos loeschen). clearTafel() selbst bleibt ohne Rueckfrage,
+  // da es auch intern nach erfolgreichem Speichern (saveTafel) und vor dem
+  // Laden eines Galerie-Eintrags (loadTafelBoard) sicher wiederverwendet wird.
+  function confirmClearTafel() {
+    if (!confirm('Tafel wirklich löschen? Nicht gespeicherte Zeichnungen gehen dabei verloren.')) return;
+    clearTafel();
+  }
   function clearTafel() {
     const canvas = document.getElementById('tafel-canvas');
     if (canvas && tafelCtx) tafelCtx.clearRect(0, 0, canvas.width, canvas.height);
