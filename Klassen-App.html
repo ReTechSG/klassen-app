@@ -921,6 +921,24 @@
     font-size: 12px;
   }
   .sp-cell.sp-special-day:hover { transform: none; filter: none; }
+  /* Ganze Ferienwochen (z.B. Herbstferien): statt des Stundenplan-Rasters
+     ein grosses, ruhiges Banner ueber die volle Breite. */
+  .sp-ferien-banner {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 44px 12px;
+    color: #d6c9a3;
+  }
+  .sp-ferien-banner .sp-ferien-title {
+    font-size: 24px;
+    color: var(--gold);
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+  }
+  .sp-ferien-banner .sp-ferien-sub {
+    font-size: 13px;
+    color: #9a8f78;
+  }
   .sp-divider {
     grid-column: 1 / -1;
     text-align: center;
@@ -1387,7 +1405,7 @@
         </svg>
       </button>
     </div>
-    <div class="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
+    <div class="stundenplan-hint" id="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
     <div class="stundenplan-scroll">
       <div class="stundenplan-grid" id="stundenplan-grid"></div>
     </div>
@@ -1971,10 +1989,15 @@
   // hinterlegt und erscheinen automatisch, sobald diese Perioden spaeter
   // ergaenzt werden (SP_WEEK_MAX + SP_WEEK_DATES erweitert), siehe Kontext.md.
   const SP_SPECIAL_DAYS = {
-    '39-Dienstag': { label: 'Umweltmorgen', detail: '22.09.2026: Landwirtschaft, Thema Reben, Hof Rutishauser', periods: [1, 2, 3, 4] },
-    '47-Dienstag': { label: 'Umweltmorgen', detail: '17.11.2026: Landwirtschaft, Thema Wursten, Hof Wider', periods: [1, 2, 3, 4] },
-    '9-Dienstag':  { label: 'Umweltmorgen', detail: '02.03.2027: Landwirtschaft, Thema Landmaschinen, Hof Alther', periods: [1, 2, 3, 4] },
-    '22-Dienstag': { label: 'Umweltmorgen', detail: '01.06.2027: Landwirtschaft, Thema Biodiversität, Hof Rutishauser', periods: [1, 2, 3, 4] }
+    '39-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '22.09.2026: Landwirtschaft, Thema Reben, Hof Rutishauser', periods: [1, 2, 3, 4] },
+    '47-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '17.11.2026: Landwirtschaft, Thema Wursten, Hof Wider', periods: [1, 2, 3, 4] },
+    '9-Dienstag':  { label: 'Umweltmorgen', icon: '🌾', detail: '02.03.2027: Landwirtschaft, Thema Landmaschinen, Hof Alther', periods: [1, 2, 3, 4] },
+    '22-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '01.06.2027: Landwirtschaft, Thema Biodiversität, Hof Rutishauser', periods: [1, 2, 3, 4] },
+    // Fabian, 16.8.2026: "letzte Lektion vor den Herbstferien abgemacht,
+    // dass ich Fruehstueck mit den 6.Klaesslerinnen esse". Ersetzt nur die
+    // 1. Lektion (Englisch 6.Kl-Slot, die einzige an dem Tag rein
+    // 6.Kl-spezifische Lektion), auf Fabians Bestaetigung hin.
+    '39-Mittwoch': { label: 'Frühstück', icon: '🥐', detail: '23.09.2026: Frühstück mit den 6. Klässlerinnen, letzte Lektion vor den Herbstferien', periods: [1] }
   };
   function specialDayFor(day) {
     return SP_SPECIAL_DAYS[spCurrentWeek + '-' + day] || null;
@@ -1999,13 +2022,28 @@
   // danach Herbstferien (27.9.-18.10.2026). Nur dieser Bereich ist
   // navigierbar, die Fach-Zuteilung pro Wochentag/Lektion ist immer
   // gleich (STUNDENPLAN oben), nur die Lektionsnotizen sind pro KW eigen.
+  // Bereich 16.8.2026 auf KW33-51 erweitert (Fabian: "bis Ende Jahr"), inkl.
+  // der 3 Herbstferienwochen als eigener Ferien-Zustand (siehe
+  // SP_FERIEN_WEEKS/renderStundenplan). Daten aus dem offiziellen Ferienplan
+  // des Kantons St. Gallen (sg.ch, Stand 10.8.2026, Schuljahr 2026/27):
+  // Herbstferien So 27.9.-So 18.10. (KW40-42), Weihnachtsferien ab So
+  // 20.12.26 (KW51 ist somit die letzte Schulwoche vor den
+  // Weihnachtsferien, letzter Schultag Fr 18.12.).
   const SP_WEEK_MIN = 33;
-  const SP_WEEK_MAX = 39;
+  const SP_WEEK_MAX = 51;
   const SP_WEEK_DATES = {
     33: '10.–14.08.', 34: '17.–21.08.', 35: '24.–28.08.', 36: '31.08.–04.09.',
-    37: '07.–11.09.', 38: '14.–18.09.', 39: '21.–25.09.'
+    37: '07.–11.09.', 38: '14.–18.09.', 39: '21.–25.09.',
+    40: '28.09.–02.10.', 41: '05.–09.10.', 42: '12.–16.10.', 43: '19.–23.10.',
+    44: '26.–30.10.', 45: '02.–06.11.', 46: '09.–13.11.', 47: '16.–20.11.',
+    48: '23.–27.11.', 49: '30.11.–04.12.', 50: '07.–11.12.', 51: '14.–18.12.'
   };
   const SP_HERBSTFERIEN_TEXT = 'Herbstferien: 27.9.–18.10.';
+  // Wochen, die komplett Ferien sind: kein Stundenplan-Raster, stattdessen
+  // ein grosses Banner (siehe renderStundenplan). Nur Herbstferien noch
+  // hinterlegt, da der navigierbare Bereich aktuell bis KW51 (Mitte
+  // Dezember) reicht, also vor den Weihnachtsferien endet.
+  const SP_FERIEN_WEEKS = { 40: 'Herbstferien', 41: 'Herbstferien', 42: 'Herbstferien' };
 
   // Echte Kurzinhalte fuer KW33 (erste Schulwoche), aus den bestehenden
   // Grobplanungen uebernommen (Ethik/Mathe/NMG/Kreativnachmittag haben fuer
@@ -2336,9 +2374,31 @@
     grid.innerHTML = '';
 
     document.getElementById('sp-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
-    document.getElementById('sp-kw-sub').textContent = SP_HERBSTFERIEN_TEXT;
+    // Der generelle Herbstferien-Hinweis ist nur VOR den Ferien noch
+    // sinnvoll (Ankuendigung), waehrend/nach den Ferien uebernimmt das
+    // grosse Banner unten bzw. ist es einfach vorbei.
+    document.getElementById('sp-kw-sub').textContent = spCurrentWeek < Math.min(...Object.keys(SP_FERIEN_WEEKS).map(Number)) ? SP_HERBSTFERIEN_TEXT : '';
     document.getElementById('sp-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
     document.getElementById('sp-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
+
+    const ferienLabel = SP_FERIEN_WEEKS[spCurrentWeek];
+    const hint = document.getElementById('stundenplan-hint');
+    if (ferienLabel) {
+      if (hint) hint.style.display = 'none';
+      const banner = document.createElement('div');
+      banner.className = 'sp-ferien-banner';
+      const title = document.createElement('div');
+      title.className = 'sp-ferien-title';
+      title.textContent = '🍂 ' + ferienLabel;
+      const sub = document.createElement('div');
+      sub.className = 'sp-ferien-sub';
+      sub.textContent = 'Keine Schule, KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
+      banner.appendChild(title);
+      banner.appendChild(sub);
+      grid.appendChild(banner);
+      return;
+    }
+    if (hint) hint.style.display = '';
 
     const weekNotes = state.stundenplanNotes[spCurrentWeek] || {};
 
@@ -2355,7 +2415,7 @@
         h.title = special.detail;
         const badge = document.createElement('span');
         badge.className = 'sp-head-special-badge';
-        badge.textContent = '🌾 ' + special.label;
+        badge.textContent = special.icon + ' ' + special.label;
         h.appendChild(badge);
       }
       grid.appendChild(h);
@@ -2390,7 +2450,7 @@
         const externSubject = !subject ? externSubjectFor(day, period) : null;
         if (special && special.periods.includes(period)) {
           cell.className = 'sp-cell sp-special-day';
-          cell.textContent = '🌾 ' + special.label;
+          cell.textContent = special.icon + ' ' + special.label;
           cell.title = special.detail;
         } else if (externSubject) {
           cell.className = 'sp-cell sp-extern';
