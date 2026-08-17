@@ -899,9 +899,10 @@
      bewusst ein anderer Farbton (teal) als Noten/Special/Meeting-Badges. */
   .sp-zivi-mark {
     position: absolute; top: 4px; left: 6px;
-    font-size: 8px; font-weight: 700; letter-spacing: 0.3px;
-    color: #eafcff; background: #2f7d8c;
-    border-radius: 4px; padding: 1px 4px;
+    font-size: 11px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    background: #2f7d8c; border-radius: 50%;
   }
   /* Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
      Klasse ausser Haus ist. Tageskopf bekommt ein auffaelliges Badge, die
@@ -2616,7 +2617,7 @@
           if (zivFor(day, period)) {
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
-            zmark.textContent = '🧑 Herr';
+            zmark.textContent = '🤝';
             cell.title += ' Herr ist dabei.';
             cell.appendChild(zmark);
           }
@@ -2637,7 +2638,7 @@
           if (zivFor(day, period)) {
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
-            zmark.textContent = '🧑 Herr';
+            zmark.textContent = '🤝';
             cell.title = 'Herr ist dabei.';
             cell.appendChild(zmark);
           }
