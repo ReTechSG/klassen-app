@@ -894,6 +894,15 @@
     background: var(--gold);
     box-shadow: 0 0 5px rgba(212,175,55,0.9);
   }
+  /* Markiert Lektionen, bei denen der Zivi dabei ist (siehe zivFor()).
+     Oben links, damit es nicht mit dem Notiz-Punkt (oben rechts) kollidiert,
+     bewusst ein anderer Farbton (teal) als Noten/Special/Meeting-Badges. */
+  .sp-zivi-mark {
+    position: absolute; top: 4px; left: 6px;
+    font-size: 8px; font-weight: 700; letter-spacing: 0.3px;
+    color: #eafcff; background: #2f7d8c;
+    border-radius: 4px; padding: 1px 4px;
+  }
   /* Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
      Klasse ausser Haus ist. Tageskopf bekommt ein auffaelliges Badge, die
      betroffenen Lektionszellen werden einheitlich eingefaerbt und sind nicht
@@ -938,6 +947,30 @@
   .sp-ferien-banner .sp-ferien-sub {
     font-size: 13px;
     color: #9a8f78;
+  }
+  /* Termine (Sitzungen etc.), siehe SP_MEETINGS: bewusst gold/amber statt
+     gruen, damit sie sich von den "SuS ausser Haus"-Special-Days
+     unterscheiden -- es handelt sich um einen Termin fuer Fabian, nicht um
+     einen lektionsfreien Tag fuer die Klasse. */
+  .sp-head-meeting-badge {
+    display: block;
+    font-size: 10px;
+    color: #3a2e12;
+    background: var(--gold);
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin: 3px auto 0;
+    max-width: fit-content;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .sp-ferien-meetings {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--gold);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   .sp-divider {
     grid-column: 1 / -1;
@@ -1727,6 +1760,24 @@
   if (!state.todos) state.todos = { sus: [], lehrperson: [] };
   if (!state.todos.sus) state.todos.sus = [];
   if (!state.todos.lehrperson) state.todos.lehrperson = [];
+  // Einmaliger Seed aus "Infos für Claude.docx" (17.8.2026): laeuft nur
+  // einmal (Flag statt ID-Check), damit geloeschte Kaertchen beim naechsten
+  // Laden nicht wieder auftauchen -- gleiches Prinzip wie SP_SEED_KW33/34,
+  // nur mit explizitem Flag statt "Key schon vorhanden".
+  if (!state.todoSeedApplied_20260817) {
+    [
+      { keyword: 'Elternabend: Becher/Schalen', detail: 'Schalen von der Schule holen (für Chips etc., genug vorhanden). Papierbecher fehlen noch, muss ich kaufen.', due: '2026-08-25' },
+      { keyword: 'Vorstellungsfolie', detail: 'Fotos anpassen und Folie gestalten für den Elternabend (gemeinsame PPT + eigene Folie), Vanessas Vorlage als Basis nehmen.', due: '2026-08-25' }
+    ].forEach(t => {
+      state.todos.lehrperson.push({
+        id: 'todo-seed-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        keyword: t.keyword,
+        detail: t.detail,
+        due: t.due
+      });
+    });
+    state.todoSeedApplied_20260817 = true;
+  }
   if (!state.tafelBoards) state.tafelBoards = [];
   // Migration von der alten Einzel-Speicherung (13.8.2026, erste Version)
   // auf die neue Galerie mit mehreren Speicherungen (gleicher Tag,
@@ -2013,10 +2064,63 @@
     // dass ich Fruehstueck mit den 6.Klaesslerinnen esse". Ersetzt nur die
     // 1. Lektion (Englisch 6.Kl-Slot, die einzige an dem Tag rein
     // 6.Kl-spezifische Lektion), auf Fabians Bestaetigung hin.
-    '39-Mittwoch': { label: 'Frühstück', icon: '🥐', detail: '23.09.2026: Frühstück mit den 6. Klässlerinnen, letzte Lektion vor den Herbstferien', periods: [1] }
+    '39-Mittwoch': { label: 'Frühstück', icon: '🥐', detail: '23.09.2026: Frühstück mit den 6. Klässlerinnen, letzte Lektion vor den Herbstferien', periods: [1] },
+    // Fabian, 17.8.2026 (aus "Infos für Claude.docx"): Nationaler
+    // Zukunftstag, SuS sind den ganzen Tag ausser Haus. Perioden 1-6
+    // (ganzer Tag) von Fabian am 17.8.2026 bestaetigt.
+    '46-Donnerstag': { label: 'Zukunftstag', icon: '🧭', detail: '12.11.2026: Nationaler Zukunftstag, SuS ausser Haus, ganzer Tag', periods: [1, 2, 3, 4, 5, 6] },
+    // Fabian, 17.8.2026: Begegnungsmorgen. ANNAHME: ganzer Morgen (Perioden
+    // 1-4), analog zu Umweltmorgen, da Fabian nur das Datum genannt hat --
+    // bei Gelegenheit bestaetigen lassen.
+    '44-Donnerstag': { label: 'Begegnungsmorgen', icon: '🤝', detail: '29.10.2026: Begegnungsmorgen (Perioden noch zu bestätigen, angenommen: ganzer Morgen 1.-4.)', periods: [1, 2, 3, 4] },
+    // Fabian, 17.8.2026: Paedagogischer Tag (Anlass fuer Lehrpersonen), SuS
+    // haben schulfrei. Ganzer Tag, da kein Unterricht stattfindet.
+    '44-Freitag': { label: 'SuS frei', icon: '🧑‍🏫', detail: '30.10.2026: Pädagogischer Tag (Anlass für Lehrpersonen), SuS frei', periods: [1, 2, 3, 4, 5, 6] }
   };
   function specialDayFor(day) {
     return SP_SPECIAL_DAYS[spCurrentWeek + '-' + day] || null;
+  }
+
+  // Termine ausserhalb des normalen Lektionsrasters (Sitzungen usw.),
+  // erscheinen nur als kleines Badge im Tageskopf (keine Lektionszelle wird
+  // eingefaerbt) UND werden -- anders als specialDayFor -- auch in
+  // Ferienwochen angezeigt (z.B. eine Stufensitzung in den Herbstferien),
+  // siehe renderStundenplan(). Fabian, 17.8.2026 (aus "Infos für
+  // Claude.docx").
+  const SP_MEETINGS = {
+    '36-Montag': { icon: '📋', label: 'Stufensitzung', detail: 'Stufensitzung, 31.08.2026, 16:00' },
+    '42-Freitag': { icon: '📋', label: 'Stufensitzung', detail: 'Stufensitzung, 16.10.2026, 09:00 (während der Herbstferien)' },
+    '48-Mittwoch': { icon: '📋', label: 'Teamnachmittag', detail: 'Teamnachmittag, 25.11.2026' }
+  };
+  function meetingFor(day) {
+    return SP_MEETINGS[spCurrentWeek + '-' + day] || null;
+  }
+
+  // Wann der Zivi bei Fabians eigenen Lektionen dabei ist (Fabian,
+  // 17.8.2026, praezisiert nach Rueckfrage zum Wochenplan-Bild). Woechentlich
+  // FIXE Faelle (immer, keine Alternation): Montag Kreativnachmittag (5./6.
+  // Lektion), Dienstag Deutsch+Mathe direkt nach der Pause (3./4. Lektion),
+  // Donnerstag Werken/TTG (2./3. Lektion). Dienstagnachmittag (5./6. Lektion,
+  // Religion/M&I-Block) NUR wenn M&I laeuft (gerade KW), nicht bei Religion.
+  // Freitagnachmittag (5./6. Lektion, NMG, Fabians eigene Lektion): Fabian
+  // hat am 17.8.2026 klargestellt, das war kein Widerspruch zum Stundenplan
+  // (NMG selbst laeuft jeden Freitagnachmittag unveraendert) -- der Zivi
+  // wechselt wochenweise zwischen Fabians Klasse und einer anderen Klasse,
+  // bei Fabian nur in UNGERADEN KW.
+  const SP_ZIVI_ALWAYS = {
+    'Montag': [5, 6],
+    'Dienstag': [3, 4],
+    'Donnerstag': [2, 3]
+  };
+  function zivFor(day, period) {
+    if ((SP_ZIVI_ALWAYS[day] || []).includes(period)) return true;
+    if (day === 'Dienstag' && (period === 5 || period === 6)) {
+      return spCurrentWeek % 2 === 0; // gerade KW = M&I-Woche, nicht Religion
+    }
+    if (day === 'Freitag' && (period === 5 || period === 6)) {
+      return spCurrentWeek % 2 === 1; // ungerade KW = Zivi bei Fabian (NMG)
+    }
+    return false;
   }
 
   // Reihenfolge der Zeilen im Raster, inkl. Pause/Mittag-Trennzeilen
@@ -2265,6 +2369,16 @@
   }
   function toggleTimer() {
     if (!timerStarted) return; // Start passiert nur ueber den Picker
+    // Bug 17.8.2026 (Fabian): nach Ablauf blieb der Knopf auf "Start"
+    // stehen, aber timerRemaining war 0, darum tat der Klick unten nichts
+    // mehr (stiller Return) -- man kam ohne den kleinen "Zuruecksetzen"-
+    // Knopf nicht mehr an eine neue Zeit heran. Klick auf den (ehemals
+    // Pause/jetzt Start-)Knopf nach Ablauf setzt jetzt direkt zurueck zum
+    // Minuten-Picker, wie man es naturlich erwarten wuerde.
+    if (timerDone) {
+      resetTimer();
+      return;
+    }
     if (timerRunning) {
       // Pausieren: Restzeit einfrieren.
       timerRemaining = Math.max(0, Math.ceil((timerEndTs - Date.now()) / 1000));
@@ -2411,6 +2525,17 @@
       sub.textContent = 'Keine Schule, KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
       banner.appendChild(title);
       banner.appendChild(sub);
+      const weekMeetings = SP_DAYS.map(day => ({ day, m: meetingFor(day) })).filter(x => x.m);
+      if (weekMeetings.length) {
+        const meetingsBox = document.createElement('div');
+        meetingsBox.className = 'sp-ferien-meetings';
+        weekMeetings.forEach(({ day, m }) => {
+          const line = document.createElement('div');
+          line.textContent = m.icon + ' ' + m.label + ' (' + day + '): ' + m.detail;
+          meetingsBox.appendChild(line);
+        });
+        banner.appendChild(meetingsBox);
+      }
       grid.appendChild(banner);
       return;
     }
@@ -2433,6 +2558,14 @@
         badge.className = 'sp-head-special-badge';
         badge.textContent = special.icon + ' ' + special.label;
         h.appendChild(badge);
+      }
+      const meeting = meetingFor(day);
+      if (meeting) {
+        const mbadge = document.createElement('span');
+        mbadge.className = 'sp-head-meeting-badge';
+        mbadge.title = meeting.detail;
+        mbadge.textContent = meeting.icon + ' ' + meeting.label;
+        h.appendChild(mbadge);
       }
       grid.appendChild(h);
     });
@@ -2480,6 +2613,13 @@
             altLine.textContent = '⇄ ' + externSubject.alt;
             cell.appendChild(altLine);
           }
+          if (zivFor(day, period)) {
+            const zmark = document.createElement('div');
+            zmark.className = 'sp-zivi-mark';
+            zmark.textContent = 'Zivi';
+            cell.title += ' Zivi ist dabei.';
+            cell.appendChild(zmark);
+          }
         } else if (!subject) {
           cell.className = 'sp-cell sp-empty';
           cell.textContent = '';
@@ -2493,6 +2633,13 @@
             const dot = document.createElement('div');
             dot.className = 'sp-note-dot';
             cell.appendChild(dot);
+          }
+          if (zivFor(day, period)) {
+            const zmark = document.createElement('div');
+            zmark.className = 'sp-zivi-mark';
+            zmark.textContent = 'Zivi';
+            cell.title = 'Zivi ist dabei.';
+            cell.appendChild(zmark);
           }
         }
         grid.appendChild(cell);
