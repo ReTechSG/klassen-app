@@ -895,18 +895,19 @@
     box-shadow: 0 0 5px rgba(212,175,55,0.9);
   }
   /* Markiert Lektionen, bei denen der Zivi dabei ist (siehe zivFor()).
-     Oben links, damit es nicht mit dem Notiz-Punkt (oben rechts) kollidiert,
-     bewusst ein anderer Farbton (teal) als Noten/Special/Meeting-Badges. */
+     Oben links, damit es nicht mit dem Notiz-Punkt (oben rechts) kollidiert.
+     Fabian, 26.8.2026: bewusst nur ein kleiner gruener Punkt, kein Symbol/Text
+     mehr in der Zelle (Name steht weiterhin nur im Tooltip beim Draufzeigen). */
   .sp-zivi-mark {
-    position: absolute; top: 4px; left: 6px;
-    font-size: 11px; line-height: 1;
-    display: flex; align-items: center; justify-content: center;
-    width: 16px; height: 16px;
-    background: #2f7d8c; border-radius: 50%;
+    position: absolute; top: 6px; left: 7px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #33c15b;
+    box-shadow: 0 0 5px rgba(51,193,91,0.85);
   }
   /* Markiert ISF-Lektionen (isfFor()). Unten links, damit es weder mit dem
      Notiz-Punkt (oben rechts) noch dem Zivi-Marker (oben links, kollidiert
-     z.B. am Dienstag) ueberschneidet. Eigener Farbton (violett). */
+     z.B. am Dienstag) ueberschneidet. Eigener Farbton (violett). Symbol seit
+     26.8.2026 eine Hand (Fabians Wunsch), vorher ein Puzzleteil. */
   .sp-isf-mark {
     position: absolute; bottom: 4px; left: 6px;
     font-size: 11px; line-height: 1;
@@ -1057,9 +1058,9 @@
      Pfeil-Knopf wieder verkleinern (Timer laeuft dabei im Hintergrund weiter,
      durch Klick auf die kleine Countdown-Anzeige in der Zeile wieder aufklappbar). */
   .sp-big-timer {
-    position: absolute; top: 96px; left: 50%;
+    position: fixed; top: 96px; left: 50%;
     transform: translateX(-50%) scale(0.5);
-    z-index: 5;
+    z-index: 55;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     background: rgba(8,6,4,0.88);
     border: 2px solid var(--gold);
@@ -1477,12 +1478,6 @@
     <div class="sp-edit-title" id="sp-edit-title"></div>
     <div class="sp-edit-week" id="sp-edit-week"></div>
   </div>
-  <div class="sp-big-timer" id="sp-big-timer">
-    <button class="sp-big-timer-shrink" type="button" onclick="hideBigTimer()" title="Verkleinern">&#9660;</button>
-    <div class="sp-big-timer-label" id="sp-big-timer-label"></div>
-    <div class="sp-big-timer-value" id="sp-big-timer-value">05:00</div>
-    <button class="sp-big-timer-pause" type="button" id="sp-big-timer-pause" onclick="toggleBigTimerPause()" title="Pause">&#10074;&#10074;</button>
-  </div>
   <div class="sp-edit-body">
     <div class="sp-steps-list" id="sp-steps-list"></div>
     <button class="sp-step-add-btn" type="button" onclick="addSpStep()">+ Schritt hinzufügen</button>
@@ -1491,6 +1486,18 @@
     <button class="spin-btn" onclick="saveSpNote()">Speichern</button>
     <button class="ablauf-edit-btn" onclick="closeSpEdit()">Abbrechen</button>
   </div>
+</div>
+
+<!-- Grosser Schritt-Timer (Fabian, 26.8.2026: "soll weiterlaufen, auch wenn
+     ich raus muss"): bewusst AUSSERHALB von sp-edit-box, ein eigenes,
+     page-weites Element wie das Uhr-Widget, damit es sichtbar/aktiv bleibt,
+     auch wenn das Lektionsfenster geschlossen wird oder eine andere Szene
+     gezeigt wird. Siehe activeStepTimer im Script. -->
+<div class="sp-big-timer" id="sp-big-timer" onclick="onBigTimerBoxClick(event)">
+  <button class="sp-big-timer-shrink" type="button" onclick="hideBigTimer()" title="Verkleinern">&#9660;</button>
+  <div class="sp-big-timer-label" id="sp-big-timer-label"></div>
+  <div class="sp-big-timer-value" id="sp-big-timer-value">05:00</div>
+  <button class="sp-big-timer-pause" type="button" id="sp-big-timer-pause" onclick="toggleBigTimerPause()" title="Pause">&#10074;&#10074;</button>
 </div>
 
 <!-- Uhr/Stoppuhr/Timer-Widget: ueber das Uhr-Icon neben der KW-Navigation im
@@ -2706,7 +2713,6 @@
           if (zivFor(day, period)) {
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
-            zmark.textContent = '🤝';
             cell.title += ' Herr Negrila ist dabei.';
             cell.appendChild(zmark);
           }
@@ -2727,14 +2733,13 @@
           if (zivFor(day, period)) {
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
-            zmark.textContent = '🤝';
             cell.title = 'Herr Negrila ist dabei.';
             cell.appendChild(zmark);
           }
           if (isfFor(day, period)) {
             const imark = document.createElement('div');
             imark.className = 'sp-isf-mark';
-            imark.textContent = '🧩';
+            imark.textContent = '✋';
             cell.title = (cell.title ? cell.title + ' ' : '') + 'ISF (Integrative Förderung) ist dabei.';
             cell.appendChild(imark);
           }
@@ -2766,10 +2771,17 @@
     });
   }
 
-  // Timer-Zustand: nur EIN Schritt kann gleichzeitig laufen. Index bezieht
-  // sich auf die Position in spEditSteps, wird beim Fenster schliessen immer
-  // zurueckgesetzt (kein Hintergrund-Timer ueber die App hinweg).
-  let spTimerIndex = null;
+  // Aktiver Schritt-Timer (Fabian, 26.8.2026: "soll weiterlaufen, auch wenn
+  // ich [aus der Lektion] raus muss"): bewusst UNABHAENGIG vom gerade
+  // geoeffneten Lektionsfenster gespeichert (day/period/week/index statt nur
+  // ein Index in spEditSteps), damit er das Schliessen des Fensters, einen
+  // Reiter-Wechsel oder das Oeffnen einer ANDEREN Lektion uebersteht. Nur EIN
+  // Schritt kann gleichzeitig laufen (startet man anderswo einen neuen,
+  // ersetzt er den alten, gleiche Regel wie vorher, nur jetzt global statt
+  // nur innerhalb des offenen Fensters). endTs (Ziel-Zeitstempel statt
+  // Sekunden-Dekrement pro Tick) macht ihn ausserdem robust gegen
+  // ausgesetzte/verzoegerte Ticks, gleiches Prinzip wie beim Uhr-Widget-Timer.
+  let activeStepTimer = null; // { day, period, week, index, label, remaining, endTs, running, done }
   let spTimerIntervalId = null;
 
   function formatMMSS(totalSeconds) {
@@ -2779,67 +2791,134 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
+  function isActiveStepTimer(day, period, week, i) {
+    return !!activeStepTimer && activeStepTimer.day === day && activeStepTimer.period === period &&
+      activeStepTimer.week === week && activeStepTimer.index === i;
+  }
+
+  function ensureSpTimerInterval() {
+    if (!spTimerIntervalId) spTimerIntervalId = setInterval(spTimerTick, 500);
+  }
   function stopSpTimerInterval() {
     if (spTimerIntervalId) {
       clearInterval(spTimerIntervalId);
       spTimerIntervalId = null;
     }
   }
+  function spTimerTick() {
+    if (!activeStepTimer) { stopSpTimerInterval(); return; }
+    if (activeStepTimer.running) {
+      const remainingMs = activeStepTimer.endTs - Date.now();
+      if (remainingMs <= 0) {
+        activeStepTimer.running = false;
+        activeStepTimer.remaining = 0;
+        activeStepTimer.done = true;
+        spBigTimerVisible = true; // immer gross zeigen, auch wenn vorher verkleinert
+        playClip(SND_GAIN, 0.7);
+      } else {
+        activeStepTimer.remaining = Math.ceil(remainingMs / 1000);
+      }
+    }
+    refreshActiveStepTimerUI();
+  }
+  // Aktualisiert den grossen Timer (immer, egal welche Szene/welches Fenster
+  // gerade offen ist) UND, falls zufaellig genau diese Lektion gerade im
+  // Lektionsfenster offen ist, auch die kompakte Zeile dort.
+  function refreshActiveStepTimerUI() {
+    updateBigTimerDisplay();
+    if (activeStepTimer && activeStepTimer.day === spEditDay && activeStepTimer.period === spEditPeriod && activeStepTimer.week === spCurrentWeek) {
+      updateStepTimerDisplay(activeStepTimer.index);
+    }
+  }
 
   // Grosser Timer, der beim Start eines Schritts automatisch aufpoppt (siehe
-  // CSS .sp-big-timer). Bleibt unabhaengig von der kompakten Zeilen-Anzeige,
-  // laesst sich per Pfeil-Knopf verkleinern ohne den Timer zu stoppen, und
-  // durch Klick auf die kompakte Anzeige in der Zeile wieder aufklappen.
+  // CSS .sp-big-timer, jetzt ein eigenstaendiges, page-weites Element).
+  // Bleibt unabhaengig von der kompakten Zeilen-Anzeige, laesst sich per
+  // Pfeil-Knopf verkleinern ohne den Timer zu stoppen, und durch Klick auf
+  // die kompakte Anzeige in der Zeile wieder aufklappen.
   let spBigTimerVisible = false;
-  // Merkt sich, fuer welchen Schritt der grosse Timer gerade steht, auch
-  // nachdem der Countdown fertig ist und spTimerIndex schon wieder null ist
-  // (wird fuer das Wegklicken beim Blink-Ende gebraucht).
-  let spBigTimerIndex = null;
 
-  function showBigTimer(i) {
-    const step = spEditSteps[i];
-    if (!step) return;
-    spBigTimerVisible = true;
-    spBigTimerIndex = i;
+  function updateBigTimerDisplay() {
     const box = document.getElementById('sp-big-timer');
-    document.getElementById('sp-big-timer-label').textContent = 'Schritt ' + (i + 1) + ': ' + (step.text || '');
-    document.getElementById('sp-big-timer-value').textContent = formatMMSS(step.remaining);
-    const pauseBtn = document.getElementById('sp-big-timer-pause');
-    pauseBtn.innerHTML = (spTimerIndex === i) ? '&#10074;&#10074;' : '&#9654;';
-    box.classList.add('active');
-    box.classList.toggle('sp-step-done', !!step.done);
-    box.onclick = (e) => {
-      if (e.target === box || e.target.classList.contains('sp-big-timer-label') || e.target.classList.contains('sp-big-timer-value')) {
-        if (spBigTimerIndex !== null && spEditSteps[spBigTimerIndex] && spEditSteps[spBigTimerIndex].done) hideBigTimer();
-      }
-    };
+    if (!box) return;
+    if (!activeStepTimer) {
+      box.classList.remove('active', 'sp-step-done');
+      return;
+    }
+    document.getElementById('sp-big-timer-label').textContent =
+      activeStepTimer.day + ', ' + activeStepTimer.period + '. Lektion – Schritt ' + (activeStepTimer.index + 1) + ': ' + (activeStepTimer.label || '');
+    document.getElementById('sp-big-timer-value').textContent = formatMMSS(activeStepTimer.remaining);
+    document.getElementById('sp-big-timer-pause').innerHTML = activeStepTimer.running ? '&#10074;&#10074;' : '&#9654;';
+    box.classList.toggle('active', spBigTimerVisible);
+    box.classList.toggle('sp-step-done', !!activeStepTimer.done);
+  }
+
+  function showBigTimer() {
+    if (!activeStepTimer) return;
+    spBigTimerVisible = true;
+    updateBigTimerDisplay();
   }
 
   // Verkleinert den grossen Timer UND ist die "wegklicken"-Aktion: ein
   // fertiger, blinkender Schritt hoert erst hier auf zu blinken, nie von
-  // selbst per Timeout.
+  // selbst per Timeout. Solange der Schritt noch laeuft/pausiert (nicht
+  // fertig), stoppt das Verkleinern den Timer NICHT, er zaehlt im
+  // Hintergrund weiter.
   function hideBigTimer() {
     spBigTimerVisible = false;
-    const box = document.getElementById('sp-big-timer');
-    box.classList.remove('active');
-    box.classList.remove('sp-step-done');
-    if (spBigTimerIndex !== null && spEditSteps[spBigTimerIndex] && spEditSteps[spBigTimerIndex].done) {
-      spEditSteps[spBigTimerIndex].done = false;
-      updateStepTimerDisplay(spBigTimerIndex);
+    if (activeStepTimer && activeStepTimer.done) {
+      dismissActiveStepTimer();
+      return;
     }
-    spBigTimerIndex = null;
+    updateBigTimerDisplay();
+  }
+
+  // Beendet den aktiven Schritt-Timer vollstaendig (nicht nur verkleinern).
+  function dismissActiveStepTimer() {
+    const prev = activeStepTimer;
+    activeStepTimer = null;
+    spBigTimerVisible = false;
+    stopSpTimerInterval();
+    updateBigTimerDisplay();
+    if (prev && prev.day === spEditDay && prev.period === spEditPeriod && prev.week === spCurrentWeek) {
+      const step = spEditSteps[prev.index];
+      if (step) step.done = false;
+      updateStepTimerDisplay(prev.index);
+    }
+  }
+
+  // Klick auf die Karte selbst (nicht auf einen der Knoepfe): nur relevant,
+  // um einen fertigen, blinkenden Timer wegzuklicken.
+  function onBigTimerBoxClick(e) {
+    if (e.target.id === 'sp-big-timer' || e.target.classList.contains('sp-big-timer-label') || e.target.classList.contains('sp-big-timer-value')) {
+      if (activeStepTimer && activeStepTimer.done) dismissActiveStepTimer();
+    }
+  }
+
+  // Pausiert/setzt den GERADE aktiven Timer fort, unabhaengig davon, ob und
+  // welches Lektionsfenster gerade offen ist (fuer den Pause-Knopf am
+  // grossen Timer, der auch ohne offenes Fenster sichtbar bleibt).
+  function toggleActiveStepTimerRunning() {
+    if (!activeStepTimer || activeStepTimer.done) return;
+    if (activeStepTimer.running) {
+      activeStepTimer.remaining = Math.max(0, Math.ceil((activeStepTimer.endTs - Date.now()) / 1000));
+      activeStepTimer.running = false;
+      hideBigTimer();
+    } else {
+      activeStepTimer.endTs = Date.now() + activeStepTimer.remaining * 1000;
+      activeStepTimer.running = true;
+      showBigTimer();
+    }
+    refreshActiveStepTimerUI();
   }
 
   function toggleBigTimerPause() {
-    if (spTimerIndex !== null) toggleStepTimer(spTimerIndex);
+    toggleActiveStepTimerRunning();
   }
 
   function openSpEdit(day, period) {
     spEditDay = day;
     spEditPeriod = period;
-    stopSpTimerInterval();
-    spTimerIndex = null;
-    hideBigTimer();
     const subject = STUNDENPLAN[day][period - 1];
     const key = day + '-' + period;
     const header = document.getElementById('sp-edit-header');
@@ -2875,10 +2954,14 @@
       if (step.remaining === undefined || step.remaining === null) {
         step.remaining = step.min * 60;
       }
+      const isActiveHere = isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i);
+      const isRunningHere = isActiveHere && activeStepTimer.running;
+      const isDoneHere = isActiveHere ? activeStepTimer.done : !!step.done;
+      const displayRemaining = isActiveHere ? activeStepTimer.remaining : step.remaining;
       const row = document.createElement('div');
       row.className = 'sp-step';
-      if (spTimerIndex === i) row.classList.add('sp-step-running');
-      if (step.done) row.classList.add('sp-step-done');
+      if (isRunningHere) row.classList.add('sp-step-running');
+      if (isDoneHere) row.classList.add('sp-step-done');
       row.dataset.index = i;
 
       const num = document.createElement('div');
@@ -2891,6 +2974,11 @@
       input.value = step.text;
       input.placeholder = 'Schritt beschreiben...';
       input.oninput = () => { step.text = input.value; };
+      // Fabian, 26.8.2026: Enter im Textfeld soll direkt einen neuen Schritt
+      // anhaengen (wie der "+ Schritt hinzufuegen"-Knopf), nicht nur der Klick.
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addSpStep(); }
+      };
 
       const timer = document.createElement('div');
       timer.className = 'sp-step-timer';
@@ -2905,13 +2993,12 @@
       clockBtn.type = 'button';
       clockBtn.title = 'Timer-Einstellung';
       clockBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>';
-      if (spTimerIndex === i) clockBtn.classList.add('sp-step-clock-running');
+      if (isRunningHere) clockBtn.classList.add('sp-step-clock-running');
       clockBtn.onclick = () => {
         // Ein fertiger, blinkender Schritt zaehlt als "weggeklickt", sobald
         // man aufs Uhr-Symbol klickt, nicht nur ueber den grossen Timer.
-        if (step.done) {
-          step.done = false;
-          if (spBigTimerIndex === i) hideBigTimer();
+        if (isDoneHere) {
+          dismissActiveStepTimer();
         }
         step.expanded = !step.expanded;
         renderSpSteps();
@@ -2937,7 +3024,7 @@
         minInput.oninput = () => {
           const v = Math.max(1, Math.min(90, Number(minInput.value) || SP_DEFAULT_MIN));
           step.min = v;
-          if (spTimerIndex !== i) {
+          if (!isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i)) {
             step.remaining = v * 60;
             updateStepTimerDisplay(i);
           }
@@ -2946,15 +3033,17 @@
         const playBtn = document.createElement('button');
         playBtn.className = 'sp-step-btn sp-step-play';
         playBtn.type = 'button';
-        playBtn.title = spTimerIndex === i ? 'Pause' : 'Start';
-        playBtn.innerHTML = spTimerIndex === i ? '&#10074;&#10074;' : '&#9654;';
+        playBtn.title = isRunningHere ? 'Pause' : 'Start';
+        playBtn.innerHTML = isRunningHere ? '&#10074;&#10074;' : '&#9654;';
         playBtn.onclick = () => toggleStepTimer(i);
 
         const display = document.createElement('span');
         display.className = 'sp-step-timer-display';
-        display.textContent = formatMMSS(step.remaining);
+        display.textContent = formatMMSS(displayRemaining);
         display.title = 'Gross anzeigen';
-        display.onclick = () => showBigTimer(i);
+        display.onclick = () => {
+          if (isActiveHere) showBigTimer();
+        };
 
         const resetBtn = document.createElement('button');
         resetBtn.className = 'sp-step-btn';
@@ -3000,96 +3089,87 @@
   }
 
   // Aktualisiert nur die Timer-Anzeige/den Play-Knopf einer einzelnen Zeile,
-  // ohne die ganze Liste neu zu zeichnen (laeuft ja jede Sekunde, ein voller
+  // ohne die ganze Liste neu zu zeichnen (laeuft ja alle 500ms, ein voller
   // Re-Render wuerde unnoetig Fokus/Cursor in den Textfeldern verlieren).
   function updateStepTimerDisplay(i) {
     const row = document.querySelector('#sp-steps-list .sp-step[data-index="' + i + '"]');
-    if (row) {
-      const disp = row.querySelector('.sp-step-timer-display');
-      if (disp) disp.textContent = formatMMSS(spEditSteps[i].remaining);
-      const playBtn = row.querySelector('.sp-step-play');
-      if (playBtn) {
-        const running = spTimerIndex === i;
-        playBtn.innerHTML = running ? '&#10074;&#10074;' : '&#9654;';
-        playBtn.title = running ? 'Pause' : 'Start';
-      }
-      const clockBtn = row.querySelector('.sp-step-clock');
-      if (clockBtn) clockBtn.classList.toggle('sp-step-clock-running', spTimerIndex === i);
-      row.classList.toggle('sp-step-running', spTimerIndex === i);
-      row.classList.toggle('sp-step-done', !!spEditSteps[i].done);
+    if (!row) return;
+    const isThisActive = isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i);
+    const step = spEditSteps[i];
+    if (!step) return;
+    const remaining = isThisActive ? activeStepTimer.remaining : step.remaining;
+    const running = isThisActive && activeStepTimer.running;
+    const done = isThisActive ? activeStepTimer.done : !!step.done;
+    const disp = row.querySelector('.sp-step-timer-display');
+    if (disp) disp.textContent = formatMMSS(remaining);
+    const playBtn = row.querySelector('.sp-step-play');
+    if (playBtn) {
+      playBtn.innerHTML = running ? '&#10074;&#10074;' : '&#9654;';
+      playBtn.title = running ? 'Pause' : 'Start';
     }
-    // Grossen Timer nur mitziehen, wenn er gerade genau diesen Schritt zeigt.
-    if (spBigTimerVisible && spTimerIndex === i) {
-      const bigVal = document.getElementById('sp-big-timer-value');
-      if (bigVal) bigVal.textContent = formatMMSS(spEditSteps[i].remaining);
-    }
+    const clockBtn = row.querySelector('.sp-step-clock');
+    if (clockBtn) clockBtn.classList.toggle('sp-step-clock-running', running);
+    row.classList.toggle('sp-step-running', running);
+    row.classList.toggle('sp-step-done', done);
   }
 
-  // Start/Pause fuer den Timer eines Schritts. Startet man einen anderen
-  // Schritt, wird der vorher laufende automatisch pausiert (sein
-  // Restzeit-Stand bleibt erhalten), es laeuft also immer nur einer.
+  // Start/Pause fuer den Timer eines Schritts in der GERADE GEOEFFNETEN
+  // Lektion. Ist der Schritt bereits der aktive Timer, wird nur pausiert/
+  // fortgesetzt (Restzeit bleibt exakt erhalten, siehe
+  // toggleActiveStepTimerRunning). Ist es ein anderer Schritt (auch aus
+  // einer anderen Lektion), ersetzt er einen evtl. dort noch laufenden
+  // Timer komplett - es laeuft, wie schon vorher, nur immer einer
+  // gleichzeitig (siehe activeStepTimer oben).
   function toggleStepTimer(i) {
     const step = spEditSteps[i];
     if (!step) return;
-    if (spTimerIndex === i) {
-      // laeuft schon -> pausieren. Grosser Timer wird ausgeblendet (nichts
-      // laeuft mehr, macht keinen Sinn ihn prominent stehen zu lassen).
-      stopSpTimerInterval();
-      spTimerIndex = null;
-      updateStepTimerDisplay(i);
-      hideBigTimer();
+    if (isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i)) {
+      toggleActiveStepTimerRunning();
       return;
     }
-    if (spTimerIndex !== null) {
-      const prev = spTimerIndex;
-      stopSpTimerInterval();
-      spTimerIndex = null;
-      updateStepTimerDisplay(prev);
+    // Ersetzt einen evtl. anderswo laufenden Timer. War der vorherige Schritt
+    // Teil DERSELBEN gerade offenen Lektion, bleibt seine Restzeit exakt
+    // erhalten (gleiches Verhalten wie vorher beim Wechseln zwischen
+    // Schritten). Lief er in einer ANDEREN, gerade nicht offenen Lektion,
+    // laesst sich seine Restzeit nicht zurueckschreiben (kein Zugriff auf
+    // deren Schritt-Array) - bewusste Vereinfachung, da ohnehin immer nur
+    // ein Timer gleichzeitig laufen darf.
+    const prev = activeStepTimer;
+    if (prev) {
+      const prevRemaining = prev.running ? Math.max(0, Math.ceil((prev.endTs - Date.now()) / 1000)) : prev.remaining;
+      if (prev.day === spEditDay && prev.period === spEditPeriod && prev.week === spCurrentWeek) {
+        const prevStep = spEditSteps[prev.index];
+        if (prevStep) { prevStep.remaining = prevRemaining; prevStep.done = prev.done; }
+      }
     }
+    stopSpTimerInterval();
     if (step.remaining <= 0) step.remaining = step.min * 60;
     step.done = false;
-    spTimerIndex = i;
+    activeStepTimer = {
+      day: spEditDay, period: spEditPeriod, week: spCurrentWeek, index: i,
+      label: step.text, remaining: step.remaining,
+      endTs: Date.now() + step.remaining * 1000,
+      running: true, done: false,
+    };
+    if (prev && prev.day === spEditDay && prev.period === spEditPeriod && prev.week === spCurrentWeek && prev.index !== i) {
+      updateStepTimerDisplay(prev.index);
+    }
     updateStepTimerDisplay(i);
     // Automatisch gross anzeigen beim Start, das war der eigentliche Wunsch:
     // gut sichtbar fuer die SuS, tritt in den Vordergrund.
-    showBigTimer(i);
-    spTimerIntervalId = setInterval(() => {
-      spEditSteps[i].remaining--;
-      updateStepTimerDisplay(i);
-      if (spEditSteps[i].remaining <= 0) {
-        stopSpTimerInterval();
-        spTimerIndex = null;
-        onStepTimerDone(i);
-      }
-    }, 1000);
+    showBigTimer();
+    ensureSpTimerInterval();
   }
 
   function resetStepTimer(i) {
     const step = spEditSteps[i];
     if (!step) return;
-    if (spTimerIndex === i) {
-      stopSpTimerInterval();
-      spTimerIndex = null;
+    if (isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i)) {
+      dismissActiveStepTimer();
     }
     step.done = false;
     step.remaining = step.min * 60;
-    if (spBigTimerIndex === i) hideBigTimer();
     updateStepTimerDisplay(i);
-  }
-
-  // Bei 0:00: kurzer Ton (gleiche Lautstaerke-Skalierung wie alle anderen
-  // Soundeffekte), die Zeile UND der grosse Timer blinken dauerhaft weiter,
-  // bis Fabian aktiv wegklickt (Uhr-Symbol oder Klick auf den grossen
-  // Timer/den Verkleinern-Pfeil) - kein automatisches Verschwinden mehr.
-  function onStepTimerDone(i) {
-    const step = spEditSteps[i];
-    if (!step) return;
-    step.done = true;
-    playClip(SND_GAIN, 0.7);
-    updateStepTimerDisplay(i);
-    // Immer gross anzeigen, auch wenn vorher verkleinert, damit der fertige
-    // Schritt nicht uebersehen werden kann.
-    showBigTimer(i);
   }
 
   function addSpStep() {
@@ -3100,16 +3180,11 @@
   }
 
   function removeSpStep(i) {
-    if (spTimerIndex === i) {
-      stopSpTimerInterval();
-      spTimerIndex = null;
-    } else if (spTimerIndex !== null && spTimerIndex > i) {
-      spTimerIndex--; // Indizes ruecken nach, laufender Timer bleibt dem richtigen Schritt zugeordnet
-    }
-    if (spBigTimerIndex === i) {
-      hideBigTimer(); // Karte gehoert zum geloeschten Schritt, gleich mit schliessen
-    } else if (spBigTimerIndex !== null && spBigTimerIndex > i) {
-      spBigTimerIndex--;
+    if (isActiveStepTimer(spEditDay, spEditPeriod, spCurrentWeek, i)) {
+      dismissActiveStepTimer(); // Karte gehoert zum geloeschten Schritt, gleich mit beenden
+    } else if (activeStepTimer && activeStepTimer.day === spEditDay && activeStepTimer.period === spEditPeriod &&
+      activeStepTimer.week === spCurrentWeek && activeStepTimer.index > i) {
+      activeStepTimer.index--; // Indizes ruecken nach, laufender Timer bleibt dem richtigen Schritt zugeordnet
     }
     spEditSteps.splice(i, 1);
     renderSpSteps();
@@ -3121,10 +3196,10 @@
     const tmp = spEditSteps[i];
     spEditSteps[i] = spEditSteps[j];
     spEditSteps[j] = tmp;
-    if (spTimerIndex === i) spTimerIndex = j;
-    else if (spTimerIndex === j) spTimerIndex = i;
-    if (spBigTimerIndex === i) spBigTimerIndex = j;
-    else if (spBigTimerIndex === j) spBigTimerIndex = i;
+    if (activeStepTimer && activeStepTimer.day === spEditDay && activeStepTimer.period === spEditPeriod && activeStepTimer.week === spCurrentWeek) {
+      if (activeStepTimer.index === i) activeStepTimer.index = j;
+      else if (activeStepTimer.index === j) activeStepTimer.index = i;
+    }
     renderSpSteps();
   }
 
@@ -3142,13 +3217,14 @@
     renderStundenplan();
   }
 
+  // Schliesst NUR das Fenster. Ein laufender/pausierter Schritt-Timer wird
+  // bewusst NICHT angeruehrt (Fabian, 26.8.2026: "soll weiterlaufen, auch
+  // wenn ich raus muss") - er zaehlt unveraendert im Hintergrund weiter,
+  // sichtbar am grossen, jetzt page-weiten Timer (siehe activeStepTimer oben).
   function closeSpEdit() {
     spEditDay = null;
     spEditPeriod = null;
     spEditSteps = [];
-    stopSpTimerInterval();
-    spTimerIndex = null;
-    hideBigTimer();
     document.getElementById('sp-edit-backdrop').classList.remove('active');
     document.getElementById('sp-edit-box').classList.remove('active');
   }
@@ -3488,6 +3564,20 @@
     return a;
   }
 
+  // Fabian, 26.8.2026: still im Hintergrund beachtet, kein Hinweis irgendwo
+  // sichtbar. Milena darf nie mit Dunja oder Nicole in derselben Gruppe
+  // landen (belastete Konstellation), sonst bleibt alles reiner Zufall. Gilt
+  // fuer jede Namensliste, in der diese Namen vorkommen (6. Klasse und die
+  // kombinierte 5b/6b-Liste gleichermassen), da der Generator nur die
+  // aktuell eingetragenen Namen sieht, nicht welche Klasse das ist.
+  const GRUPPEN_NIE_ZUSAMMEN = [['Milena', 'Dunja'], ['Milena', 'Nicole']];
+
+  function violatesGruppenConstraints(groups) {
+    return groups.some(g =>
+      GRUPPEN_NIE_ZUSAMMEN.some(([a, b]) => g.includes(a) && g.includes(b))
+    );
+  }
+
   function buildGroups() {
     const names = state.gruppenNames || [];
     const size = state.gruppenSize || 3;
@@ -3509,9 +3599,21 @@
     while (numGroups > 1 && Math.floor(names.length / numGroups) < 2) {
       numGroups--;
     }
-    const mixed = shuffled(names);
-    const groups = Array.from({ length: numGroups }, () => []);
-    mixed.forEach((name, i) => groups[i % numGroups].push(name));
+    // Bis zu 200x neu mischen, falls die verbotene Milena/Dunja- oder
+    // Milena/Nicole-Kombination in einer Gruppe landet (siehe
+    // GRUPPEN_NIE_ZUSAMMEN oben) - bei realistischen Klassengroessen/
+    // Gruppengroessen in der Praxis quasi immer beim ersten oder zweiten
+    // Versuch erfolgreich. Nur bei rechnerisch unmoeglichen Faellen (z.B. nur
+    // 1 Gruppe insgesamt) wird nach 200 Versuchen das letzte Ergebnis
+    // uebernommen, mehr laesst sich dann nicht machen.
+    let groups;
+    let attempts = 0;
+    do {
+      const mixed = shuffled(names);
+      groups = Array.from({ length: numGroups }, () => []);
+      mixed.forEach((name, i) => groups[i % numGroups].push(name));
+      attempts++;
+    } while (attempts < 200 && violatesGruppenConstraints(groups));
     state.gruppenResult = groups;
     saveState();
     renderGruppen();
