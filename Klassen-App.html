@@ -904,6 +904,16 @@
     width: 16px; height: 16px;
     background: #2f7d8c; border-radius: 50%;
   }
+  /* Markiert ISF-Lektionen (isfFor()). Unten links, damit es weder mit dem
+     Notiz-Punkt (oben rechts) noch dem Zivi-Marker (oben links, kollidiert
+     z.B. am Dienstag) ueberschneidet. Eigener Farbton (violett). */
+  .sp-isf-mark {
+    position: absolute; bottom: 4px; left: 6px;
+    font-size: 11px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    background: #8a63d2; border-radius: 50%;
+  }
   /* Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
      Klasse ausser Haus ist. Tageskopf bekommt ein auffaelliges Badge, die
      betroffenen Lektionszellen werden einheitlich eingefaerbt und sind nicht
@@ -972,6 +982,21 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+  /* Geburtstage (SP_BIRTHDAYS), siehe birthdaysFor(): eigene Farbe (rosa),
+     damit sie sich von Special-Days (gruen) und Meetings (gold) abhebt und
+     fuer die SuS auf einen Blick als "etwas Schoenes" erkennbar ist. */
+  .sp-head-birthday-badge {
+    display: block;
+    font-size: 10px;
+    color: #4a1030;
+    background: #e58fb8;
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin: 3px auto 0;
+    max-width: 100%;
+    font-weight: 600;
+    letter-spacing: 0.2px;
   }
   .sp-divider {
     grid-column: 1 / -1;
@@ -1701,9 +1726,9 @@
   const VIAL_MAX = 50;
   const STORAGE_KEY = "klassenApp_v1";
 
-  // Neue Preisliste (Fabian, 16.8.2026), ersetzt die alte komplett.
+  // Preisliste von der Klasse selbst definiert (Fabian, 24.8.2026), ersetzt die alte komplett.
   const REWARDS = [
-    { id: "werwolf",     name: "Eine Runde Werwolf", cost: 10 },
+    { id: "film",        name: "Einen Film schauen", cost: 20 },
     { id: "zmorgen",     name: "Zmorgen",            cost: 15 },
     { id: "freilektion", name: "Freilektion",        cost: 20 },
     { id: "ausflug",     name: "Ausflug",            cost: 30 },
@@ -2097,6 +2122,49 @@
     return SP_MEETINGS[spCurrentWeek + '-' + day] || null;
   }
 
+  // Geburtstage der SuS (Fabian, 20.8.2026). Nur im Tageskopf als Badge
+  // sichtbar (keine Lektionszelle betroffen), analog zu SP_MEETINGS. Key =
+  // 'KW-Wochentag'. Faellt ein Geburtstag auf ein Wochenende oder in die
+  // Herbstferien, wird er auf Fabians Wunsch am naechsten echten Schultag
+  // nachgeholt (actualDate = echtes Datum, shifted/shiftReason erklaeren die
+  // Verschiebung im Tooltip). Deshalb koennen an einem Tag mehrere Namen
+  // stehen (z.B. 19.10.: Ilai hat dort wirklich Geburtstag, Andrea/Melina/
+  // Mara wurden alle auf den ersten Schultag nach den Herbstferien
+  // verschoben). Milena (30.12.) und Eliane (31.12.) liegen ausserhalb des
+  // aktuell navigierbaren Bereichs (KW33-51, Weihnachtsferien) und sind
+  // deshalb hier noch NICHT eingetragen -- siehe Konzept.md "Naechste
+  // Schritte" fuer den offenen Punkt, sobald der Bereich weiter Richtung
+  // Januar 2027 erweitert wird.
+  const SP_BIRTHDAYS = {
+    '37-Donnerstag': [
+      { name: 'Marla', actualDate: '10.09.', shifted: false }
+    ],
+    '43-Montag': [
+      { name: 'Ilai', actualDate: '19.10.', shifted: false },
+      { name: 'Andrea', actualDate: '26.09.', shifted: true, shiftReason: 'Wochenende, nachgeholt' },
+      { name: 'Melina', actualDate: '12.10.', shifted: true, shiftReason: 'Herbstferien, nachgeholt' },
+      { name: 'Mara', actualDate: '15.10.', shifted: true, shiftReason: 'Herbstferien, nachgeholt' }
+    ],
+    '44-Montag': [
+      { name: 'Aaron', actualDate: '25.10.', shifted: true, shiftReason: 'Wochenende, nachgeholt' }
+    ],
+    '46-Donnerstag': [
+      { name: 'Fadri', actualDate: '12.11.', shifted: false }
+    ],
+    '47-Montag': [
+      { name: 'Elena', actualDate: '14.11.', shifted: true, shiftReason: 'Wochenende, nachgeholt' }
+    ],
+    '48-Montag': [
+      { name: 'Theo E.', actualDate: '21.11.', shifted: true, shiftReason: 'Wochenende, nachgeholt' }
+    ],
+    '51-Montag': [
+      { name: 'Amelia', actualDate: '13.12.', shifted: true, shiftReason: 'Wochenende, nachgeholt' }
+    ]
+  };
+  function birthdaysFor(day) {
+    return SP_BIRTHDAYS[spCurrentWeek + '-' + day] || null;
+  }
+
   // Wann der Zivi bei Fabians eigenen Lektionen dabei ist (Fabian,
   // 17.8.2026, praezisiert nach Rueckfrage zum Wochenplan-Bild). Woechentlich
   // FIXE Faelle (immer, keine Alternation): Montag Kreativnachmittag (5./6.
@@ -2122,6 +2190,19 @@
       return spCurrentWeek % 2 === 1; // ungerade KW = Zivi bei Fabian (NMG)
     }
     return false;
+  }
+
+  // Wann ISF (Integrative Foerderung) bei Fabians Lektionen dabei ist
+  // (Fabian, 20.8.2026). Woechentlich fix, keine Alternation: Montag 4.
+  // Lektion, Dienstag 3. Lektion. Freitag entfaellt (Fabian ist da
+  // vormittags nicht an der Schule, siehe "Stundenplan Fabian" in
+  // Kontext.md).
+  const SP_ISF_ALWAYS = {
+    'Montag': [4],
+    'Dienstag': [3]
+  };
+  function isfFor(day, period) {
+    return (SP_ISF_ALWAYS[day] || []).includes(period);
   }
 
   // Reihenfolge der Zeilen im Raster, inkl. Pause/Mittag-Trennzeilen
@@ -2568,6 +2649,14 @@
         mbadge.textContent = meeting.icon + ' ' + meeting.label;
         h.appendChild(mbadge);
       }
+      const bdays = birthdaysFor(day);
+      if (bdays && bdays.length) {
+        const bbadge = document.createElement('span');
+        bbadge.className = 'sp-head-birthday-badge';
+        bbadge.textContent = '🎂 ' + bdays.map(b => b.name).join(', ');
+        bbadge.title = bdays.map(b => b.name + ' (' + b.actualDate + (b.shifted ? ', ' + b.shiftReason : '') + ')').join(' · ');
+        h.appendChild(bbadge);
+      }
       grid.appendChild(h);
     });
 
@@ -2618,7 +2707,7 @@
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
             zmark.textContent = '🤝';
-            cell.title += ' Herr ist dabei.';
+            cell.title += ' Herr Negrila ist dabei.';
             cell.appendChild(zmark);
           }
         } else if (!subject) {
@@ -2639,8 +2728,15 @@
             const zmark = document.createElement('div');
             zmark.className = 'sp-zivi-mark';
             zmark.textContent = '🤝';
-            cell.title = 'Herr ist dabei.';
+            cell.title = 'Herr Negrila ist dabei.';
             cell.appendChild(zmark);
+          }
+          if (isfFor(day, period)) {
+            const imark = document.createElement('div');
+            imark.className = 'sp-isf-mark';
+            imark.textContent = '🧩';
+            cell.title = (cell.title ? cell.title + ' ' : '') + 'ISF (Integrative Förderung) ist dabei.';
+            cell.appendChild(imark);
           }
         }
         grid.appendChild(cell);
