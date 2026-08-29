@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -41,7 +41,7 @@
   #scene-truhe {
     background-image:
       linear-gradient(rgba(8,6,4,0.55), rgba(8,6,4,0.55)),
-      url('Truhe.png');
+      url('Bilder/Truhe.png');
     background-size: cover;
     background-position: center;
     flex-direction: column;
@@ -339,7 +339,7 @@
     position: relative;
     width: min(640px, 58vw);
     height: min(274px, 25vw);
-    background-image: url('Spinning-Wheel.jpg');
+    background-image: url('Bilder/Spinning-Wheel.jpg');
     background-size: 121.2% 131.1%;
     background-position: center center;
     background-repeat: no-repeat;
@@ -667,15 +667,41 @@
   }
   .tafel-toolbar button:hover { background: rgba(212,175,55,0.2); }
   .tafel-toolbar button.active { background: rgba(212,175,55,0.32); border-color: var(--gold); }
-  .tafel-color-btn {
-    width: 28px; height: 28px; padding: 0 !important;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.3) !important;
-    background: var(--c);
+  /* .tafel-palette davor: hoehere Spezifitaet als ".tafel-toolbar button",
+     sonst ueberschreibt dessen Gold-Hintergrund/border-radius die Farbe und
+     die Kreisform (Fabian, 29.8.2026: "ich sehe nicht, was fuer eine Farbe
+     es ist"). */
+  .tafel-palette .tafel-color-btn {
+    width: 32px; height: 32px; padding: 0 !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(255,255,255,0.45) !important;
+    background: var(--c) !important;
     transition: transform 0.15s, border-color 0.15s;
   }
-  .tafel-color-btn:hover { transform: scale(1.12); background: var(--c); }
-  .tafel-color-btn.active { border-color: var(--gold) !important; transform: scale(1.18); }
+  .tafel-palette .tafel-color-btn:hover { transform: scale(1.14); }
+  .tafel-palette .tafel-color-btn.active { border-color: var(--gold) !important; transform: scale(1.2); box-shadow: 0 0 0 3px rgba(212,175,55,0.35); }
+  /* Ein einziger Farb-Knopf, der die aktuelle Farbe zeigt (Punkt + Name);
+     Klick oeffnet die Palette darunter (Fabian, 29.8.2026: nicht mehr alle
+     Farben nebeneinander, nur eine sichtbar). */
+  .tafel-color-wrap { position: relative; display: inline-flex; }
+  #tafel-color-current { display: inline-flex; align-items: center; gap: 8px; }
+  .tafel-color-dot {
+    width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+    background: var(--c, #111);
+    border: 2px solid rgba(255,255,255,0.65);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+  }
+  .tafel-color-caret { font-size: 11px; opacity: 0.7; }
+  .tafel-palette {
+    display: none;
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 40;
+    background: var(--panel-bg);
+    border: 1px solid rgba(212,175,55,0.5);
+    border-radius: 12px; padding: 12px;
+    grid-template-columns: repeat(3, auto); gap: 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+  }
+  .tafel-palette.show { display: grid; }
   .tafel-board {
     position: relative;
     border-radius: 14px;
@@ -767,7 +793,7 @@
   .tafel-gallery-empty { grid-column: 1 / -1; color: #b8ab8c; font-size: 13px; padding: 20px 0; text-align: center; }
 
   /* --- Ablauf (Startseite): echtes Stundenplan-Raster --- */
-  /* Eigener, dezenter Hintergrund fuer diese Szene (Stundenplan-
+  /* Eigener, dezenter Hintergrund fuer diese Szene (Bilder/Stundenplan-
      Hintergrund.png). WICHTIG: nur EIN Bild-Layer plus ein halbtransparenter
      Abdunkel-Verlauf darueber, kein zweiter opaker Verlauf dazwischen, sonst
      verdeckt der das Bild komplett (das war der Bug: das radial-gradient
@@ -777,7 +803,7 @@
     background-color: #0c0906;
     background-image:
       linear-gradient(rgba(12,9,6,0.55), rgba(12,9,6,0.72)),
-      url('Stundenplan-Hintergrund.png');
+      url('Bilder/Stundenplan-Hintergrund.png');
     background-size: cover;
     background-position: center;
     align-items: flex-start;
@@ -1427,7 +1453,7 @@
   <button id="nav-more-toggle" class="nav-more-toggle" onclick="toggleNavMore()" title="Weitere Reiter" aria-label="Weitere Reiter">&#9662;</button>
 </nav>
 
-<audio id="bg-music" src="Hintergrundmusik.mp3" loop preload="auto"></audio>
+<audio id="bg-music" src="Musik/Hintergrundmusik.mp3" loop preload="auto"></audio>
 
 <div class="top-left-cluster">
   <div class="music-mini" title="Musik">
@@ -1556,7 +1582,7 @@
 <!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
 <div class="scene active" id="scene-trank">
   <div class="stage">
-    <img class="bg" src="Reagenzglas.png" alt="Reagenzglas">
+    <img class="bg" src="Bilder/Reagenzglas.png" alt="Reagenzglas">
     <svg class="overlay" viewBox="0 0 2752 1536" preserveAspectRatio="xMidYMid meet">
       <defs>
         <clipPath id="vial-clip">
@@ -1698,10 +1724,21 @@
         <button class="tafel-bg-btn" data-bg="kariert" onclick="setTafelBg('kariert')">Kariert</button>
       </div>
       <div class="tafel-group">
-        <button class="tafel-color-btn active" style="--c:#1a1a1a" onclick="setTafelColor('#1a1a1a', this)" title="Schwarz" aria-label="Schwarz"></button>
-        <button class="tafel-color-btn" style="--c:#c0392b" onclick="setTafelColor('#c0392b', this)" title="Rot" aria-label="Rot"></button>
-        <button class="tafel-color-btn" style="--c:#2166c4" onclick="setTafelColor('#2166c4', this)" title="Blau" aria-label="Blau"></button>
-        <button class="tafel-color-btn" style="--c:#2c9e4d" onclick="setTafelColor('#2c9e4d', this)" title="Grün" aria-label="Grün"></button>
+        <div class="tafel-color-wrap">
+          <button id="tafel-color-current" style="--c:#1a1a1a" onclick="toggleTafelPalette(event)" title="Farbe wählen" aria-label="Farbe wählen">
+            <span class="tafel-color-dot"></span>
+            <span id="tafel-color-name">Schwarz</span>
+            <span class="tafel-color-caret">&#9662;</span>
+          </button>
+          <div id="tafel-palette" class="tafel-palette">
+            <button class="tafel-color-btn active" style="--c:#1a1a1a" onclick="setTafelColor('#1a1a1a', this, 'Schwarz')" title="Schwarz" aria-label="Schwarz"></button>
+            <button class="tafel-color-btn" style="--c:#e60000" onclick="setTafelColor('#e60000', this, 'Rot')" title="Rot" aria-label="Rot"></button>
+            <button class="tafel-color-btn" style="--c:#1a56ff" onclick="setTafelColor('#1a56ff', this, 'Blau')" title="Blau" aria-label="Blau"></button>
+            <button class="tafel-color-btn" style="--c:#1aa33b" onclick="setTafelColor('#1aa33b', this, 'Grün')" title="Grün" aria-label="Grün"></button>
+            <button class="tafel-color-btn" style="--c:#ff8c00" onclick="setTafelColor('#ff8c00', this, 'Orange')" title="Orange" aria-label="Orange"></button>
+            <button class="tafel-color-btn" style="--c:#b0179e" onclick="setTafelColor('#b0179e', this, 'Violett')" title="Violett" aria-label="Violett"></button>
+          </div>
+        </div>
       </div>
       <div class="tafel-group">
         <button id="tafel-eraser-btn" onclick="toggleTafelEraser()">&#129529; Radierer</button>
@@ -1849,11 +1886,11 @@
   })();
 
   // eigene Sound-Dateien von Fabian, liegen im Musik-Ordner
-  const SND_GAIN = '' + encodeURIComponent('+1 Punkt.mp3');
-  const SND_CORRECTION = '' + encodeURIComponent('-1 Punkt.mp3');
-  const SND_VAULT_DOOR = '' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
-  const SND_WHEEL_SPIN = '' + encodeURIComponent('Spinning Wheel.mp3');
-  const SND_WINNER = '' + encodeURIComponent('Winning.mp3');
+  const SND_GAIN = 'Musik/' + encodeURIComponent('+1 Punkt.mp3');
+  const SND_CORRECTION = 'Musik/' + encodeURIComponent('-1 Punkt.mp3');
+  const SND_VAULT_DOOR = 'Musik/' + encodeURIComponent('Türe zur Schatzkammmer.mp3');
+  const SND_WHEEL_SPIN = 'Musik/' + encodeURIComponent('Spinning Wheel.mp3');
+  const SND_WINNER = 'Musik/' + encodeURIComponent('Winning.mp3');
 
   // Alle Soundeffekte (Punkt+/-, Levelup, Schatzkammertuer, Rad-Gewinn, ...)
   // sind relativ zur Musik-Lautstaerke skaliert (gleiche Rechnung wie bei der
@@ -4329,14 +4366,35 @@
     });
   }
 
-  function setTafelColor(color, btn) {
+  function toggleTafelPalette(evt) {
+    if (evt) evt.stopPropagation();
+    const pal = document.getElementById('tafel-palette');
+    if (pal) pal.classList.toggle('show');
+  }
+
+  function setTafelColor(color, btn, name) {
     tafelColor = color;
     tafelErasing = false;
     const eraserBtn = document.getElementById('tafel-eraser-btn');
     if (eraserBtn) eraserBtn.classList.remove('active');
     document.querySelectorAll('.tafel-color-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    const cur = document.getElementById('tafel-color-current');
+    if (cur) cur.style.setProperty('--c', color);
+    const nm = document.getElementById('tafel-color-name');
+    if (nm && name) nm.textContent = name;
+    const pal = document.getElementById('tafel-palette');
+    if (pal) pal.classList.remove('show');
   }
+
+  // Palette schliessen, wenn irgendwo ausserhalb geklickt wird.
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.tafel-color-wrap');
+    const pal = document.getElementById('tafel-palette');
+    if (pal && pal.classList.contains('show') && wrap && !wrap.contains(e.target)) {
+      pal.classList.remove('show');
+    }
+  });
 
   function toggleTafelEraser() {
     tafelErasing = !tafelErasing;
