@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!-- Browser soll die Seite nicht dauerhaft cachen: sonst zeigt der Schul-PC /
+     Fabians Browser nach einem GitHub-Deploy noch die alte Version, obwohl online
+     schon die neue liegt (30.8.2026, wiederholtes Aergernis). Beseitigt NICHT den
+     ~10-Minuten-CDN-Cache von GitHub Pages selbst - dafuer nach dem Upload kurz
+     warten und den Link mit ?v=<Zahl> oeffnen (siehe GitHub-Update-Anleitung.txt). -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Klassen-App</title>
 <style>
   :root {
@@ -2327,15 +2335,21 @@
   // hinterlegt und erscheinen automatisch, sobald diese Perioden spaeter
   // ergaenzt werden (SP_WEEK_MAX + SP_WEEK_DATES erweitert), siehe Kontext.md.
   const SP_SPECIAL_DAYS = {
+    // Fabian, 13.9.2026: Ausflug in den Botanischen Garten, Thema Bionik.
+    // Analog zu Umweltmorgen als ganzer Morgen markiert (Perioden 1-4).
+    '38-Dienstag': { label: 'Bionik', icon: '🦋', detail: '15.09.2026: Botanischer Garten, Thema Bionik', periods: [1, 2, 3, 4] },
     '39-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '22.09.2026: Landwirtschaft, Thema Reben, Hof Rutishauser', periods: [1, 2, 3, 4] },
     '47-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '17.11.2026: Landwirtschaft, Thema Wursten, Hof Wider', periods: [1, 2, 3, 4] },
     '9-Dienstag':  { label: 'Umweltmorgen', icon: '🌾', detail: '02.03.2027: Landwirtschaft, Thema Landmaschinen, Hof Alther', periods: [1, 2, 3, 4] },
     '22-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '01.06.2027: Landwirtschaft, Thema Biodiversität, Hof Rutishauser', periods: [1, 2, 3, 4] },
     // Fabian, 16.8.2026: "letzte Lektion vor den Herbstferien abgemacht,
     // dass ich Fruehstueck mit den 6.Klaesslerinnen esse". Ersetzt nur die
-    // 1. Lektion (Englisch 6.Kl-Slot, die einzige an dem Tag rein
-    // 6.Kl-spezifische Lektion), auf Fabians Bestaetigung hin.
-    '39-Mittwoch': { label: 'Frühstück', icon: '🥐', detail: '23.09.2026: Frühstück mit den 6. Klässlerinnen, letzte Lektion vor den Herbstferien', periods: [1] },
+    // 1. Lektion, auf Fabians Bestaetigung hin. Auf Montag 21.09.2026
+    // verschoben (Fabian, 13.9.2026); Mittwoch 23.09. zeigt seither wieder
+    // den normalen Ablauf (ENG vor Mathe). Da der Termin damit nicht mehr
+    // auf den letzten Schultag vor den Herbstferien faellt, wurde dieser
+    // Zusatz aus dem Detailtext entfernt.
+    '39-Montag': { label: 'Frühstück', icon: '🥐', detail: '21.09.2026: Frühstück mit den 6. Klässlerinnen', periods: [1] },
     // Fabian, 17.8.2026 (aus "Infos für Claude.docx"): Nationaler
     // Zukunftstag, SuS sind den ganzen Tag ausser Haus. Perioden 1-6
     // (ganzer Tag) von Fabian am 17.8.2026 bestaetigt.
