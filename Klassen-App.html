@@ -974,10 +974,12 @@
   }
   /* Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
      Klasse ausser Haus ist. Tageskopf bekommt ein auffaelliges Badge, die
-     betroffenen Lektionszellen werden einheitlich eingefaerbt und sind nicht
-     anklickbar (kein Unterricht zum Bearbeiten). Bewusst eine andere Farbe
-     (Gruen/Erdton) als alle Faecher, damit es sofort als "kein normaler
-     Unterricht" erkennbar ist. */
+     betroffenen Lektionszellen werden einheitlich eingefaerbt. Bewusst eine
+     andere Farbe (Gruen/Erdton) als alle Faecher, damit es sofort als "kein
+     normaler Unterricht" erkennbar ist. Seit 13.9.2026 (Fabian) genau wie
+     normale Lektionszellen anklickbar, um Infos/Planung dazu einzutragen
+     (openSpEdit, siehe renderStundenplan) -- Klick-Verhalten/Notiz-Punkt
+     daher bewusst vom Basis-.sp-cell geerbt statt hier ausgeschaltet. */
   .sp-head.sp-head-special { color: #7fbf6a; }
   .sp-head-special-badge {
     display: block;
@@ -994,11 +996,9 @@
   .sp-cell.sp-special-day {
     background: #3a4a2e;
     color: #d6ecc9;
-    cursor: default;
     border: 1px solid rgba(127,191,106,0.5);
     font-size: 12px;
   }
-  .sp-cell.sp-special-day:hover { transform: none; filter: none; }
   /* Ganze Ferienwochen (z.B. Herbstferien): statt des Stundenplan-Rasters
      ein grosses, ruhiges Banner ueber die volle Breite. */
   .sp-ferien-banner {
@@ -2343,13 +2343,16 @@
     '9-Dienstag':  { label: 'Umweltmorgen', icon: '🌾', detail: '02.03.2027: Landwirtschaft, Thema Landmaschinen, Hof Alther', periods: [1, 2, 3, 4] },
     '22-Dienstag': { label: 'Umweltmorgen', icon: '🌾', detail: '01.06.2027: Landwirtschaft, Thema Biodiversität, Hof Rutishauser', periods: [1, 2, 3, 4] },
     // Fabian, 16.8.2026: "letzte Lektion vor den Herbstferien abgemacht,
-    // dass ich Fruehstueck mit den 6.Klaesslerinnen esse". Ersetzt nur die
-    // 1. Lektion, auf Fabians Bestaetigung hin. Auf Montag 21.09.2026
-    // verschoben (Fabian, 13.9.2026); Mittwoch 23.09. zeigt seither wieder
-    // den normalen Ablauf (ENG vor Mathe). Da der Termin damit nicht mehr
-    // auf den letzten Schultag vor den Herbstferien faellt, wurde dieser
-    // Zusatz aus dem Detailtext entfernt.
-    '39-Montag': { label: 'Frühstück', icon: '🥐', detail: '21.09.2026: Frühstück mit den 6. Klässlerinnen', periods: [1] },
+    // dass ich Fruehstueck mit den 6.Klaesslerinnen esse". Auf Montag
+    // 21.09.2026 verschoben (Fabian, 13.9.2026); Mittwoch 23.09. zeigt
+    // seither wieder den normalen Ablauf (ENG vor Mathe). Da der Termin
+    // damit nicht mehr auf den letzten Schultag vor den Herbstferien faellt,
+    // wurde dieser Zusatz aus dem Detailtext entfernt. Periode korrigiert
+    // (Fabian, 13.9.2026): Montag 1. Lektion ist ERG (5b/6b kombiniert),
+    // das Fruehstueck ersetzt die 2. Lektion (Englisch 6.Kl, die einzige an
+    // dem Tag rein 6.Kl-spezifische Lektion -- gleiche Logik wie urspruenglich
+    // am Mittwoch).
+    '39-Montag': { label: 'Frühstück', icon: '🥐', detail: '21.09.2026: Frühstück mit den 6. Klässlerinnen', periods: [2] },
     // Fabian, 17.8.2026 (aus "Infos für Claude.docx"): Nationaler
     // Zukunftstag, SuS sind den ganzen Tag ausser Haus. Perioden 1-6
     // (ganzer Tag) von Fabian am 17.8.2026 bestaetigt.
@@ -2950,6 +2953,12 @@
           cell.className = 'sp-cell sp-special-day';
           cell.textContent = special.icon + ' ' + special.label;
           cell.title = special.detail;
+          cell.onclick = () => openSpEdit(day, period);
+          if (weekNotes[key] && weekNotes[key].length) {
+            const dot = document.createElement('div');
+            dot.className = 'sp-note-dot';
+            cell.appendChild(dot);
+          }
         } else if (externSubject) {
           cell.className = 'sp-cell sp-extern';
           cell.textContent = externSubject.text;
@@ -3499,11 +3508,15 @@
     spEditPeriod = period;
     const subject = STUNDENPLAN[day][period - 1];
     const key = day + '-' + period;
+    const special = specialDayFor(day);
+    const isSpecial = special && special.periods.includes(period);
     const header = document.getElementById('sp-edit-header');
-    header.style.background = SUBJECT_COLORS[subject] || 'var(--gold)';
-    header.style.color = SUBJECT_TEXT;
-    document.getElementById('sp-edit-title').textContent = day + ', ' + period + '. Lektion (' + subject + ')';
-    document.getElementById('sp-edit-title').style.color = SUBJECT_TEXT;
+    header.style.background = isSpecial ? '#3a4a2e' : (SUBJECT_COLORS[subject] || 'var(--gold)');
+    header.style.color = isSpecial ? '#d6ecc9' : SUBJECT_TEXT;
+    document.getElementById('sp-edit-title').textContent = isSpecial
+      ? day + ', ' + period + '. Lektion (' + special.icon + ' ' + special.label + ')'
+      : day + ', ' + period + '. Lektion (' + subject + ')';
+    document.getElementById('sp-edit-title').style.color = isSpecial ? '#d6ecc9' : SUBJECT_TEXT;
     document.getElementById('sp-edit-week').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek] + ' · ' + SP_PERIOD_TIMES[period];
     spEditSteps = notesToSteps((state.stundenplanNotes[spCurrentWeek] || {})[key]);
     renderSpSteps();
