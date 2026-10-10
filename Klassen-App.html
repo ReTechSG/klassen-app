@@ -46,48 +46,20 @@
     background: #0c0906;
   }
   .scene.active { display: flex; }
+  /* Tresor vereinfacht (Fabian, 10.10.2026: "Bild generieren und Inhalte
+     darauf anpassen ist zu schwer"). Kein Hintergrundbild mehr, an das sich
+     die Funktion anpassen muss (vorher Tresor.jpg + background-position
+     62%/45% + Zieh-Griff zum Nachjustieren). Jetzt derselbe helle Verlauf
+     wie die anderen Szenen, das Tresor-Gefuehl kommt von einem eigenen
+     SVG-Tresorrad im Panel selbst -- sitzt dadurch immer richtig, egal wie
+     gross das Fenster ist. Tresor.jpg bleibt ungenutzt auf der Platte. */
   #scene-truhe {
-    background-image: url('Bilder/Tresor.jpg');
-    background-color: #f3e7cf;
-    background-size: cover;
-    /* Die helle Wandflaeche im Bild liegt NICHT in der Bildmitte, sondern bei
-       ca. 62% der Breite / 45% der Hoehe (per Pixelmessung ermittelt,
-       10.10.2026). Das .panel wird per Flexbox immer mittig im Fenster
-       gezeigt -- background-position auf diesen Punkt setzen haelt die helle
-       Flaeche unabhaengig von Fenstergroesse/-zuschnitt (cover!) hinter dem
-       Panel, statt nur bei einem einzigen Seitenverhaeltnis zu passen. */
-    background-position: 62% 45%;
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     flex-direction: column;
   }
-  /* Kerzenschein-Lichtflecke (.truhe-glow/truheFlicker) entfernt 10.10.2026:
-     waren an die Kerzenpositionen im alten, dunklen Truhe.png gebunden. Das
-     neue Tresor.jpg ist von sich aus hell beleuchtet (Deckenlicht, Wandlampen),
-     ein zusaetzliches animiertes Glimmen braucht es nicht mehr. Siehe
-     Konzept.md "Neues App-Design". */
-  #scene-truhe .panel { position: relative; z-index: 2; }
-  /* Bild-Justierung Tresor, zweite Fassung (10.10.2026): ein einzelner,
-     dezenter Zieh-Griff statt eines Pfeiltasten-Kastens, siehe
-     HTML-Kommentar bei scene-truhe. Unten rechts, ausserhalb des Panels. */
-  .truhe-drag-handle {
-    position: absolute; right: 16px; bottom: 16px; z-index: 3;
-    width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(20,14,10,0.78); border: 1px solid rgba(212,175,55,0.5);
-    color: #e8dcc3; cursor: grab;
-    touch-action: none;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s, opacity 0.2s;
-    opacity: 0.55;
-  }
-  .truhe-drag-handle:hover { opacity: 1; background: rgba(40,28,18,0.9); }
-  .truhe-drag-handle.dragging { cursor: grabbing; opacity: 1; background: var(--gold); color: #1a1004; }
-  .truhe-pos-reset {
-    position: absolute; right: 16px; bottom: 56px; z-index: 3;
-    font-family: inherit; font-size: 11px; cursor: pointer;
-    padding: 5px 10px; border-radius: 8px;
-    border: 1px solid rgba(212,175,55,0.5);
-    background: rgba(20,14,10,0.78); color: #cbbf9e;
-  }
-  .truhe-pos-reset:hover { background: rgba(40,28,18,0.9); }
+  .tresor-emblem { display: block; margin: 0 auto 10px; width: 74px; height: 74px; }
+  .tresor-emblem .dial { transform-origin: 50px 50px; transition: transform 0.9s cubic-bezier(.34,1.56,.64,1); }
+  #scene-truhe .panel:hover .tresor-emblem .dial { transform: rotate(90deg); }
 
   /* --- Labor (bis 10.10.2026 "Alchemistenkammer" genannt, intern noch
      scene-trank/nav-trank): Bild + SVG-Overlay pixelgenau uebereinander --- */
@@ -99,26 +71,34 @@
      Raender frei lassen -- dort scheint sonst die dunkle .scene-Grundfarbe
      durch. Helle Flaeche passend zur Labor-Wandfarbe als Fallback (10.10.2026,
      Teil des neuen hellen App-Designs). */
-  #scene-trank { background-color: #dde4d2; }
-  .stage img.bg {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: contain;
-  }
+  /* Labor ohne Foto (10.10.2026): heller Verlauf wie die anderen Szenen,
+     das Reagenzglas ist selbst gezeichnet (SVG). Oben/unten Abstand, damit
+     das Glas nie unter Navbar oder Punkte-Leiste rutscht. */
+  #scene-trank { background: radial-gradient(ellipse at center, #faf3e2, #ead9b8); }
   .stage svg.overlay {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
+    position: absolute; left: 0; right: 0;
+    top: 70px; bottom: 140px;
+    width: 100%; height: calc(100% - 210px);
+    overflow: visible; /* aufsteigende +1/-1-Zahlen duerfen ueber den Rand */
   }
-  #liquid-clip-rect {
-    transition: y 0.8s cubic-bezier(.34,1.56,.64,1), height 0.8s cubic-bezier(.34,1.56,.64,1);
+  /* Fuellung, Oberflaeche, Blasen-Bereich und Stand-Schild bewegen sich
+     gemeinsam mit demselben leichten Nachfedern. */
+  .liquid-level-anim {
+    transition: y 0.8s cubic-bezier(.34,1.56,.64,1), height 0.8s cubic-bezier(.34,1.56,.64,1), transform 0.8s cubic-bezier(.34,1.56,.64,1);
   }
-  .liquid-glow {
-    filter: drop-shadow(0 0 22px rgba(127,216,255,0.95)) drop-shadow(0 0 46px rgba(127,216,255,0.6));
-    animation: liquid-pulse 2.4s ease-in-out infinite;
+  /* Kein Leucht-Schein mehr (10.10.2026): auf hellem Hintergrund machte er
+     die Oberflaeche unscharf, der Fuellstand war schlecht ablesbar. Leben
+     kommt jetzt von den aufsteigenden Blasen. */
+  .bubble {
+    fill: rgba(255,255,255,0.7);
+    animation-name: bubble-rise;
+    animation-timing-function: ease-in;
+    animation-iteration-count: infinite;
   }
-  @keyframes liquid-pulse {
-    0%, 100% { filter: drop-shadow(0 0 22px rgba(127,216,255,0.95)) drop-shadow(0 0 46px rgba(127,216,255,0.6)); }
-    50% { filter: drop-shadow(0 0 32px rgba(160,230,255,1)) drop-shadow(0 0 64px rgba(127,216,255,0.8)); }
+  @keyframes bubble-rise {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translateY(-420px); opacity: 0.8; }
   }
 
   /* max-width + flex-wrap: bei 5 Buttons mit deutschen Wortlaengen (u.a.
@@ -188,6 +168,45 @@
   #music-toggle .music-icon { flex-shrink: 0; }
   #music-toggle .mute-slash { display: none; }
   #music-toggle:not(.active) .mute-slash { display: block; }
+  .backup-btn {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; padding: 0; flex-shrink: 0;
+    background: var(--panel-bg); border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 50%; color: #e8dcc3; cursor: pointer;
+    opacity: 0.6; transition: opacity 0.2s;
+  }
+  .backup-btn:hover, .backup-btn:focus-visible, .backup-btn.due { opacity: 1; }
+  .backup-btn.due::after {
+    content: ''; position: absolute; top: -2px; right: -2px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gold); box-shadow: 0 0 6px rgba(212,175,55,0.9);
+  }
+  .backup-backdrop {
+    position: fixed; inset: 0; z-index: 90; background: rgba(10,6,3,0.55); display: none;
+  }
+  .backup-backdrop.show { display: block; }
+  .backup-box {
+    position: fixed; z-index: 91; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(440px, 92vw);
+    background: #2b1f14; border: 2px solid var(--gold); border-radius: 18px;
+    padding: 24px 26px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    display: none;
+  }
+  .backup-box.show { display: block; }
+  .backup-title { color: var(--gold); font-size: 22px; margin-bottom: 10px; }
+  .backup-text { font-size: 15px; line-height: 1.5; color: #e8dcc3; margin: 0 0 6px; }
+  .backup-secondary {
+    display: block; width: 100%; margin-top: 10px;
+    font-family: inherit; font-size: 14px; padding: 10px; border-radius: 12px;
+    border: 1px solid rgba(212,175,55,0.4); background: transparent; color: #e8dcc3; cursor: pointer;
+  }
+  .backup-secondary:hover { background: rgba(212,175,55,0.12); }
+  .backup-last { margin-top: 14px; font-size: 13px; color: #b8ab8c; text-align: center; }
+  .backup-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; color: #e8dcc3; font-size: 24px; cursor: pointer; line-height: 1;
+  }
   #music-volume {
     width: 54px;
     accent-color: var(--gold);
@@ -208,43 +227,73 @@
   }
   .total-badge b { color: var(--gold); font-size: 16px; }
 
+  /* "Preis zugute" (10.10.2026, Fabian: "grösser neben den Belohnungen,
+     nicht so klein in der Ecke"): nicht mehr als kleines schwebendes Fenster
+     oben rechts auf jeder Seite, sondern als eigener Kasten im Tresor direkt
+     rechts neben dem Belohnungs-Panel (.tresor-layout). */
+  .tresor-layout {
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 28px; flex-wrap: wrap; max-width: 96vw;
+  }
   .pending-rewards {
-    /* Haengt am --badge-top-Versatz statt an einem festen Pixelwert, damit es
-       (wie die anderen Ecken-Badges) automatisch unter die Navbar rutscht,
-       falls die auf mehrere Reihen umbricht - siehe updateTopClearance(). */
-    position: fixed; top: calc(var(--badge-top, 18px) + 48px); right: 18px; z-index: 20;
     background: var(--panel-bg);
-    border: 1px solid rgba(212,175,55,0.4);
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-size: 12px;
-    max-width: 230px;
+    border: 2px solid var(--gold);
+    border-radius: 22px;
+    padding: 26px 28px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    width: 300px;
     display: none;
   }
   .pending-rewards.show { display: block; }
-  .pending-rewards-title { color: var(--gold); font-size: 12px; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .pending-rewards-title { color: var(--gold); font-size: 22px; margin-bottom: 4px; letter-spacing: 0.5px; text-align: center; }
+  .pending-rewards-sub { font-size: 13px; color: #b8ab8c; margin-bottom: 14px; text-align: center; }
   .pending-reward-item {
     display: flex; justify-content: space-between; align-items: center;
-    gap: 8px; padding: 5px 0;
-    border-top: 1px solid rgba(212,175,55,0.15);
+    gap: 12px; padding: 12px 14px; margin-top: 10px;
+    background: rgba(212,175,55,0.14);
+    border: 1px solid rgba(212,175,55,0.45);
+    border-radius: 12px;
   }
-  .pending-reward-item:first-child { border-top: none; }
-  .pending-reward-item .name { color: #e8dcc3; }
+  .pending-reward-item .name { color: #f1e6d0; font-size: 18px; }
   .pending-reward-item .remove-btn {
-    background: none; border: none; color: #d98a8a; cursor: pointer;
-    font-size: 15px; line-height: 1; padding: 0 3px; flex-shrink: 0;
+    background: none; border: 1px solid rgba(200,90,90,0.5); border-radius: 8px;
+    color: #d98a8a; cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 6px 9px; flex-shrink: 0;
   }
-  .pending-reward-item .remove-btn:hover { color: #f0a0a0; }
+  .pending-reward-item .remove-btn:hover { color: #f0a0a0; background: rgba(200,90,90,0.15); }
+  /* Kleinere, aber gut lesbare Fassung oben rechts auf allen anderen Reitern.
+     Haengt am --badge-top-Versatz wie die Gesamtpunkte-Badge. */
+  .pending-corner {
+    position: fixed; top: calc(var(--badge-top, 18px) + 48px); right: 18px; z-index: 20;
+    background: var(--panel-bg);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 10px 14px;
+    max-width: 260px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    display: none;
+  }
+  .pending-corner.show { display: block; }
+  body.scene-truhe-active .pending-corner { display: none; }
+  /* Ablauf-Deko rechts oben (Stifte/Pflanze) wuerde durch den Kasten scheinen */
+  body.has-pending-rewards #scene-ablauf .deco-ar { display: none; }
+  .pending-corner-title { color: var(--gold); font-size: 15px; margin-bottom: 4px; }
+  .pending-corner-item {
+    color: #f1e6d0; font-size: 15px; padding: 4px 0;
+    border-top: 1px solid rgba(212,175,55,0.2);
+  }
+  .pending-corner-item:first-of-type { border-top: none; }
 
   /* --- schwebende Punkte-Texte --- */
   .float-pop {
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 110px;
+    /* Groessen in Einheiten der Labor-viewBox (400x640, seit 10.10.2026) */
+    font-size: 44px;
     font-weight: bold;
     text-anchor: middle;
     paint-order: stroke;
     stroke: rgba(10,6,3,0.65);
-    stroke-width: 8px;
+    stroke-width: 4px;
     animation: floatPop 1.3s ease-out forwards;
     pointer-events: none;
   }
@@ -253,7 +302,7 @@
   @keyframes floatPop {
     0% { transform: translateY(0); opacity: 0; }
     15% { opacity: 1; }
-    100% { transform: translateY(-220px); opacity: 0; }
+    100% { transform: translateY(-50px); opacity: 0; }
   }
   .float-pop-html {
     position: fixed; z-index: 60; transform: translate(-50%, -50%);
@@ -344,6 +393,12 @@
   .reward-card .name { font-size: 15px; color: #f1e6d0; margin-bottom: 6px; }
   .reward-card .cost { font-size: 13px; color: var(--glow); }
   .redeem-msg { margin-top: 16px; font-size: 13px; color: var(--gold); min-height: 18px; }
+  .redeem-undo {
+    font-family: inherit; font-size: 12px; margin-left: 6px; padding: 3px 10px;
+    border-radius: 8px; border: 1px solid rgba(212,175,55,0.6);
+    background: rgba(212,175,55,0.15); color: #f1e6d0; cursor: pointer;
+  }
+  .redeem-undo:hover { background: rgba(212,175,55,0.3); }
 
   /* --- Gluecksrad --- */
   /* align-items: flex-start + Padding oben (statt echter vertikaler Zentrierung):
@@ -487,6 +542,34 @@
   }
 
   /* --- Gruppen --- */
+  /* --- Szenen-Deko (10.10.2026, Fabian: "auch die anderen Dinge anpassen",
+     nach dem Vorbild des gezeichneten Labors). Reine Zeichnungen (SVG), kein
+     Bild, keine Funktion: z-index -1 legt sie HINTER alle Inhalte (jede
+     .scene ist position:fixed und damit ein eigener Stapel-Kontext),
+     pointer-events:none macht sie unklickbar. Ueberlappt ein Inhalt die
+     Deko, verdeckt er sie einfach. Auf schmalen Fenstern ausgeblendet. --- */
+  .scene-deco { position: absolute; pointer-events: none; z-index: -1; overflow: visible; }
+  .deco-floor {
+    left: 0; right: 0; bottom: 0; height: 46px;
+    background: linear-gradient(180deg, #c99a68 0, #c99a68 6px, #a8743f 6px, #8a5a32 100%);
+  }
+  .deco-bl { left: 3vw; bottom: 40px; height: min(24vh, 170px); }
+  .deco-br { right: 3vw; bottom: 40px; height: min(24vh, 170px); }
+  /* Gluecksrad: rechts steht der Namen-Kasten bis fast an den Rand */
+  #scene-rad .deco-br { right: 1.5vw; height: min(18vh, 130px); }
+  /* --top-clearance = Unterkante Navbar + 24px (updateTopClearance()), die
+     Kette haengt also immer knapp unter der Navbar, egal wie viele Reihen. */
+  .deco-garland { left: 0; right: 0; top: calc(var(--top-clearance) - 14px); width: 100%; height: 56px; }
+  /* Der Namen-Kasten ist halbtransparent: auf mittelbreiten Fenstern
+     (Laptop) wuerden Geschenk und Kette durchscheinen, darum dort weg. */
+  @media (max-width: 1250px) { #scene-rad .scene-deco { display: none; } }
+  @media (max-width: 1200px) { #scene-truhe .deco-bl, #scene-truhe .deco-br { display: none; } }
+  .deco-gl { right: calc(50% + 175px); top: 300px; height: min(30vh, 200px); }
+  .deco-gr { left: calc(50% + 175px); top: 300px; height: min(30vh, 200px); }
+  .deco-al { left: 4vw; top: 74px; height: 86px; }
+  .deco-ar { right: 4vw; top: 74px; height: 86px; }
+  @media (max-width: 1000px) { .scene-deco { display: none; } }
+
   #scene-gruppen {
     /* Kein eigenes Bild (10.10.2026, Fabian: schlicht/hell, kein Motiv). */
     background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
@@ -525,11 +608,29 @@
     gap: 22px;
     width: min(1200px, 94vw);
   }
+  /* Sobald Gruppen gebildet sind (Klasse .has-groups, gesetzt in
+     renderGruppen()), weicht die Deko (Figuren/Puzzle) und die Karten
+     stehen RECHTS neben dem Namen-Kasten statt darunter (Fabian,
+     10.10.2026: Deko schien durch die Karten, Karten rutschten auf dem
+     Laptop unter den Bildrand). Unter 900px bricht es wie bisher um. */
+  #scene-gruppen .scene-deco { transition: opacity 0.3s ease; }
+  #scene-gruppen.has-groups .scene-deco { opacity: 0; }
+  #scene-gruppen.has-groups .gruppen-layout {
+    flex-wrap: nowrap; justify-content: flex-start;
+    width: min(1700px, 96vw); gap: 32px; margin: 0 auto;
+  }
+  #scene-gruppen.has-groups .gruppen-results { flex: 1 1 auto; width: auto; min-width: 0; }
+  @media (max-width: 900px) {
+    #scene-gruppen.has-groups .gruppen-layout { flex-wrap: wrap; justify-content: center; }
+    #scene-gruppen.has-groups .gruppen-results { flex-basis: 100%; }
+  }
   .gruppen-card {
-    background: rgba(30,20,12,0.7);
-    border: 1px solid rgba(212,175,55,0.35);
+    background: #3b2a1b;
+    border: 1px solid rgba(212,175,55,0.45);
+    border-top: 5px solid var(--group-color, var(--gold));
     border-radius: 16px;
-    padding: 20px 22px;
+    padding: 18px 22px 20px;
+    box-shadow: 0 6px 18px rgba(60,40,20,0.25);
     animation: gruppeFadeIn 0.4s ease-out backwards;
   }
   @keyframes gruppeFadeIn {
@@ -537,11 +638,10 @@
     100% { opacity: 1; transform: translateY(0); }
   }
   .gruppen-card .gruppen-card-title {
-    color: var(--gold); font-size: 18px; margin-bottom: 12px; letter-spacing: 0.3px;
+    color: var(--gold); font-size: 20px; margin-bottom: 10px; letter-spacing: 0.3px;
   }
   .gruppen-card ul { list-style: none; margin: 0; padding: 0; }
-  .gruppen-card li { font-size: 16px; padding: 5px 0; color: #f1e6d0; }
-  .gruppen-empty-hint { color: #b8ab8c; font-size: 13px; padding-top: 10px; }
+  .gruppen-card li { font-size: 20px; padding: 5px 0; color: #f1e6d0; }
 
   /* --- To-do-Listen (Fabian, 13.8.2026): Kaertchen wie auf dem Pult, eine
      Liste fuer SuS und eine fuer die Lehrperson (Umschalter oben). Vorne
@@ -671,7 +771,7 @@
   body.tafel-fullscreen nav,
   body.tafel-fullscreen .top-left-cluster,
   body.tafel-fullscreen .total-badge,
-  body.tafel-fullscreen .pending-rewards {
+  body.tafel-fullscreen .pending-corner {
     display: none !important;
   }
   #scene-tafel {
@@ -1682,8 +1782,10 @@
     border: 1px solid rgba(120,90,46,0.5); border-radius: 6px;
     padding: 4px 10px; background: rgba(120,90,46,0.16); color: #3a2c1c;
   }
-  .ha-ferien { grid-column: 1 / -1; text-align: center; padding: 60px 16px; color: #5a4226; }
-  .ha-ferien-title { font-size: 24px; color: #7a5a2e; margin-bottom: 6px; }
+  /* liegt direkt auf dem dunklen Buchdeckel (keine Seiten in Ferienwochen),
+     darum helle Schrift (vorher braun auf braun, kaum lesbar) */
+  .ha-ferien { grid-column: 1 / -1; text-align: center; padding: 60px 16px; color: #d9c9a8; }
+  .ha-ferien-title { font-size: 24px; color: var(--gold); margin-bottom: 6px; }
   /* HA-Zeile unter dem Stundenplan-Raster: zeigt pro Wochentag, in welchen
      Faechern an dem Tag Hausaufgaben faellig sind (der Tag, an den Fabian sie
      im Buch schreibt = der Tag, an dem sie erledigt sein muessen). */
@@ -1757,16 +1859,57 @@
     </button>
     <input type="range" id="music-volume" min="0" max="100" value="35" oninput="setMusicVolume(this.value)" title="Lautstärke">
   </div>
+  <!-- Datensicherung (10.10.2026): alles liegt nur im Browser, darum
+       Sicherung als Datei. Goldener Punkt = laenger als 14 Tage nicht gesichert. -->
+  <button id="backup-btn" class="backup-btn" onclick="openBackup()" title="Daten sichern" aria-label="Daten sichern">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 17v3h16v-3"/>
+    </svg>
+  </button>
+</div>
+<div class="backup-backdrop" id="backup-backdrop" onclick="closeBackup()"></div>
+<div class="backup-box" id="backup-box" role="dialog" aria-label="Daten sichern">
+  <button class="backup-close" onclick="closeBackup()" aria-label="Schliessen">&times;</button>
+  <div class="backup-title">Daten sichern</div>
+  <p class="backup-text">Punkte, Lektionen, Hausaufgaben, To-dos und Tafeln sind nur in <b>diesem Browser auf diesem Gerät</b> gespeichert. Lade ab und zu eine Sicherung herunter, z.B. auf einen USB-Stick oder ins OneDrive. Damit kannst du alles auch auf ein anderes Gerät mitnehmen.</p>
+  <button class="spin-btn" onclick="exportBackup()">Sicherung herunterladen</button>
+  <button class="backup-secondary" onclick="document.getElementById('backup-file').click()">Sicherung laden …</button>
+  <input type="file" id="backup-file" accept=".json,application/json" hidden onchange="importBackup(this)">
+  <div class="backup-last" id="backup-last"></div>
 </div>
 <div class="total-badge">Gesamtpunkte diese Periode: <b id="total-points">0</b></div>
-
-<div class="pending-rewards" id="pending-rewards">
-  <div class="pending-rewards-title">Preis zugute</div>
-  <div class="pending-rewards-list" id="pending-rewards-list"></div>
+<!-- "Preis zugute" auf ALLEN anderen Reitern (Fabian 10.10.2026: "das muss
+     wirklich da bleiben, auch wenn ich wechsle, das haben sie ja zugute").
+     Im Tresor ausgeblendet, dort steht der grosse Kasten #pending-rewards. -->
+<div class="pending-corner" id="pending-corner">
+  <div class="pending-corner-title">&#127873; Preis zugute</div>
+  <div id="pending-corner-list"></div>
 </div>
 
 <!-- Ablauf: Startseite mit echtem Stundenplan-Raster fuer die SuS -->
 <div class="scene" id="scene-ablauf">
+  <!-- Deko Ablauf (nur im schmalen Streifen neben der Wochen-Navigation) -->
+  <svg class="scene-deco deco-al" viewBox="0 0 210 90" aria-hidden="true">
+    <rect x="10" y="66" width="120" height="20" rx="3" fill="#3f6fb5"/>
+    <rect x="18" y="48" width="104" height="18" rx="3" fill="#d4a92e"/>
+    <rect x="14" y="30" width="112" height="18" rx="3" fill="#c0504d"/>
+    <line x1="26" y1="39" x2="110" y2="39" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+    <circle cx="170" cy="66" r="22" fill="#d9483b"/>
+    <circle cx="160" cy="58" r="6" fill="rgba(255,255,255,0.35)"/>
+    <path d="M 170 46 Q 168 36 172 30" stroke="#6b4423" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M 173 38 Q 186 28 192 38 Q 182 44 173 38 Z" fill="#5a9e5a"/>
+  </svg>
+  <svg class="scene-deco deco-ar" viewBox="0 0 210 90" aria-hidden="true">
+    <rect x="20" y="40" width="44" height="48" rx="6" fill="#3f6fb5"/>
+    <rect x="26" y="8" width="9" height="36" fill="#d4a92e"/><path d="M 26 8 L 30.5 0 L 35 8 Z" fill="#f1c9a5"/>
+    <rect x="38" y="14" width="9" height="30" fill="#c0504d"/><path d="M 38 14 L 42.5 6 L 47 14 Z" fill="#f1c9a5"/>
+    <rect x="50" y="4" width="9" height="40" fill="#5a9e5a"/><path d="M 50 4 L 54.5 -4 L 59 4 Z" fill="#f1c9a5"/>
+    <path d="M 110 58 L 170 58 L 162 88 L 118 88 Z" fill="#c8713f"/>
+    <rect x="106" y="52" width="68" height="10" rx="3" fill="#d9844f"/>
+    <path d="M 140 52 Q 120 30 108 14 Q 132 18 140 52 Z" fill="#5a9e5a"/>
+    <path d="M 140 52 Q 162 26 176 12 Q 170 40 140 52 Z" fill="#4cc27a"/>
+    <path d="M 140 52 Q 138 24 142 2 Q 152 26 140 52 Z" fill="#3f8f4f"/>
+  </svg>
   <div class="stundenplan-wrap">
     <div class="stundenplan-kw-nav">
       <button class="sp-nav-btn" id="sp-prev-week" onclick="changeSpWeek(-1)" aria-label="Vorherige Woche">&#8592;</button>
@@ -1791,7 +1934,7 @@
         </svg>
       </button>
     </div>
-    <div class="stundenplan-hint" id="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
+    <div class="stundenplan-hint" id="stundenplan-hint">Aufs Fach klicken für die Lektionsnotiz</div>
     <!-- Wochen-Tausch (Fabian, 10.10.2026): zeigt wahlweise "wird verschoben,
          jetzt Ziel antippen" + Abbrechen, ODER "Woche weicht ab" +
          Zuruecksetzen, ODER bleibt leer -- siehe renderStundenplan(). -->
@@ -1824,7 +1967,7 @@
 <!-- Druckansicht der HA-Woche (nur beim Drucken sichtbar, siehe @media print) -->
 <div id="ha-print"></div>
 
-<div class="sp-edit-backdrop" id="sp-edit-backdrop" onclick="closeSpEdit()"></div>
+<div class="sp-edit-backdrop" id="sp-edit-backdrop" onclick="closeSpEditFromBackdrop()"></div>
 <div class="sp-edit-box" id="sp-edit-box">
   <div class="sp-edit-header" id="sp-edit-header">
     <div class="sp-edit-title" id="sp-edit-title"></div>
@@ -1905,39 +2048,131 @@
   <div class="clock-resize-handle" id="clock-resize-handle" title="Grösse ändern (ziehen)"></div>
 </div>
 
-<!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
+<!-- Hauptansicht Labor: Reagenzglas komplett selbst gezeichnet (SVG), seit
+     10.10.2026 kein Foto mehr darunter. Glas, Fluessigkeit und Halterung
+     liegen im selben Koordinatensystem (viewBox 400x640), passen also immer
+     zusammen, egal wie gross das Fenster ist. Siehe Konzept.md. -->
 <div class="scene active" id="scene-trank">
   <div class="stage">
-    <img class="bg" src="Bilder/Labor.jpg" alt="Reagenzglas im Labor">
-    <svg class="overlay" viewBox="0 0 1376 768" preserveAspectRatio="xMidYMid meet">
+    <!-- viewBox beginnt bei x=-300: das Reagenzglas bleibt bei x=200 (Mitte),
+         links und rechts ist Platz fuer Laborausstattung (reine Deko). -->
+    <svg class="overlay" viewBox="-300 0 1000 640" preserveAspectRatio="xMidYMid meet">
       <defs>
+        <!-- Innenraum des Glases = Form der Fluessigkeit (gleiche Werte wie VIAL_* im Script) -->
         <clipPath id="vial-clip">
-          <path d="M 880 258 L 962 258 L 962 580 A 41 41 0 1 1 880 580 Z" />
+          <path d="M 160 90 L 240 90 L 240 470 A 40 40 0 1 1 160 470 Z" />
         </clipPath>
+        <!-- Nur der gefuellte Teil, damit die Blasen nicht ins leere Glas steigen -->
+        <clipPath id="liquid-area-clip">
+          <rect id="liquid-area-rect" class="liquid-level-anim" x="160" y="510" width="80" height="0" />
+        </clipPath>
+        <!-- Kraeftiges Blau durchgehend (Fabian 10.10.2026: der fast weisse
+             obere Teil war auf hellem Hintergrund kaum vom leeren Glas zu
+             unterscheiden). -->
         <linearGradient id="liquid-gradient" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stop-color="#2fa8ff"/>
-          <stop offset="55%" stop-color="#7fd8ff"/>
-          <stop offset="100%" stop-color="#e0f7ff"/>
+          <stop offset="0%" stop-color="#0a5fc2"/>
+          <stop offset="60%" stop-color="#1f8be8"/>
+          <stop offset="100%" stop-color="#47abf7"/>
         </linearGradient>
-        <!-- Ring-Flicken (Fabian, 10.10.2026: "der Balken geht ueber die
-             Halterung"): der Holzring der Glashalterung liegt bei y~518-550,
-             MITTEN in der fuellbaren Hoehe -- ohne diesen Flicken wuerde die
-             Fluessigkeit bei genug Punkten einfach durch den Ring hindurch
-             "scheinen". Per Pixelmessung ermittelt, etwas grosszuegig
-             bemessen (Rand-Sicherheit). -->
-        <clipPath id="ring-patch-clip">
-          <rect x="800" y="514" width="245" height="40" />
-        </clipPath>
+        <linearGradient id="wood-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#b9824f"/>
+          <stop offset="100%" stop-color="#8a5a32"/>
+        </linearGradient>
       </defs>
-      <!-- Kerzenflammen (candle-flames) entfernt 10.10.2026: gehoerten zum
-           alten, dunklen Reagenzglas.png, siehe Konzept.md "Neues App-Design". -->
+
+      <!-- ===== Deko: Regale an der Wand, Tisch ===== -->
+      <!-- Regal links -->
+      <rect x="-270" y="250" width="290" height="12" rx="4" fill="url(#wood-gradient)"/>
+      <!-- Erlenmeyerkolben gruen -->
+      <path d="M -215 160 L -195 160 L -195 195 L -165 245 Q -162 250 -168 250 L -242 250 Q -248 250 -245 245 L -215 195 Z" fill="rgba(255,255,255,0.55)" stroke="#7d949c" stroke-width="3"/>
+      <path d="M -226 215 L -184 215 L -165 245 Q -162 250 -168 250 L -242 250 Q -248 250 -245 245 Z" fill="#4cc27a"/>
+      <!-- Glas mit Deckel, violett -->
+      <rect x="-130" y="185" width="56" height="65" rx="8" fill="rgba(255,255,255,0.55)" stroke="#7d949c" stroke-width="3"/>
+      <rect x="-127" y="210" width="50" height="37" rx="6" fill="#9a6ad6"/>
+      <rect x="-136" y="176" width="68" height="12" rx="4" fill="#c0504d"/>
+      <!-- Flaeschchen orange -->
+      <rect x="-28" y="200" width="36" height="50" rx="8" fill="#f2a43a" stroke="#b9772a" stroke-width="3"/>
+      <rect x="-18" y="184" width="16" height="18" rx="3" fill="#8a5a32"/>
+
+      <!-- Regal rechts -->
+      <rect x="370" y="200" width="300" height="12" rx="4" fill="url(#wood-gradient)"/>
+      <!-- Rundkolben pink -->
+      <rect x="418" y="110" width="18" height="40" fill="rgba(255,255,255,0.55)" stroke="#7d949c" stroke-width="3"/>
+      <circle cx="427" cy="172" r="27" fill="rgba(255,255,255,0.55)" stroke="#7d949c" stroke-width="3"/>
+      <path d="M 401 178 A 27 27 0 0 0 453 178 Z" fill="#e8649a"/>
+      <!-- Buecher -->
+      <rect x="500" y="122" width="26" height="78" rx="3" fill="#3f6fb5"/>
+      <rect x="528" y="134" width="22" height="66" rx="3" fill="#c0504d"/>
+      <rect x="552" y="116" width="28" height="84" rx="3" fill="#5a9e5a"/>
+      <rect x="590" y="142" width="22" height="58" rx="3" fill="#d4a92e" transform="rotate(12 601 200)"/>
+
+      <!-- Tisch -->
+      <!-- bewusst viel breiter als die viewBox: das SVG hat overflow:visible,
+           so laeuft der Tisch bei jeder Fensterbreite bis an den Rand -->
+      <rect x="-3000" y="594" width="7000" height="46" fill="url(#wood-gradient)"/>
+      <rect x="-3000" y="594" width="7000" height="6" fill="rgba(255,255,255,0.18)"/>
+      <!-- Buecherstapel links auf dem Tisch -->
+      <rect x="-230" y="570" width="130" height="24" rx="3" fill="#3f6fb5"/>
+      <rect x="-220" y="548" width="112" height="22" rx="3" fill="#d4a92e"/>
+      <rect x="-226" y="528" width="120" height="20" rx="3" fill="#c0504d"/>
+      <!-- Becherglas gelb rechts auf dem Tisch -->
+      <path d="M 452 500 L 528 500 L 524 594 L 456 594 Z" fill="rgba(255,255,255,0.55)" stroke="#7d949c" stroke-width="3"/>
+      <path d="M 455 540 L 525 540 L 524 591 L 456 591 Z" fill="#f2c94c"/>
+      <g stroke="#7d949c" stroke-width="2"><line x1="458" y1="520" x2="470" y2="520"/><line x1="458" y1="560" x2="470" y2="560"/></g>
+
+      <!-- ===== Reagenzglas ===== -->
+      <!-- Staender: Sockel + zwei Pfosten (hinter dem Glas) -->
+      <rect x="86" y="300" width="14" height="270" rx="5" fill="url(#wood-gradient)"/>
+      <rect x="300" y="300" width="14" height="270" rx="5" fill="url(#wood-gradient)"/>
+      <rect x="60" y="560" width="280" height="34" rx="10" fill="url(#wood-gradient)"/>
+
+      <!-- Glas (Innenflaeche hell, damit sich das Blau klar abhebt) -->
+      <path d="M 152 82 L 248 82 L 248 470 A 48 48 0 1 1 152 470 Z" fill="rgba(255,255,255,0.75)"/>
+
+      <!-- Fluessigkeit + Oberflaeche + Blasen -->
       <g clip-path="url(#vial-clip)" class="liquid-glow">
-        <rect id="liquid-clip-rect" x="880" y="580" width="82" height="0" fill="url(#liquid-gradient)" />
+        <rect id="liquid-clip-rect" class="liquid-level-anim" x="160" y="510" width="80" height="0" fill="url(#liquid-gradient)" />
+        <g clip-path="url(#liquid-area-clip)">
+          <circle class="bubble" cx="180" cy="500" r="5" style="animation-duration:3.2s"/>
+          <circle class="bubble" cx="214" cy="500" r="3.5" style="animation-duration:2.6s;animation-delay:1.1s"/>
+          <circle class="bubble" cx="196" cy="500" r="4" style="animation-duration:3.8s;animation-delay:2s"/>
+          <circle class="bubble" cx="226" cy="500" r="2.5" style="animation-duration:2.2s;animation-delay:0.5s"/>
+        </g>
+        <!-- helle Oberflaechen-Linie, wandert per JS mit dem Fuellstand -->
+        <ellipse id="liquid-surface" class="liquid-level-anim" cx="200" cy="0" rx="42" ry="6" fill="#9fd8ff" style="transform: translateY(510px)"/>
       </g>
-      <!-- Zeichnet den echten Ring aus Labor.jpg nochmal ueber die
-           Fluessigkeit (gleiches Bild, gleiche 1376x768-Koordinaten wie das
-           img.bg darunter, darum deckungsgleich ohne weitere Umrechnung). -->
-      <image href="Bilder/Labor.jpg" x="0" y="0" width="1376" height="768" clip-path="url(#ring-patch-clip)" />
+
+      <!-- Glaswand + Rand + Lichtreflex (vor der Fluessigkeit) -->
+      <path d="M 152 82 L 248 82 L 248 470 A 48 48 0 1 1 152 470 Z" fill="none" stroke="#7d949c" stroke-width="5" stroke-linejoin="round"/>
+      <rect x="138" y="68" width="124" height="18" rx="9" fill="#e9f2f4" stroke="#7d949c" stroke-width="4"/>
+      <path d="M 172 100 L 172 460" stroke="rgba(255,255,255,0.75)" stroke-width="7" stroke-linecap="round"/>
+
+      <!-- Skala 10 bis 50 (y = 510 - Punkte/50 * 420) -->
+      <g stroke="#5f747b" stroke-width="3" stroke-linecap="round">
+        <line x1="222" y1="426" x2="240" y2="426"/>
+        <line x1="222" y1="342" x2="240" y2="342"/>
+        <line x1="222" y1="258" x2="240" y2="258"/>
+        <line x1="222" y1="174" x2="240" y2="174"/>
+        <line x1="222" y1="90"  x2="240" y2="90"/>
+      </g>
+      <g fill="#4a5b61" font-family="Georgia, serif" font-size="17" font-weight="bold">
+        <text x="258" y="432">10</text>
+        <text x="258" y="348">20</text>
+        <text x="258" y="264">30</text>
+        <text x="258" y="180">40</text>
+        <text x="258" y="96">50</text>
+      </g>
+
+      <!-- Halterungsring (vor dem Glas, darum einfach zuletzt gezeichnet) -->
+      <rect x="86" y="392" width="228" height="18" rx="8" fill="url(#wood-gradient)"/>
+
+      <!-- Stand-Anzeige links am Glas: Schild mit aktueller Punktzahl, Spitze
+           zeigt genau auf die Oberflaeche, wandert per JS mit. -->
+      <g id="level-marker" class="liquid-level-anim" style="transform: translateY(510px)">
+        <rect x="20" y="-19" width="96" height="38" rx="19" fill="#0a5fc2" stroke="#fff" stroke-width="3"/>
+        <path d="M 114 -10 L 146 0 L 114 10 Z" fill="#0a5fc2"/>
+        <text id="level-marker-text" x="68" y="8" text-anchor="middle" fill="#fff" font-family="Georgia, serif" font-size="22" font-weight="bold">0</text>
+      </g>
     </svg>
   </div>
 
@@ -1952,32 +2187,106 @@
 
 <!-- Schatzkammer -->
 <div class="scene" id="scene-truhe">
+  <!-- Deko Tresor: Boden, Schatztruhe links, Muenzstapel rechts -->
+  <div class="scene-deco deco-floor" aria-hidden="true"></div>
+  <svg class="scene-deco deco-bl" viewBox="0 0 220 170" aria-hidden="true">
+    <path d="M 26 82 L 40 22 Q 110 2 180 22 L 194 82 Z" fill="#a8743f" stroke="#7a4f2a" stroke-width="3"/>
+    <path d="M 26 86 Q 60 48 100 62 Q 140 42 194 86 Z" fill="#f2c94c"/>
+    <circle cx="70" cy="66" r="9" fill="#e0b53a" stroke="#b8932c" stroke-width="2"/>
+    <circle cx="128" cy="58" r="9" fill="#e0b53a" stroke="#b8932c" stroke-width="2"/>
+    <circle cx="160" cy="72" r="8" fill="#e0b53a" stroke="#b8932c" stroke-width="2"/>
+    <polygon points="98,50 108,40 118,50 108,62" fill="#3f8fe0"/>
+    <polygon points="40,74 48,64 56,74 48,84" fill="#d9483b"/>
+    <rect x="20" y="82" width="180" height="84" rx="8" fill="#8a5a32" stroke="#6b4423" stroke-width="3"/>
+    <rect x="20" y="82" width="180" height="11" fill="#d4af37"/>
+    <rect x="48" y="82" width="12" height="84" fill="#d4af37"/>
+    <rect x="160" y="82" width="12" height="84" fill="#d4af37"/>
+    <rect x="98" y="102" width="24" height="30" rx="4" fill="#d4af37" stroke="#a8862a" stroke-width="2"/>
+    <circle cx="110" cy="114" r="4" fill="#4a3018"/><rect x="108" y="116" width="4" height="9" fill="#4a3018"/>
+  </svg>
+  <svg class="scene-deco deco-br" viewBox="0 0 220 170" aria-hidden="true">
+    <g stroke="#a8862a" stroke-width="2">
+      <rect x="14" y="88" width="52" height="72" fill="#d4af37"/>
+      <ellipse cx="40" cy="160" rx="26" ry="8" fill="#d4af37"/>
+      <ellipse cx="40" cy="88" rx="26" ry="8" fill="#f2d46a"/>
+      <rect x="74" y="50" width="52" height="110" fill="#d4af37"/>
+      <ellipse cx="100" cy="160" rx="26" ry="8" fill="#d4af37"/>
+      <ellipse cx="100" cy="50" rx="26" ry="8" fill="#f2d46a"/>
+      <rect x="134" y="108" width="52" height="52" fill="#d4af37"/>
+      <ellipse cx="160" cy="160" rx="26" ry="8" fill="#d4af37"/>
+      <ellipse cx="160" cy="108" rx="26" ry="8" fill="#f2d46a"/>
+    </g>
+    <g stroke="#b8932c" stroke-width="1.5">
+      <line x1="14" y1="112" x2="66" y2="112"/><line x1="14" y1="136" x2="66" y2="136"/>
+      <line x1="74" y1="74" x2="126" y2="74"/><line x1="74" y1="98" x2="126" y2="98"/><line x1="74" y1="122" x2="126" y2="122"/><line x1="74" y1="146" x2="126" y2="146"/>
+      <line x1="134" y1="132" x2="186" y2="132"/>
+    </g>
+    <path d="M 160 40 L 164 54 L 178 58 L 164 62 L 160 76 L 156 62 L 142 58 L 156 54 Z" fill="#fff6c8"/>
+    <path d="M 40 30 L 43 40 L 53 43 L 43 46 L 40 56 L 37 46 L 27 43 L 37 40 Z" fill="#fff6c8"/>
+  </svg>
+  <div class="tresor-layout">
   <div class="panel">
+    <!-- Tresorrad als reine Deko im Panel (statt Hintergrundbild), dreht sich beim Drueberfahren -->
+    <svg class="tresor-emblem" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="#2a1d10" stroke="#d4af37" stroke-width="4"/>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="rgba(212,175,55,0.45)" stroke-width="2" stroke-dasharray="3 5"/>
+      <g class="dial" stroke="#d4af37" stroke-width="5" stroke-linecap="round">
+        <line x1="50" y1="22" x2="50" y2="78"/>
+        <line x1="22" y1="50" x2="78" y2="50"/>
+        <line x1="30" y1="30" x2="70" y2="70"/>
+        <line x1="70" y1="30" x2="30" y2="70"/>
+        <circle cx="50" cy="50" r="11" fill="#d4af37" stroke="none"/>
+        <circle cx="50" cy="50" r="5" fill="#2a1d10" stroke="none"/>
+      </g>
+    </svg>
     <h1>Tresor</h1>
     <div class="sub">Punkte gegen Belohnungen eintauschen</div>
     <div class="rewards-grid" id="rewards-grid"></div>
     <div class="redeem-msg" id="redeem-msg"></div>
   </div>
-  <!-- Bild-Justierung, zweite Fassung (Fabian, 10.10.2026: Pfeiltasten liessen
-       sich nicht fein genug treffen, "ich will es ziehen koennen wie ein
-       Fenster"). Echtes Ziehen per Pointer Events (gleiches Prinzip wie beim
-       verschiebbaren Timer), direkt am kleinen Griff unten rechts. Waehrend
-       des Ziehens bewegt sich das Hintergrundbild unter dem Finger/der Maus
-       mit. Loslassen speichert sofort (localStorage) -- kein separater
-       Speichern-Schritt noetig. "Zuruecksetzen" erscheint nur, wenn die
-       Position vom Standard abweicht. -->
-  <button type="button" class="truhe-drag-handle" id="truhe-drag-handle" title="Hintergrund ziehen, um es zu verschieben">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/>
-      <polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/>
-      <line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>
-    </svg>
-  </button>
-  <button type="button" class="truhe-pos-reset" id="truhe-pos-reset" onclick="resetTruhePos()" title="Bildposition zuruecksetzen" hidden>Zuruecksetzen</button>
+  <!-- Eingeloeste, aber noch nicht abgeholte Belohnungen (vorher klein oben rechts) -->
+  <div class="pending-rewards" id="pending-rewards">
+    <div class="pending-rewards-title">Preis zugute</div>
+    <div class="pending-rewards-sub">eingelöst, noch nicht abgeholt</div>
+    <div class="pending-rewards-list" id="pending-rewards-list"></div>
+  </div>
+  </div>
 </div>
 
 <!-- Gluecksrad -->
 <div class="scene" id="scene-rad">
+  <!-- Deko Gluecksrad: Wimpelkette, Boden, Wuerfel links, Geschenk rechts -->
+  <svg class="scene-deco deco-garland" aria-hidden="true">
+    <defs>
+      <pattern id="garland-pattern" x="0" y="0" width="240" height="56" patternUnits="userSpaceOnUse">
+        <path d="M 0 6 Q 120 22 240 6" stroke="#8a5a32" stroke-width="2" fill="none"/>
+        <path d="M 14 9 L 46 13 L 28 46 Z" fill="#c0504d"/>
+        <path d="M 74 14 L 106 16 L 89 50 Z" fill="#d4a92e"/>
+        <path d="M 134 16 L 166 14 L 151 50 Z" fill="#3f6fb5"/>
+        <path d="M 194 13 L 226 9 L 212 46 Z" fill="#5a9e5a"/>
+      </pattern>
+    </defs>
+    <rect x="0" y="0" width="100%" height="56" fill="url(#garland-pattern)"/>
+  </svg>
+  <div class="scene-deco deco-floor" aria-hidden="true"></div>
+  <svg class="scene-deco deco-bl" viewBox="0 0 220 170" aria-hidden="true">
+    <rect x="10" y="78" width="84" height="84" rx="14" fill="#fff" stroke="#7d949c" stroke-width="3"/>
+    <g fill="#c0504d"><circle cx="31" cy="99" r="7"/><circle cx="73" cy="99" r="7"/><circle cx="52" cy="120" r="7"/><circle cx="31" cy="141" r="7"/><circle cx="73" cy="141" r="7"/></g>
+    <g transform="rotate(-14 160 120)">
+      <rect x="120" y="82" width="78" height="78" rx="14" fill="#fff" stroke="#7d949c" stroke-width="3"/>
+      <g fill="#3f6fb5"><circle cx="140" cy="102" r="7"/><circle cx="159" cy="121" r="7"/><circle cx="178" cy="140" r="7"/></g>
+    </g>
+    <path d="M 120 20 L 125 36 L 141 40 L 125 44 L 120 60 L 115 44 L 99 40 L 115 36 Z" fill="#d4a92e"/>
+  </svg>
+  <svg class="scene-deco deco-br" viewBox="0 0 170 170" aria-hidden="true">
+    <rect x="22" y="76" width="126" height="90" rx="6" fill="#c0504d"/>
+    <rect x="14" y="60" width="142" height="24" rx="5" fill="#d9625e"/>
+    <rect x="77" y="60" width="16" height="106" fill="#d4a92e"/>
+    <ellipse cx="66" cy="50" rx="20" ry="12" fill="#d4a92e" transform="rotate(-25 66 50)"/>
+    <ellipse cx="104" cy="50" rx="20" ry="12" fill="#d4a92e" transform="rotate(25 104 50)"/>
+    <circle cx="85" cy="56" r="8" fill="#e8bd3e"/>
+    <g><rect x="20" y="20" width="8" height="8" fill="#3f6fb5" transform="rotate(20 24 24)"/><rect x="140" y="14" width="8" height="8" fill="#5a9e5a" transform="rotate(-15 144 18)"/><circle cx="150" cy="44" r="4" fill="#c0504d"/><circle cx="30" cy="48" r="4" fill="#d4a92e"/></g>
+  </svg>
   <div class="wheel-layout">
     <div class="wheel-stage">
       <div class="reel-frame" id="reel-frame">
@@ -2004,6 +2313,62 @@
 
 <!-- Gruppen -->
 <div class="scene" id="scene-gruppen">
+  <!-- Deko Gruppen: Figuren Hand in Hand links, Puzzle rechts (neben dem
+       Kasten, NICHT unten: dort erscheinen die Gruppen-Karten) -->
+  <svg class="scene-deco deco-gl" viewBox="0 0 280 200" aria-hidden="true">
+    <g stroke="#8a6a4a" stroke-width="7" stroke-linecap="round">
+      <line x1="62" y1="112" x2="83" y2="104"/><line x1="127" y1="104" x2="148" y2="114"/><line x1="192" y1="114" x2="213" y2="108"/>
+    </g>
+    <rect x="16" y="82" width="48" height="104" rx="22" fill="#3f6fb5"/>
+    <circle cx="40" cy="60" r="20" fill="#f1c9a5"/>
+    <rect x="81" y="74" width="48" height="112" rx="22" fill="#c0504d"/>
+    <circle cx="105" cy="52" r="20" fill="#8d5a3b"/>
+    <rect x="146" y="86" width="48" height="100" rx="22" fill="#5a9e5a"/>
+    <circle cx="170" cy="64" r="20" fill="#e8b48a"/>
+    <rect x="211" y="78" width="48" height="108" rx="22" fill="#d4a92e"/>
+    <circle cx="235" cy="56" r="20" fill="#c68e63"/>
+    <g stroke="#4a3018" stroke-width="2.5" fill="none" stroke-linecap="round">
+      <path d="M 32 64 Q 40 71 48 64"/><path d="M 97 56 Q 105 63 113 56"/><path d="M 162 68 Q 170 75 178 68"/><path d="M 227 60 Q 235 67 243 60"/>
+    </g>
+    <g fill="#4a3018"><circle cx="34" cy="56" r="2.5"/><circle cx="46" cy="56" r="2.5"/><circle cx="99" cy="48" r="2.5"/><circle cx="111" cy="48" r="2.5"/><circle cx="164" cy="60" r="2.5"/><circle cx="176" cy="60" r="2.5"/><circle cx="229" cy="52" r="2.5"/><circle cx="241" cy="52" r="2.5"/></g>
+  </svg>
+  <!-- Puzzle neu (Fabian 10.10.2026: gelb und rot passten nicht zusammen).
+       Jetzt echte Nasen (Kreis aussen) und passende Loecher (Kreis per Maske
+       ausgeschnitten), jede Nase hat genau ihr Gegenstueck:
+       blau->rot (rechts), gruen->blau (oben), rot->gelb (unten), gruen->gelb
+       (rechts). Gelb ist leicht verschoben/gedreht, "kommt gerade dazu",
+       seine zwei Loecher passen genau auf die rote und die gruene Nase. -->
+  <svg class="scene-deco deco-gr" viewBox="0 0 260 220" aria-hidden="true">
+    <defs>
+      <mask id="pz-blue" maskUnits="userSpaceOnUse" x="0" y="0" width="260" height="220">
+        <rect x="0" y="0" width="260" height="220" fill="#fff"/><circle cx="60" cy="92" r="13" fill="#000"/>
+      </mask>
+      <mask id="pz-red" maskUnits="userSpaceOnUse" x="0" y="0" width="260" height="220">
+        <rect x="0" y="0" width="260" height="220" fill="#fff"/><circle cx="108" cy="60" r="13" fill="#000"/>
+      </mask>
+      <mask id="pz-yellow" maskUnits="userSpaceOnUse" x="0" y="0" width="260" height="220">
+        <rect x="0" y="0" width="260" height="220" fill="#fff"/><circle cx="140" cy="108" r="13" fill="#000"/><circle cx="108" cy="140" r="13" fill="#000"/>
+      </mask>
+    </defs>
+    <!-- blau: Nase rechts, Loch unten -->
+    <g mask="url(#pz-blue)" fill="#3f6fb5">
+      <rect x="20" y="20" width="80" height="80" rx="6"/><circle cx="108" cy="60" r="13"/>
+    </g>
+    <!-- rot: Loch links, Nase unten -->
+    <g mask="url(#pz-red)" fill="#c0504d">
+      <rect x="100" y="20" width="80" height="80" rx="6"/><circle cx="140" cy="108" r="13"/>
+    </g>
+    <!-- gruen: Nase oben, Nase rechts -->
+    <g fill="#5a9e5a">
+      <rect x="20" y="100" width="80" height="80" rx="6"/><circle cx="60" cy="92" r="13"/><circle cx="108" cy="140" r="13"/>
+    </g>
+    <!-- gelb: Loch oben, Loch links -->
+    <g transform="translate(34 26) rotate(9 140 140)">
+      <g mask="url(#pz-yellow)" fill="#d4a92e">
+        <rect x="100" y="100" width="80" height="80" rx="6"/>
+      </g>
+    </g>
+  </svg>
   <div class="gruppen-layout">
     <div class="gruppen-panel">
       <div class="gruppen-panel-title">Namen für die Gruppen</div>
@@ -2120,17 +2485,14 @@
     "6": ["Milena", "Amelia", "Fadri", "Dunja", "Nicole", "Leandro", "Marvin", "Ilai", "Melina", "Aaron"],
     "5": ["Theo E.", "Theo M.", "Yannik", "Kian", "Eliane", "Marla", "Elena", "Sarina", "Mara"],
   };
-  // Reagenzglas-Koordinaten im neuen Labor.jpg (1376x768), per Pixelmessung
-  // ermittelt und mit einer Testueberlagerung visuell verifiziert (10.10.2026,
-  // Bildwechsel von Reagenzglas.png/"Alchemistenkammer" auf Labor.jpg/"Labor").
-  // 10.10.2026, Nachtrag: Fabian fand die Fuellung "zu dick" -- 6px von
-  // beiden Glaswaenden zurueckgezogen (Testueberlagerung bestaetigt), damit
-  // ein duenner Glasrand sichtbar bleibt statt die ganze Glasbreite zu fuellen.
-  const VIAL_TOP = 258;
-  const VIAL_STRAIGHT_BOTTOM = 580;
-  const VIAL_RADIUS = 41;
-  const VIAL_LEFT = 880;
-  const VIAL_RIGHT = 962;
+  // Reagenzglas-Innenraum im selbst gezeichneten SVG (viewBox 400x640,
+  // 10.10.2026, ersetzt die Pixelmessung auf Labor.jpg). Muss zum Pfad
+  // #vial-clip im HTML passen, beides ist von Hand gezeichnet, keine Messung.
+  const VIAL_TOP = 90;
+  const VIAL_STRAIGHT_BOTTOM = 470;
+  const VIAL_RADIUS = 40;
+  const VIAL_LEFT = 160;
+  const VIAL_RIGHT = 240;
   const VIAL_LOWEST = VIAL_STRAIGHT_BOTTOM + VIAL_RADIUS;
   const VIAL_FILLABLE_HEIGHT = (VIAL_STRAIGHT_BOTTOM - VIAL_TOP) + VIAL_RADIUS;
 
@@ -2149,15 +2511,19 @@
   // gemerkt haette. Jetzt hier zentral abgefangen, einmal pro Sitzung
   // gewarnt (kein Alert bei jedem einzelnen Klick).
   let saveStateFailedWarned = false;
+  let backupImportRunning = false; // waehrend "Sicherung laden" nichts Altes drueberschreiben
   function saveState() {
+    if (backupImportRunning) return true;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return true;
     } catch (e) {
       console.warn('Speichern fehlgeschlagen:', e);
       if (!saveStateFailedWarned) {
         saveStateFailedWarned = true;
         alert('Achtung: Speichern hat nicht geklappt (Speicher evtl. voll). Neue Änderungen gehen beim Schliessen der Seite evtl. verloren. Ggf. alte gespeicherte Wandtafel-Bilder löschen, um Platz zu schaffen.');
       }
+      return false;
     }
   }
 
@@ -2292,7 +2658,6 @@
     // weiterhin mit.
     const topLeftCluster = document.querySelector('.top-left-cluster');
     const totalBadge = document.querySelector('.total-badge');
-    const pendingRewards = document.getElementById('pending-rewards');
     if (!nav) return;
 
     // Schritt 1: Badges probehalber auf Standardposition (Ecken, neben der
@@ -2316,8 +2681,12 @@
     // das den Tagesplan darunter sonst verdecken wuerde (frueher fehlte hier
     // z.B. das "Preis zugute"-Fenster komplett, das dadurch die Freitag-
     // Spalte verdecken konnte).
+    // "Preis zugute" oben rechts zaehlt nur mit, wenn es gerade wirklich
+    // sichtbar ist (im Tresor ist es ausgeblendet, dort steht der grosse Kasten).
+    const pendingCorner = document.getElementById('pending-corner');
+    const cornerVisible = pendingCorner && pendingCorner.offsetParent !== null;
     let lowestBottom = navRect.bottom;
-    [topLeftCluster, totalBadge, (pendingRewards && pendingRewards.classList.contains('show')) ? pendingRewards : null]
+    [topLeftCluster, totalBadge, cornerVisible ? pendingCorner : null]
       .forEach(elm => { if (elm) lowestBottom = Math.max(lowestBottom, elm.getBoundingClientRect().bottom); });
 
     const clearance = Math.max(90, Math.ceil(lowestBottom) + 24);
@@ -2373,89 +2742,14 @@
   let currentSceneName = 'trank';
   let tafelReturnScene = 'trank';
 
-  // Bild-Justierung Tresor, zweite Fassung (Fabian, 10.10.2026: "ich will es
-  // ziehen koennen wie ein Fenster"). truhePos sind Prozentwerte fuer
-  // background-position, Default = die zuletzt berechneten 62%/45%. In
-  // localStorage gemerkt (eigener Schluessel, nicht Teil von state/
-  // STORAGE_KEY, da rein optisch und nicht "Schuljahr-Daten").
-  const TRUHE_POS_KEY = 'klassenApp_truhePos_v1';
-  const TRUHE_POS_DEFAULT = { x: 62, y: 45 };
-  const TRUHE_IMG_W = 1376, TRUHE_IMG_H = 768; // echte Masse von Tresor.jpg
-  let truhePos = { x: TRUHE_POS_DEFAULT.x, y: TRUHE_POS_DEFAULT.y };
-  (function loadTruhePos() {
-    try {
-      const raw = localStorage.getItem(TRUHE_POS_KEY);
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (typeof p.x === 'number' && typeof p.y === 'number') truhePos = p;
-      }
-    } catch (e) {}
-  })();
-  function applyTruhePos() {
-    const el = document.getElementById('scene-truhe');
-    if (el) el.style.backgroundPosition = truhePos.x + '% ' + truhePos.y + '%';
-    const resetBtn = document.getElementById('truhe-pos-reset');
-    if (resetBtn) resetBtn.hidden = (truhePos.x === TRUHE_POS_DEFAULT.x && truhePos.y === TRUHE_POS_DEFAULT.y);
-  }
-  function saveTruhePos() {
-    try { localStorage.setItem(TRUHE_POS_KEY, JSON.stringify(truhePos)); } catch (e) {}
-  }
-  function resetTruhePos() {
-    truhePos = { x: TRUHE_POS_DEFAULT.x, y: TRUHE_POS_DEFAULT.y };
-    try { localStorage.removeItem(TRUHE_POS_KEY); } catch (e) {}
-    applyTruhePos();
-  }
-  // Echtes Ziehen per Pointer Events, gleiches Grundprinzip wie beim
-  // verschiebbaren Timer (bigTimerDrag...). Rechnet die Maus-/Finger-
-  // Bewegung in Pixeln in die passende Prozent-Aenderung um, abhaengig
-  // davon, wie stark background-size:cover das Bild gerade hochskaliert
-  // und wo es dadurch ueberhaupt noch Spielraum zum Verschieben gibt.
-  let truheDrag = null; // { startX, startY, startPosX, startPosY, rangeX, rangeY }
-  let truheDragWired = false;
-  function setupTruheDrag() {
-    if (truheDragWired) return;
-    const handle = document.getElementById('truhe-drag-handle');
-    if (!handle) return;
-    handle.addEventListener('pointerdown', truheDragStart);
-    window.addEventListener('pointermove', truheDragMove);
-    window.addEventListener('pointerup', truheDragEnd);
-    truheDragWired = true;
-  }
-  function truheDragStart(evt) {
-    const scene = document.getElementById('scene-truhe');
-    if (!scene) return;
-    const rect = scene.getBoundingClientRect();
-    const scale = Math.max(rect.width / TRUHE_IMG_W, rect.height / TRUHE_IMG_H);
-    // rangeX/Y = um wie viel Pixel das hochskalierte Bild ueber den
-    // sichtbaren Bereich hinausragt -- nur so viel Spielraum gibt es zum
-    // Verschieben (bei 0 laesst sich auf dieser Achse nichts verschieben).
-    const rangeX = rect.width - TRUHE_IMG_W * scale;   // <= 0
-    const rangeY = rect.height - TRUHE_IMG_H * scale;  // <= 0
-    truheDrag = { startX: evt.clientX, startY: evt.clientY, startPosX: truhePos.x, startPosY: truhePos.y, rangeX: rangeX, rangeY: rangeY };
-    document.getElementById('truhe-drag-handle').classList.add('dragging');
-    evt.preventDefault();
-  }
-  function truheDragMove(evt) {
-    if (!truheDrag) return;
-    evt.preventDefault();
-    const dx = evt.clientX - truheDrag.startX;
-    const dy = evt.clientY - truheDrag.startY;
-    const newX = truheDrag.rangeX === 0 ? truheDrag.startPosX : truheDrag.startPosX + (dx * 100 / truheDrag.rangeX);
-    const newY = truheDrag.rangeY === 0 ? truheDrag.startPosY : truheDrag.startPosY + (dy * 100 / truheDrag.rangeY);
-    truhePos = { x: Math.max(0, Math.min(100, Math.round(newX))), y: Math.max(0, Math.min(100, Math.round(newY))) };
-    applyTruhePos();
-  }
-  function truheDragEnd() {
-    if (!truheDrag) return;
-    truheDrag = null;
-    document.getElementById('truhe-drag-handle').classList.remove('dragging');
-    saveTruhePos();
-  }
+  // Tresor-Bild-Justierung (Zieh-Griff, truhePos) entfernt 10.10.2026: der
+  // Tresor hat kein Hintergrundbild mehr, an das etwas angepasst werden muss.
 
   function showScene(name) {
-    if (name === 'truhe') { applyTruhePos(); setupTruheDrag(); }
     if (name === 'tafel' && currentSceneName !== 'tafel') tafelReturnScene = currentSceneName;
     document.body.classList.toggle('tafel-fullscreen', name === 'tafel');
+    // im Tresor steht "Preis zugute" gross im Kasten, die Ecken-Fassung weg
+    document.body.classList.toggle('scene-truhe-active', name === 'truhe');
     currentSceneName = name;
     const wasTruhe = document.getElementById('scene-truhe').classList.contains('active');
     document.getElementById('scene-ablauf').classList.toggle('active', name === 'ablauf');
@@ -3444,9 +3738,12 @@
         const key = day + '-' + period;
         const originKey = oDay + '-' + oPeriod;
         const isSwapped = key !== originKey;
-        const special = specialDayFor(oDay);
+        // Spezialtag (Ausflug, Umweltmorgen, ...) haengt an der ECHTEN Zeit
+        // (day/period), nicht am Origin: verschiebt Fabian die Lektion wegen
+        // eines Ausflugs auf einen anderen Tag, darf der Ausflug nicht mitwandern.
+        const special = specialDayFor(day);
         const externSubject = !subject ? externSubjectFor(oDay, oPeriod) : null;
-        if (special && special.periods.includes(oPeriod)) {
+        if (special && special.periods.includes(period)) {
           cell.className = 'sp-cell sp-special-day';
           cell.textContent = special.icon + ' ' + special.label;
           cell.title = special.detail;
@@ -4225,8 +4522,8 @@
     const isSwapped = oDay !== day || oPeriod !== period;
     const subject = STUNDENPLAN[oDay][oPeriod - 1];
     const key = oDay + '-' + oPeriod;
-    const special = specialDayFor(oDay);
-    const isSpecial = special && special.periods.includes(oPeriod);
+    const special = specialDayFor(day); // echte Zeit, siehe renderStundenplan
+    const isSpecial = special && special.periods.includes(period);
     const header = document.getElementById('sp-edit-header');
     header.style.background = isSpecial ? '#3a4a2e' : (SUBJECT_COLORS[subject] || 'var(--gold)');
     header.style.color = isSpecial ? '#d6ecc9' : SUBJECT_TEXT;
@@ -4240,6 +4537,7 @@
       'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek] + ' · ' + SP_PERIOD_TIMES[period]
       + (isSwapped ? ' · eigentlich ' + oDay + ', ' + oPeriod + '. Lektion' : '');
     spEditSteps = notesToSteps((state.stundenplanNotes[spCurrentWeek] || {})[key]);
+    spEditSnapshot = JSON.stringify(spStepsForSave(spEditSteps));
     renderSpSteps();
     document.getElementById('sp-edit-backdrop').classList.add('active');
     document.getElementById('sp-edit-box').classList.add('active');
@@ -4515,6 +4813,26 @@
     renderSpSteps();
   }
 
+  // Nur das, was gespeichert wird (Text + Minuten, ohne leere Zeilen und
+  // ohne fluechtige Timer-Felder). Dient auch als Vergleich, ob sich seit
+  // dem Oeffnen etwas geaendert hat (spEditSnapshot).
+  function spStepsForSave(steps) {
+    return steps
+      .map(s => ({ text: (s.text || '').trim(), min: s.min || SP_DEFAULT_MIN }))
+      .filter(s => s.text.length > 0);
+  }
+  let spEditSnapshot = '';
+
+  // Klick neben das Fenster (10.10.2026): frueher wurde dabei still alles
+  // verworfen, was man eingetippt hatte. Jetzt: gibt es Aenderungen, wird
+  // gespeichert, sonst nur geschlossen. Verwerfen geht weiterhin bewusst
+  // ueber "Abbrechen".
+  function closeSpEditFromBackdrop() {
+    if (!spEditDay) return;
+    if (JSON.stringify(spStepsForSave(spEditSteps)) !== spEditSnapshot) saveSpNote();
+    else closeSpEdit();
+  }
+
   function saveSpNote() {
     if (!spEditDay || !spEditPeriod) return;
     // WICHTIG: unter dem ORIGIN speichern, nicht unter der ggf. getauschten
@@ -4523,12 +4841,12 @@
     // falschen Schluessel anlegen, siehe openSpEdit/swapOrigin oben.
     const origin = swapOrigin(spEditDay, spEditPeriod, spCurrentWeek);
     const key = origin.day + '-' + origin.period;
-    const steps = spEditSteps
-      .map(s => ({ text: s.text.trim(), min: s.min || SP_DEFAULT_MIN }))
-      .filter(s => s.text.length > 0);
+    const steps = spStepsForSave(spEditSteps);
     if (!state.stundenplanNotes[spCurrentWeek]) state.stundenplanNotes[spCurrentWeek] = {};
-    if (steps.length) state.stundenplanNotes[spCurrentWeek][key] = steps;
-    else delete state.stundenplanNotes[spCurrentWeek][key];
+    // Leere Lektion als [] speichern, NICHT loeschen: sonst fuellt der
+    // Seed-Code (SP_SEED_KWxx, greift bei "undefined") eine bewusst geleerte
+    // Lektion beim naechsten Laden wieder mit dem alten Plan auf.
+    state.stundenplanNotes[spCurrentWeek][key] = steps;
     saveState();
     closeSpEdit();
     renderStundenplan();
@@ -4562,8 +4880,8 @@
     const svg = document.querySelector('#scene-trank svg.overlay');
     if (!svg) return;
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    el.setAttribute('x', 921);
-    el.setAttribute('y', 230);
+    el.setAttribute('x', 200);
+    el.setAttribute('y', 60);
     el.setAttribute('class', 'float-pop ' + colorClass);
     el.textContent = text;
     svg.appendChild(el);
@@ -4594,6 +4912,15 @@
     rect.setAttribute('width', VIAL_RIGHT - VIAL_LEFT);
     rect.setAttribute('y', liquidY);
     rect.setAttribute('height', liquidHeight + VIAL_RADIUS);
+    const area = document.getElementById('liquid-area-rect');
+    area.setAttribute('y', liquidY);
+    area.setAttribute('height', liquidHeight + VIAL_RADIUS);
+    // Oberflaeche nur zeigen, wenn ueberhaupt etwas drin ist
+    const surface = document.getElementById('liquid-surface');
+    surface.style.transform = 'translateY(' + liquidY + 'px)';
+    surface.style.opacity = pct > 0 ? 1 : 0;
+    document.getElementById('level-marker').style.transform = 'translateY(' + liquidY + 'px)';
+    document.getElementById('level-marker-text').textContent = Math.min(state.total, VIAL_MAX);
 
     renderRewards();
     renderPendingRewards();
@@ -4621,6 +4948,21 @@
       row.appendChild(btn);
       list.appendChild(row);
     });
+    // Gleiche Liste oben rechts fuer alle anderen Reiter (nur Anzeige,
+    // abhaken geht im Tresor)
+    const corner = document.getElementById('pending-corner');
+    const cornerList = document.getElementById('pending-corner-list');
+    if (corner && cornerList) {
+      corner.classList.toggle('show', items.length > 0);
+      document.body.classList.toggle('has-pending-rewards', items.length > 0);
+      cornerList.innerHTML = '';
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'pending-corner-item';
+        div.textContent = item.name;
+        cornerList.appendChild(div);
+      });
+    }
     // Neu berechnen, ob/wie weit der Tagesplan wegen des (De-)Aktivierens
     // dieses Fensters jetzt herunterrutschen muss - sonst bleibt die
     // Berechnung vom letzten Szenenwechsel stehen und das Fenster kann den
@@ -4662,11 +5004,31 @@
       return;
     }
     state.total -= reward.cost;
-    state.pendingRewards.push({ name: reward.name, redeemedAt: Date.now() });
+    const entry = { name: reward.name, redeemedAt: Date.now() };
+    state.pendingRewards.push(entry);
     saveState();
-    msg.textContent = `"${reward.name}" eingelöst! Noch ${state.total} Punkte übrig.`;
+    // Rueckgaengig-Knopf (10.10.2026): ein Fehlklick auf dem Smartboard
+    // kostete sonst sofort 15-30 Punkte, und das X bei "Preis zugute"
+    // erstattet bewusst nichts (heisst ja "abgeholt").
+    msg.textContent = `"${reward.name}" eingelöst! Noch ${state.total} Punkte übrig. `;
+    const undo = document.createElement('button');
+    undo.type = 'button';
+    undo.className = 'redeem-undo';
+    undo.textContent = 'Rückgängig';
+    undo.onclick = () => undoRedeem(entry, reward);
+    msg.appendChild(undo);
     if (evt) popScreenText(evt.clientX, evt.clientY, `-${reward.cost}`);
     playSpendSound();
+    render();
+  }
+
+  function undoRedeem(entry, reward) {
+    const idx = state.pendingRewards.indexOf(entry);
+    if (idx === -1) return; // schon abgehakt, dann gibt es nichts mehr zurueckzunehmen
+    state.pendingRewards.splice(idx, 1);
+    state.total += reward.cost;
+    saveState();
+    document.getElementById('redeem-msg').textContent = `"${reward.name}" zurückgenommen, ${reward.cost} Punkte wieder gutgeschrieben.`;
     render();
   }
 
@@ -4945,17 +5307,18 @@
     const results = document.getElementById('gruppen-results');
     if (!results) return;
     results.innerHTML = '';
-    if (!state.gruppenResult) {
-      const hint = document.createElement('div');
-      hint.className = 'gruppen-empty-hint';
-      hint.textContent = 'Namen und Gruppengrösse waehlen, dann auf "Gruppen bilden" klicken.';
-      results.appendChild(hint);
-      return;
-    }
+    const hasGroups = !!(state.gruppenResult && state.gruppenResult.length);
+    document.getElementById('scene-gruppen').classList.toggle('has-groups', hasGroups);
+    // Ohne Ergebnis bleibt die Flaeche leer: Figuren/Puzzle stehen dann
+    // ungestoert neben dem Kasten, der Knopf erklaert sich selbst.
+    if (!hasGroups) return;
+    // Gleiche Farben wie die Puzzleteile der Deko, als Farbstreifen oben
+    const GROUP_COLORS = ['#3f6fb5', '#c0504d', '#5a9e5a', '#d4a92e'];
     state.gruppenResult.forEach((group, i) => {
       const card = document.createElement('div');
       card.className = 'gruppen-card';
       card.style.animationDelay = (i * 0.06) + 's';
+      card.style.setProperty('--group-color', GROUP_COLORS[i % GROUP_COLORS.length]);
       const title = document.createElement('div');
       title.className = 'gruppen-card-title';
       title.textContent = 'Gruppe ' + (i + 1);
@@ -5456,32 +5819,104 @@
   // geladen) begonnen wurde, entsteht ein neuer Galerie-Eintrag. Danach
   // wird die Tafel geleert, damit sofort auf einem frischen Feld
   // weitergearbeitet werden kann.
+  // ===== Speicher fuer die Tafel-Bilder (10.10.2026) =====
+  // Frueher lagen die Bilder im selben localStorage-Objekt wie Punkte,
+  // Lektionen und Hausaufgaben. localStorage hat nur ca. 5 MB: nach 15-30
+  // gespeicherten Tafeln war er voll, und ab dann wurden auch Punkte und
+  // Lektionsplaene NICHT mehr gespeichert. Jetzt liegen die Bilder in
+  // IndexedDB (eigener, viel groesserer Browser-Speicher). Klappt IndexedDB
+  // nicht (sehr alter Browser o.ae.), faellt alles automatisch auf das alte
+  // Verfahren (state.tafelBoards) zurueck.
+  const TAFEL_DB_NAME = 'klassenApp_tafel';
+  const TAFEL_DB_STORE = 'boards';
+  const MAX_TAFEL_BOARDS = 60;
+  let tafelDbPromise = null;
+  let tafelBoardsCache = [];
+
+  function tafelDb() {
+    if (!tafelDbPromise) {
+      tafelDbPromise = new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') { reject(new Error('kein IndexedDB')); return; }
+        const timer = setTimeout(() => reject(new Error('IndexedDB antwortet nicht')), 4000);
+        try {
+          const req = indexedDB.open(TAFEL_DB_NAME, 1);
+          req.onupgradeneeded = () => req.result.createObjectStore(TAFEL_DB_STORE, { keyPath: 'id' });
+          req.onsuccess = () => { clearTimeout(timer); resolve(req.result); };
+          req.onerror = () => { clearTimeout(timer); reject(req.error); };
+        } catch (e) { clearTimeout(timer); reject(e); }
+      });
+    }
+    return tafelDbPromise;
+  }
+  // Fuehrt fn(store) in einer Transaktion aus, liefert nach Abschluss das
+  // Ergebnis der von fn zurueckgegebenen Anfrage (z.B. getAll).
+  function tafelDbRun(mode, fn) {
+    return tafelDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(TAFEL_DB_STORE, mode);
+      const req = fn(tx.objectStore(TAFEL_DB_STORE));
+      tx.oncomplete = () => resolve(req ? req.result : undefined);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
+  }
+  function tafelStoreAll() {
+    return tafelDbRun('readonly', s => s.getAll())
+      .then(list => list.sort((a, b) => a.savedAt - b.savedAt))
+      .catch(() => (state.tafelBoards || []).slice());
+  }
+  function tafelStorePut(board) {
+    return tafelDbRun('readwrite', s => { s.put(board); }).catch(() => {
+      // Rueckfall: altes Verfahren im localStorage
+      const list = state.tafelBoards;
+      const i = list.findIndex(b => b.id === board.id);
+      if (i === -1) list.push(board); else list[i] = board;
+      if (list.length > MAX_TAFEL_BOARDS) list.splice(0, list.length - MAX_TAFEL_BOARDS);
+      if (!saveState()) throw new Error('Speicher voll');
+    });
+  }
+  function tafelStoreDelete(id) {
+    return tafelDbRun('readwrite', s => { s.delete(id); }).catch(() => {
+      const i = state.tafelBoards.findIndex(b => b.id === id);
+      if (i !== -1) state.tafelBoards.splice(i, 1);
+      saveState();
+    });
+  }
+  // Aelteste Tafeln wegraeumen, sobald es mehr als MAX_TAFEL_BOARDS sind.
+  function tafelStorePrune() {
+    return tafelStoreAll().then(list => {
+      const extra = list.length - MAX_TAFEL_BOARDS;
+      if (extra <= 0) return;
+      return Promise.all(list.slice(0, extra).map(b => tafelStoreDelete(b.id)));
+    });
+  }
+  // Einmalig beim Start: Tafeln aus dem alten localStorage-Platz in
+  // IndexedDB umziehen und dort erst loeschen, wenn das geklappt hat.
+  function migrateTafelBoardsToDb() {
+    const old = state.tafelBoards || [];
+    if (!old.length) return;
+    tafelDbRun('readwrite', s => { old.forEach(b => s.put(b)); })
+      .then(() => { state.tafelBoards = []; saveState(); })
+      .catch(() => { /* bleibt im localStorage, Rueckfall-Modus */ });
+  }
+
   function saveTafel(evt) {
     const canvas = document.getElementById('tafel-canvas');
     if (!canvas) return;
-    try {
-      const dataUrl = tafelShrinkForStorage(canvas);
-      const existing = currentTafelBoardId && state.tafelBoards.find(b => b.id === currentTafelBoardId);
-      if (existing) {
-        existing.dataUrl = dataUrl;
-        existing.savedAt = Date.now();
-        existing.bg = tafelCurrentBg;
-      } else {
-        state.tafelBoards.push({ id: 'tafel-' + Date.now(), dataUrl, savedAt: Date.now(), bg: tafelCurrentBg });
-        // Deckel gegen unbegrenztes Wachstum (jedes Bild landet komplett in
-        // localStorage, das hat nur ein paar MB Platz insgesamt): aelteste
-        // Eintraege fallen raus, sobald mehr als 40 gespeichert sind.
-        const MAX_TAFEL_BOARDS = 40;
-        if (state.tafelBoards.length > MAX_TAFEL_BOARDS) {
-          state.tafelBoards.splice(0, state.tafelBoards.length - MAX_TAFEL_BOARDS);
-        }
-      }
-      saveState();
-      if (evt) popScreenText(evt.clientX, evt.clientY, 'Gespeichert ✓');
-      clearTafel();
-    } catch (e) {
-      alert('Speichern hat leider nicht geklappt.');
-    }
+    let dataUrl;
+    try { dataUrl = tafelShrinkForStorage(canvas); }
+    catch (e) { alert('Speichern hat leider nicht geklappt.'); return; }
+    // Wurde die Tafel aus der Galerie geladen, wird DIESER Eintrag
+    // aktualisiert (gleiche id), sonst entsteht ein neuer.
+    const board = { id: currentTafelBoardId || ('tafel-' + Date.now()), dataUrl, savedAt: Date.now(), bg: tafelCurrentBg };
+    tafelStorePut(board)
+      .then(() => tafelStorePrune())
+      .then(() => {
+        if (evt) popScreenText(evt.clientX, evt.clientY, 'Gespeichert ✓');
+        // Erst NACH erfolgreichem Speichern leeren (frueher wurde auch bei
+        // vollem Speicher geleert, die Zeichnung war dann weg).
+        clearTafel();
+      })
+      .catch(() => alert('Speichern hat leider nicht geklappt. Die Zeichnung bleibt auf der Tafel.'));
   }
 
   // Verkleinert vor dem Speichern nur, wenn die Tafel wirklich gross ist
@@ -5517,9 +5952,9 @@
   }
 
   function openTafelGallery() {
-    renderTafelGallery();
     document.getElementById('tafel-gallery-backdrop').classList.add('show');
     document.getElementById('tafel-gallery').classList.add('show');
+    tafelStoreAll().then(list => { tafelBoardsCache = list; renderTafelGallery(); });
   }
   function closeTafelGallery() {
     document.getElementById('tafel-gallery-backdrop').classList.remove('show');
@@ -5530,7 +5965,7 @@
     const grid = document.getElementById('tafel-gallery-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    const boards = state.tafelBoards || [];
+    const boards = tafelBoardsCache;
     if (!boards.length) {
       const hint = document.createElement('div');
       hint.className = 'tafel-gallery-empty';
@@ -5573,7 +6008,7 @@
   // auch den beim Speichern aktiven Hintergrund (weiss/liniert/kariert)
   // wieder her, statt immer bei weiss zu bleiben.
   function loadTafelBoard(id) {
-    const board = (state.tafelBoards || []).find(b => b.id === id);
+    const board = tafelBoardsCache.find(b => b.id === id);
     if (!board) return;
     closeTafelGallery();
     clearTafel();
@@ -5584,13 +6019,11 @@
 
   function deleteTafelBoard(id) {
     if (!confirm('Diese gespeicherte Tafel wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
-    const idx = (state.tafelBoards || []).findIndex(b => b.id === id);
-    if (idx !== -1) {
-      state.tafelBoards.splice(idx, 1);
+    tafelStoreDelete(id).then(() => {
       if (currentTafelBoardId === id) currentTafelBoardId = null;
-      saveState();
+      tafelBoardsCache = tafelBoardsCache.filter(b => b.id !== id);
       renderTafelGallery();
-    }
+    });
   }
 
   function tafelPointerPos(evt) {
@@ -5702,10 +6135,105 @@
     currentTafelBoardId = null;
   }
 
+  // ===== Datensicherung (10.10.2026) =====
+  // Alle Daten liegen nur im Browser (localStorage + IndexedDB fuer die
+  // Tafeln), gebunden an dieses Geraet UND diese Adresse: die Datei vom
+  // Laufwerk (file:///...) und der GitHub-Link haben getrennte Speicher.
+  // Browserdaten loeschen, ein neuer Schul-PC oder ein anderer Browser =
+  // alles weg. Darum: Sicherung als JSON-Datei herunterladen und wieder laden.
+  const BACKUP_REMIND_DAYS = 14;
+
+  function renderBackupInfo() {
+    const last = state.lastBackupAt;
+    const el = document.getElementById('backup-last');
+    if (el) {
+      el.textContent = last
+        ? 'Letzte Sicherung: ' + new Date(last).toLocaleDateString('de-CH') + ' ' + new Date(last).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })
+        : 'Noch nie gesichert.';
+    }
+    const due = !last || (Date.now() - last) > BACKUP_REMIND_DAYS * 86400000;
+    const btn = document.getElementById('backup-btn');
+    if (btn) {
+      btn.classList.toggle('due', due);
+      btn.title = due ? 'Daten sichern (schon länger nicht mehr gesichert)' : 'Daten sichern';
+    }
+  }
+  function openBackup() {
+    renderBackupInfo();
+    document.getElementById('backup-backdrop').classList.add('show');
+    document.getElementById('backup-box').classList.add('show');
+  }
+  function closeBackup() {
+    document.getElementById('backup-backdrop').classList.remove('show');
+    document.getElementById('backup-box').classList.remove('show');
+  }
+
+  function exportBackup() {
+    tafelStoreAll().then(boards => {
+      state.lastBackupAt = Date.now();
+      saveState();
+      const data = {
+        app: 'Klassen-App',
+        format: 1,
+        exportedAt: new Date().toISOString(),
+        state: state,
+        tafelBoards: boards
+      };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const d = new Date();
+      const stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Klassen-App-Sicherung-' + stamp + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      renderBackupInfo();
+    });
+  }
+
+  function importBackup(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data = null;
+      try { data = JSON.parse(reader.result); } catch (e) { /* unten abgefangen */ }
+      if (!data || data.app !== 'Klassen-App' || !data.state || typeof data.state !== 'object') {
+        alert('Diese Datei ist keine Sicherung der Klassen-App.');
+        return;
+      }
+      const when = data.exportedAt ? new Date(data.exportedAt).toLocaleString('de-CH') : 'unbekannt';
+      if (!confirm('Sicherung vom ' + when + ' laden?\n\nAlle jetzigen Daten in diesem Browser werden dabei ersetzt.')) return;
+      const boards = Array.isArray(data.tafelBoards) ? data.tafelBoards : [];
+      const newState = data.state;
+      newState.tafelBoards = [];
+      backupImportRunning = true;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+      } catch (e) {
+        backupImportRunning = false;
+        alert('Laden hat nicht geklappt (Speicher voll?). Es wurde nichts verändert.');
+        return;
+      }
+      tafelDbRun('readwrite', s => { s.clear(); boards.forEach(b => s.put(b)); })
+        .catch(() => {
+          // Rueckfall ohne IndexedDB: Tafeln wie frueher im localStorage
+          newState.tafelBoards = boards.slice(-MAX_TAFEL_BOARDS);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newState)); } catch (e) { /* Tafeln passen nicht mehr rein */ }
+        })
+        .then(() => location.reload());
+    };
+    reader.readAsText(file);
+  }
+
   render();
   renderWheel();
   initMusic();
   updateTopClearanceSoon();
+  migrateTafelBoardsToDb();
+  renderBackupInfo();
 </script>
 
 </body>
