@@ -957,7 +957,7 @@
   }
   .stundenplan-kw-nav {
     display: flex; align-items: center; justify-content: center;
-    gap: 16px; margin-bottom: 10px;
+    gap: 16px; margin-bottom: 16px;
   }
   .sp-nav-btn {
     font-family: inherit; font-size: 18px; line-height: 1;
@@ -1009,9 +1009,11 @@
      auf dem dunklen Raster-Kasten) -- die alten hellen/blassen Toene waren
      fuer den frueheren dunklen Hintergrund gedacht und sonst kaum lesbar
      (10.10.2026). */
-  .sp-kw-sub { color: #6b5438; font-size: 12px; margin-top: 2px; }
-  .stundenplan-hint {
-    text-align: center; color: #7a6346; font-size: 13px; margin-bottom: 14px;
+  /* Untertitel + "Aufs Fach klicken"-Hinweis unter der KW entfernt (Fabian,
+     10.10.2026: "ueberladen und unprofessionell"). Oben steht nur noch die KW,
+     das Datum steht dezent neben jedem Wochentag (.sp-head-date). */
+  .sp-head-date {
+    margin-left: 6px; font-size: 12px; color: #c9b48a; letter-spacing: 0;
   }
   .stundenplan-scroll {
     overflow-x: auto;
@@ -1709,7 +1711,6 @@
   .ha-kw-label { text-align: center; min-width: 180px; }
   /* siehe .sp-kw-main: dunkler statt var(--gold), zu wenig Kontrast auf hell. */
   .ha-kw-main { color: #8a6a1f; font-size: 19px; letter-spacing: 0.3px; }
-  .ha-kw-sub { color: #6b5438; font-size: 12px; margin-top: 2px; min-height: 14px; }
   .ha-print-btn {
     font-family: inherit; font-size: 13px; cursor: pointer;
     border: 1px solid rgba(212,175,55,0.5);
@@ -1915,7 +1916,6 @@
       <button class="sp-nav-btn" id="sp-prev-week" onclick="changeSpWeek(-1)" aria-label="Vorherige Woche">&#8592;</button>
       <div class="stundenplan-kw-label">
         <div class="sp-kw-main" id="sp-kw-main">KW33</div>
-        <div class="sp-kw-sub" id="sp-kw-sub">Herbstferien: 27.9.&ndash;18.10.</div>
       </div>
       <button class="sp-nav-btn" id="sp-next-week" onclick="changeSpWeek(1)" aria-label="N&auml;chste Woche">&#8594;</button>
       <button class="sp-clock-btn" id="sp-clock-btn" onclick="openClockOverlay()" aria-label="Uhrzeit anzeigen" title="Uhrzeit anzeigen">
@@ -1934,7 +1934,6 @@
         </svg>
       </button>
     </div>
-    <div class="stundenplan-hint" id="stundenplan-hint">Aufs Fach klicken für die Lektionsnotiz</div>
     <!-- Wochen-Tausch (Fabian, 10.10.2026): zeigt wahlweise "wird verschoben,
          jetzt Ziel antippen" + Abbrechen, ODER "Woche weicht ab" +
          Zuruecksetzen, ODER bleibt leer -- siehe renderStundenplan(). -->
@@ -1955,7 +1954,6 @@
       <button class="sp-nav-btn" id="ha-prev-week" onclick="changeHaWeek(-1)" aria-label="Vorherige Woche">&#8592;</button>
       <div class="ha-kw-label">
         <div class="ha-kw-main" id="ha-kw-main">KW33</div>
-        <div class="ha-kw-sub" id="ha-kw-sub"></div>
       </div>
       <button class="sp-nav-btn" id="ha-next-week" onclick="changeHaWeek(1)" aria-label="Nächste Woche">&#8594;</button>
       <button class="ha-print-btn" onclick="haPrintWoche()">Woche drucken</button>
@@ -2984,7 +2982,14 @@
     '45-Freitag': { icon: '🎂', label: 'Geburtstag Hr. Wohlwend', detail: '06.11.2026: Geburtstag Herr Wohlwend' },
     // Abendanlass, liegt ausserhalb des Lektionsrasters.
     '46-Freitag': { icon: '📚', label: 'Lesenacht', detail: '13.11.2026: Lesenacht' },
-    '48-Mittwoch': { icon: '📋', label: 'Teamnachmittag', detail: 'Teamnachmittag, 25.11.2026' }
+    '48-Mittwoch': { icon: '📋', label: 'Teamnachmittag', detail: 'Teamnachmittag, 25.11.2026' },
+    // Advent: stand bis 10.10.2026 als Zeile unter der KW (SP_WEEK_NOTES,
+    // entfernt, Fabian: "ueberladen"). Vorgabe "kleine Aktion jeweils in der
+    // Woche danach", darum Badge am Montag der Folgewoche. Der 4. Advent
+    // (20.12.) hat keine Schulwoche danach und fehlt absichtlich.
+    '49-Montag': { icon: '🕯️', label: '1. Advent', detail: '1. Advent war am 29.11. · kleine Aktion diese Woche' },
+    '50-Montag': { icon: '🕯️', label: '2. Advent', detail: '2. Advent war am 06.12. · kleine Aktion diese Woche' },
+    '51-Montag': { icon: '🕯️', label: '3. Advent', detail: '3. Advent war am 13.12. · kleine Aktion diese Woche' }
   };
   function meetingFor(day) {
     return SP_MEETINGS[spCurrentWeek + '-' + day] || null;
@@ -3108,30 +3113,12 @@
     44: '26.–30.10.', 45: '02.–06.11.', 46: '09.–13.11.', 47: '16.–20.11.',
     48: '23.–27.11.', 49: '30.11.–04.12.', 50: '07.–11.12.', 51: '14.–18.12.'
   };
-  const SP_HERBSTFERIEN_TEXT = 'Herbstferien: 27.9.–18.10.';
   // Wochen, die komplett Ferien sind: kein Stundenplan-Raster, stattdessen
   // ein grosses Banner (siehe renderStundenplan). Nur Herbstferien noch
   // hinterlegt, da der navigierbare Bereich aktuell bis KW51 (Mitte
   // Dezember) reicht, also vor den Weihnachtsferien endet.
   const SP_FERIEN_WEEKS = { 40: 'Herbstferien', 41: 'Herbstferien', 42: 'Herbstferien' };
 
-  // Hinweise, die fuer eine GANZE Woche gelten und sich keiner einzelnen
-  // Lektion und keinem einzelnen Tag zuordnen lassen. Erscheinen als kleine
-  // Zeile unter der KW-Anzeige (siehe renderStundenplan), dort wo vor den
-  // Herbstferien der Ferien-Hinweis stand. Ergaenzt 10.10.2026 aus Fabians
-  // Terminliste in "Ethik/2 Herbst bis Winter/CLAUDE_ZUHAUSE_Uebergabe.md".
-  // Die Adventssonntage selbst sind keine Schultage, Fabians Vorgabe lautet
-  // "Kleine Aktion jeweils in der Woche danach" -- deshalb steht der Hinweis
-  // bewusst in der FOLGEwoche des jeweiligen Sonntags.
-  // Der 4. Advent (20.12.2026) hat KEINE Schulwoche danach: letzter Schultag
-  // vor den Weihnachtsferien ist Fr 18.12. (KW51). Er fehlt hier deshalb
-  // absichtlich und nicht aus Versehen.
-  const SP_WEEK_NOTES = {
-    43: 'Erster Schultag nach den Herbstferien: Mo 19.10.',
-    49: '1. Advent war am 29.11. · kleine Aktion diese Woche',
-    50: '2. Advent war am 06.12. · kleine Aktion diese Woche',
-    51: '3. Advent war am 13.12. · kleine Aktion diese Woche'
-  };
 
   // Echte Kurzinhalte fuer KW33 (erste Schulwoche), aus den bestehenden
   // Grobplanungen uebernommen (Ethik/Mathe/NMG/Kreativnachmittag haben fuer
@@ -3625,22 +3612,13 @@
     if (!grid) return;
     grid.innerHTML = '';
 
-    document.getElementById('sp-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
-    // Der generelle Herbstferien-Hinweis ist nur VOR den Ferien noch
-    // sinnvoll (Ankuendigung), waehrend/nach den Ferien uebernimmt das
-    // grosse Banner unten bzw. ist es einfach vorbei. Danach steht an
-    // derselben Stelle die Wochen-Notiz (SP_WEEK_NOTES, z.B. Advent).
-    document.getElementById('sp-kw-sub').textContent =
-      spCurrentWeek < Math.min(...Object.keys(SP_FERIEN_WEEKS).map(Number))
-        ? SP_HERBSTFERIEN_TEXT
-        : (SP_WEEK_NOTES[spCurrentWeek] || '');
+    // Oben nur die KW (Fabian, 10.10.2026), das Datum steht bei den Tagen.
+    document.getElementById('sp-kw-main').textContent = 'KW' + spCurrentWeek;
     document.getElementById('sp-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
     document.getElementById('sp-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
 
     const ferienLabel = SP_FERIEN_WEEKS[spCurrentWeek];
-    const hint = document.getElementById('stundenplan-hint');
     if (ferienLabel) {
-      if (hint) hint.style.display = 'none';
       const banner = document.createElement('div');
       banner.className = 'sp-ferien-banner';
       const title = document.createElement('div');
@@ -3665,17 +3643,20 @@
       grid.appendChild(banner);
       return;
     }
-    if (hint) hint.style.display = '';
 
     const weekNotes = state.stundenplanNotes[spCurrentWeek] || {};
 
     // Kopfzeile: leere Ecke + 5 Wochentage
     const corner = document.createElement('div');
     grid.appendChild(corner);
-    SP_DAYS.forEach(day => {
+    SP_DAYS.forEach((day, dayIndex) => {
       const h = document.createElement('div');
       h.className = 'sp-head';
       h.textContent = day;
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'sp-head-date';
+      dateSpan.textContent = haFmtDate(haDateFor(spCurrentWeek, dayIndex));
+      h.appendChild(dateSpan);
       const special = specialDayFor(day);
       if (special) {
         h.classList.add('sp-head-special');
@@ -4002,12 +3983,8 @@
   function renderHausaufgaben() {
     const book = document.getElementById('ha-book');
     if (!book) return;
-    document.getElementById('ha-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
-    const firstFerien = Math.min.apply(null, Object.keys(SP_FERIEN_WEEKS).map(Number));
-    // Gleiche Logik wie im Stundenplan: vor den Ferien der Ferien-Hinweis,
-    // danach die Wochen-Notiz (SP_WEEK_NOTES, z.B. Advent).
-    document.getElementById('ha-kw-sub').textContent =
-      spCurrentWeek < firstFerien ? SP_HERBSTFERIEN_TEXT : (SP_WEEK_NOTES[spCurrentWeek] || '');
+    // Wie im Stundenplan: oben nur die KW, Datum steht bei den Tagen.
+    document.getElementById('ha-kw-main').textContent = 'KW' + spCurrentWeek;
     document.getElementById('ha-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
     document.getElementById('ha-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
 
