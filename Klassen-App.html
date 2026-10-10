@@ -47,42 +47,59 @@
   }
   .scene.active { display: flex; }
   #scene-truhe {
-    background-image:
-      linear-gradient(rgba(8,6,4,0.55), rgba(8,6,4,0.55)),
-      url('Bilder/Truhe.png');
+    background-image: url('Bilder/Tresor.jpg');
+    background-color: #f3e7cf;
     background-size: cover;
-    background-position: center;
+    /* Die helle Wandflaeche im Bild liegt NICHT in der Bildmitte, sondern bei
+       ca. 62% der Breite / 45% der Hoehe (per Pixelmessung ermittelt,
+       10.10.2026). Das .panel wird per Flexbox immer mittig im Fenster
+       gezeigt -- background-position auf diesen Punkt setzen haelt die helle
+       Flaeche unabhaengig von Fenstergroesse/-zuschnitt (cover!) hinter dem
+       Panel, statt nur bei einem einzigen Seitenverhaeltnis zu passen. */
+    background-position: 62% 45%;
     flex-direction: column;
   }
-  /* Schatzkammer: die Kerzen im Truhe.png "leuchten" lassen (Fabian, 30.8.2026,
-     "passt mehr zum Stil der App", analog zum Kerzenschein in der
-     Alchemistenkammer). Grosse weiche Lichtflecke an den Kerzen-Clustern,
-     leicht flackernd. Bewusst per %-Position statt pixelgenau, da der
-     Hintergrund per background-size:cover je nach Fenster beschnitten wird. */
-  .truhe-glows { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
-  .truhe-glow {
-    position: absolute; border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,214,150,0.55) 0%, rgba(255,183,90,0.28) 40%, rgba(255,183,90,0) 72%);
-    mix-blend-mode: screen;
-    animation: truheFlicker 3.4s ease-in-out infinite;
-    will-change: opacity, transform;
-  }
-  @keyframes truheFlicker {
-    0%, 100% { opacity: 0.75; transform: scale(1); }
-    25% { opacity: 0.95; transform: scale(1.04); }
-    50% { opacity: 0.6; transform: scale(0.97); }
-    75% { opacity: 0.88; transform: scale(1.02); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .truhe-glow { animation: none; opacity: 0.8; }
-  }
+  /* Kerzenschein-Lichtflecke (.truhe-glow/truheFlicker) entfernt 10.10.2026:
+     waren an die Kerzenpositionen im alten, dunklen Truhe.png gebunden. Das
+     neue Tresor.jpg ist von sich aus hell beleuchtet (Deckenlicht, Wandlampen),
+     ein zusaetzliches animiertes Glimmen braucht es nicht mehr. Siehe
+     Konzept.md "Neues App-Design". */
   #scene-truhe .panel { position: relative; z-index: 2; }
+  /* Bild-Justierung Tresor, zweite Fassung (10.10.2026): ein einzelner,
+     dezenter Zieh-Griff statt eines Pfeiltasten-Kastens, siehe
+     HTML-Kommentar bei scene-truhe. Unten rechts, ausserhalb des Panels. */
+  .truhe-drag-handle {
+    position: absolute; right: 16px; bottom: 16px; z-index: 3;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(20,14,10,0.78); border: 1px solid rgba(212,175,55,0.5);
+    color: #e8dcc3; cursor: grab;
+    touch-action: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, opacity 0.2s;
+    opacity: 0.55;
+  }
+  .truhe-drag-handle:hover { opacity: 1; background: rgba(40,28,18,0.9); }
+  .truhe-drag-handle.dragging { cursor: grabbing; opacity: 1; background: var(--gold); color: #1a1004; }
+  .truhe-pos-reset {
+    position: absolute; right: 16px; bottom: 56px; z-index: 3;
+    font-family: inherit; font-size: 11px; cursor: pointer;
+    padding: 5px 10px; border-radius: 8px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(20,14,10,0.78); color: #cbbf9e;
+  }
+  .truhe-pos-reset:hover { background: rgba(40,28,18,0.9); }
 
-  /* --- Alchemistenkammer: Bild + SVG-Overlay pixelgenau uebereinander --- */
+  /* --- Labor (bis 10.10.2026 "Alchemistenkammer" genannt, intern noch
+     scene-trank/nav-trank): Bild + SVG-Overlay pixelgenau uebereinander --- */
   .stage {
     position: relative;
     width: 100%; height: 100%;
   }
+  /* object-fit:contain (statt cover) kann bei abweichendem Seitenverhaeltnis
+     Raender frei lassen -- dort scheint sonst die dunkle .scene-Grundfarbe
+     durch. Helle Flaeche passend zur Labor-Wandfarbe als Fallback (10.10.2026,
+     Teil des neuen hellen App-Designs). */
+  #scene-trank { background-color: #dde4d2; }
   .stage img.bg {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
@@ -253,19 +270,9 @@
     100% { opacity: 0; transform: translate(-50%, -50%) translateY(-70px); }
   }
 
-  /* --- Kerzenflackern --- */
-  .flame {
-    transform-origin: center;
-    transform-box: fill-box;
-    animation: flicker 1.6s ease-in-out infinite;
-    mix-blend-mode: screen;
-  }
-  @keyframes flicker {
-    0%, 100% { opacity: 0.55; transform: scale(0.92); }
-    25% { opacity: 0.85; transform: scale(1.05); }
-    50% { opacity: 0.65; transform: scale(0.97); }
-    75% { opacity: 0.95; transform: scale(1.08); }
-  }
+  /* Kerzenflackern (.flame/flicker) entfernt 10.10.2026: war an die Kerzen-
+     Positionen des alten, dunklen Reagenzglas.png gebunden, die es im neuen
+     hellen Labor.jpg nicht mehr gibt. Siehe Konzept.md "Neues App-Design". */
 
   /* --- schwebende Steuerleiste unten, ueberdeckt das Glas nicht --- */
   .control-bar {
@@ -304,7 +311,8 @@
     padding: 6px 12px !important;
   }
 
-  /* --- Schatzkammer --- */
+  /* --- Tresor (bis 10.10.2026 "Schatzkammer" genannt, intern noch
+     scene-truhe/nav-truhe) --- */
   .panel {
     background: var(--panel-bg);
     border: 1px solid rgba(212,175,55,0.45);
@@ -346,7 +354,8 @@
      Muster wie bei #scene-gruppen. overflow-y:auto als Sicherheitsnetz, falls
      Rad+Panel bei sehr kurzen Fenstern trotzdem nicht ganz reinpassen. */
   #scene-rad {
-    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    /* Rad-Design bleibt, nur heller Hintergrund (10.10.2026). */
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     align-items: flex-start;
     overflow-y: auto;
   }
@@ -479,7 +488,8 @@
 
   /* --- Gruppen --- */
   #scene-gruppen {
-    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    /* Kein eigenes Bild (10.10.2026, Fabian: schlicht/hell, kein Motiv). */
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     align-items: flex-start;
     overflow-y: auto;
   }
@@ -540,7 +550,8 @@
      Script): gruen genug Zeit, gelb wichtig, rot umgehend. Max. 3 Spalten,
      quadratische Karten, absichtlich schlicht/symmetrisch gehalten. */
   #scene-todo {
-    background: radial-gradient(ellipse at center, #241a12, #0c0906);
+    /* Heller Hintergrund, 10.10.2026. */
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     align-items: flex-start;
     overflow-y: auto;
   }
@@ -550,17 +561,22 @@
     padding: var(--top-clearance) 20px 40px;
     text-align: center;
   }
-  .todo-layout h1 { font-size: 22px; margin: 0 0 4px; color: var(--gold); letter-spacing: 0.5px; }
-  .todo-layout .sub { font-size: 13px; color: #b8ab8c; margin-bottom: 18px; }
+  /* Titel/Umschalter sitzen DIREKT auf dem jetzt hellen Szenen-Hintergrund
+     (10.10.2026, Fabian: "zu hell, ich kann das nicht lesen") -- die
+     Toggle-Knoepfe (SuS/Lehrperson) hatten nur 8% durchscheinendes Gold,
+     praktisch unsichtbar. Gleiche dunkle-Flaeche-Loesung wie bei den
+     Nav-Knoepfen. */
+  .todo-layout h1 { font-size: 22px; margin: 0 0 4px; color: #8a6a1f; letter-spacing: 0.5px; }
+  .todo-layout .sub { font-size: 13px; color: #6b5438; margin-bottom: 18px; }
   .todo-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; }
   .todo-toggle-btn {
     font-family: inherit; font-size: 14px; padding: 10px 22px;
     border-radius: 12px; border: 1px solid rgba(212,175,55,0.5);
-    background: rgba(212,175,55,0.08); color: #f1e6d0; cursor: pointer;
+    background: rgba(20,14,10,0.85); color: #e8dcc3; cursor: pointer;
     transition: background 0.2s;
   }
-  .todo-toggle-btn:hover { background: rgba(212,175,55,0.2); }
-  .todo-toggle-btn.active { background: rgba(212,175,55,0.32); border-color: var(--gold); }
+  .todo-toggle-btn:hover { background: rgba(40,28,18,0.9); }
+  .todo-toggle-btn.active { background: var(--gold); color: #1a1004; border-color: var(--gold); }
   .todo-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -621,7 +637,7 @@
     background: none; color: #d9a3a3; cursor: pointer;
   }
   .todo-card-delete:hover { background: rgba(200,90,90,0.15); }
-  .todo-empty-hint { grid-column: 1 / -1; color: #b8ab8c; font-size: 13px; padding: 20px 0; }
+  .todo-empty-hint { grid-column: 1 / -1; color: #6b5438; font-size: 13px; padding: 20px 0; }
   .todo-add {
     display: flex; flex-direction: column; gap: 10px;
     width: min(360px, 92vw); margin: 0 auto;
@@ -824,19 +840,13 @@
   .tafel-gallery-empty { grid-column: 1 / -1; color: #b8ab8c; font-size: 13px; padding: 20px 0; text-align: center; }
 
   /* --- Ablauf (Startseite): echtes Stundenplan-Raster --- */
-  /* Eigener, dezenter Hintergrund fuer diese Szene (Bilder/Stundenplan-
-     Hintergrund.png). WICHTIG: nur EIN Bild-Layer plus ein halbtransparenter
-     Abdunkel-Verlauf darueber, kein zweiter opaker Verlauf dazwischen, sonst
-     verdeckt der das Bild komplett (das war der Bug: das radial-gradient
-     hatte keine Transparenz und lag ueber dem Foto). background-color ist
-     der Fallback, falls die Bilddatei mal fehlt/nicht laedt. */
+  /* Kein eigenes Hintergrundbild mehr (10.10.2026, Fabian: "nimmt eh
+     praktisch das ganze Bild ein, da hat ein Bild wenig Sinn"). Heller
+     Verlauf statt des alten dunklen Bild+Abdunkel-Looks, gleiche Palette wie
+     Gruppen/Todo/Hausaufgaben/Gluecksrad-Umgebung fuer einen einheitlichen
+     hellen Look, siehe Konzept.md "Neues App-Design". */
   #scene-ablauf {
-    background-color: #0c0906;
-    background-image:
-      linear-gradient(rgba(12,9,6,0.55), rgba(12,9,6,0.72)),
-      url('Bilder/Stundenplan-Hintergrund.png');
-    background-size: cover;
-    background-position: center;
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     align-items: flex-start;
     overflow-y: auto;
   }
@@ -853,27 +863,55 @@
     font-family: inherit; font-size: 18px; line-height: 1;
     width: 34px; height: 34px; border-radius: 50%;
     border: 1px solid rgba(212,175,55,0.5);
-    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    /* Vorher nur 12% durchscheinendes Gold -- auf dem alten dunklen
+       Seitenhintergrund gut lesbar, auf dem neuen hellen (10.10.2026)
+       praktisch unsichtbar (helle Schrift auf hellem Grund). Jetzt eine
+       richtige dunkle Flaeche, liest sich auf JEDEM Hintergrund. */
+    background: rgba(20,14,10,0.85); color: #e8dcc3; cursor: pointer;
     transition: background 0.2s;
     display: flex; align-items: center; justify-content: center;
   }
-  .sp-nav-btn:hover:not(:disabled) { background: rgba(212,175,55,0.25); }
+  .sp-nav-btn:hover:not(:disabled) { background: rgba(40,28,18,0.9); }
   .sp-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   /* Uhr-Icon neben der KW-Navigation, gleicher runder Knopf-Stil wie die
      Pfeile, oeffnet die grosse Uhrzeit-Anzeige (Fabians Rechnerzeit). */
   .sp-clock-btn {
     width: 34px; height: 34px; border-radius: 50%;
     border: 1px solid rgba(212,175,55,0.5);
-    background: rgba(212,175,55,0.12); color: #e8dcc3; cursor: pointer;
+    /* siehe .sp-nav-btn: dunkle statt durchscheinende Flaeche, sonst auf dem
+       hellen Hintergrund (10.10.2026) unsichtbar. */
+    background: rgba(20,14,10,0.85); color: #e8dcc3; cursor: pointer;
     transition: background 0.2s;
     display: flex; align-items: center; justify-content: center;
   }
-  .sp-clock-btn:hover { background: rgba(212,175,55,0.25); }
+  .sp-clock-btn:hover { background: rgba(40,28,18,0.9); }
+  /* Tausch-Modus-Knopf (Fabian, 10.10.2026, Nachtrag: "zu viele Symbole im
+     Raster, lieber EIN Knopf bei der KW"), gleicher Stil wie der Uhr-Knopf
+     daneben. .active = Tausch-Modus laeuft gerade (goldener Hintergrund statt
+     nur Rahmen, damit klar ist, dass ein Tipp ins Raster jetzt etwas anderes
+     tut als sonst). */
+  .sp-swap-mode-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.5);
+    /* siehe .sp-nav-btn: dunkle statt durchscheinende Flaeche, sonst auf dem
+       hellen Hintergrund (10.10.2026) unsichtbar. */
+    background: rgba(20,14,10,0.85); color: #e8dcc3; cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-swap-mode-btn:hover { background: rgba(40,28,18,0.9); }
+  .sp-swap-mode-btn.active { background: var(--gold); color: #1a1004; border-color: var(--gold); }
   .stundenplan-kw-label { text-align: center; min-width: 200px; }
-  .sp-kw-main { color: var(--gold); font-size: 19px; letter-spacing: 0.3px; }
-  .sp-kw-sub { color: #9a8f78; font-size: 12px; margin-top: 2px; }
+  /* var(--gold) direkt auf dem jetzt hellen Hintergrund hat zu wenig
+     Kontrast (10.10.2026) -- dunklerer Goldton nur fuer diese Stelle. */
+  .sp-kw-main { color: #8a6a1f; font-size: 19px; letter-spacing: 0.3px; }
+  /* Beide Texte sitzen DIREKT auf dem jetzt hellen Szenen-Hintergrund (nicht
+     auf dem dunklen Raster-Kasten) -- die alten hellen/blassen Toene waren
+     fuer den frueheren dunklen Hintergrund gedacht und sonst kaum lesbar
+     (10.10.2026). */
+  .sp-kw-sub { color: #6b5438; font-size: 12px; margin-top: 2px; }
   .stundenplan-hint {
-    text-align: center; color: #b8ab8c; font-size: 13px; margin-bottom: 14px;
+    text-align: center; color: #7a6346; font-size: 13px; margin-bottom: 14px;
   }
   .stundenplan-scroll {
     overflow-x: auto;
@@ -884,11 +922,25 @@
     grid-template-columns: 74px repeat(5, minmax(110px, 1fr));
     min-width: 660px;
     gap: 7px;
-    background: var(--panel-bg);
+    /* EIGENE Farbe statt var(--panel-bg) (10.10.2026, Fabian: "zu dunkel und
+       braun, blendet nicht mit dem Hintergrund") -- var(--panel-bg) wird von
+       sehr vielen anderen Stellen mitgenutzt (Tresor-Panel, Navbar,
+       Lektionsfenster...), die bereits gut funktionieren, darum bewusst NICHT
+       global geaendert. Waermerer, hellerer Braunton statt nahezu Schwarz,
+       bleibt aber dunkel genug, dass Gold-/helle Schrift im Raster (Fach-
+       Zellen haben ohnehin eigene Farben) weiterhin gut lesbar ist. Zweiter
+       Versuch -- bitte Rueckmeldung. */
+    background: rgba(58,42,26,0.85);
     border: 1px solid rgba(212,175,55,0.45);
     border-radius: 16px;
     padding: 16px;
-    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+    /* Der alte starke Schwarz-Glow verschwamm auf dem frueheren dunklen
+       Hintergrund unauffaellig, wirkt auf dem jetzt hellen Hintergrund aber
+       schwer/hart (Fabian, 10.10.2026: "nicht ruhig"). Deutlich dezenter
+       gemacht -- normaler Schlagschatten statt Glow. Erster Versuch, bitte
+       Rueckmeldung, ob das reicht oder ob am Raster selbst noch mehr gehen
+       soll. */
+    box-shadow: 0 10px 28px rgba(60,40,20,0.22);
   }
   .sp-head {
     text-align: center; font-size: 14px; color: var(--gold);
@@ -999,6 +1051,59 @@
     border: 1px solid rgba(127,191,106,0.5);
     font-size: 12px;
   }
+  /* Wochen-Tausch (Fabian, 10.10.2026, zweiter Entwurf): KEIN Griff mehr pro
+     Zelle -- war Fabians Rueckmeldung "ueberladen". Stattdessen EIN globaler
+     Knopf bei der KW-Navigation (.sp-swap-mode-btn), der den Tausch-Modus
+     an/aus schaltet. Im Tausch-Modus reagiert JEDE Zelle direkt auf Antippen
+     (kein Extra-Symbol darauf), siehe applySpSwapBehavior() im Script.
+     Normalzustand (Modus aus): Raster komplett unveraendert/aufgeraeumt. */
+  .sp-cell.sp-move-source {
+    outline: 2px solid var(--gold); outline-offset: 1px;
+    cursor: default;
+  }
+  .sp-cell.sp-move-source:hover { transform: none; filter: none; }
+  /* Jede andere Zelle, waehrend eine Zelle zum Verschieben ausgewaehlt ist:
+     klar als moegliches Ziel erkennbar, ueberall antippbar -- "alle Zellen,
+     auch fremde" (Fabian, 10.10.2026). */
+  .sp-cell.sp-swap-target {
+    box-shadow: inset 0 0 0 2px rgba(212,175,55,0.6);
+    background: rgba(212,175,55,0.14) !important;
+    /* !important noetig: sp-empty/sp-extern setzen sonst cursor:default --
+       als Tausch-Ziel sollen aber wirklich ALLE Zellen klickbar wirken. */
+    cursor: pointer !important;
+  }
+  .sp-cell.sp-swap-target:hover { filter: none; transform: none; box-shadow: inset 0 0 0 2px var(--gold); }
+  /* Tausch-Modus an, aber noch nichts ausgewaehlt: ganz dezenter Hinweis
+     (gestrichelter Rahmen beim Drueberfahren), damit das Raster ohne
+     ausgewaehlte Zelle ruhig bleibt und nicht ueberladen wirkt. */
+  .sp-cell.sp-swap-selectable:hover {
+    box-shadow: inset 0 0 0 2px rgba(212,175,55,0.35);
+    cursor: pointer !important;
+  }
+  /* Kleines Symbol auf einer Zelle, die diese Woche nicht ihren normalen
+     Inhalt zeigt (getauscht). Oben, mittig -- die drei Eck-Marker und der
+     Griff unten rechts sind schon belegt. */
+  .sp-swap-mark {
+    position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--gold); line-height: 1;
+  }
+  .sp-swap-banner {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    flex-wrap: wrap;
+    margin: 6px 0 2px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: rgba(212,175,55,0.12);
+    border: 1px solid rgba(212,175,55,0.4);
+    color: #e8dcc3; font-size: 13px;
+  }
+  .sp-swap-banner button {
+    font-family: inherit; font-size: 12px;
+    padding: 4px 12px; border-radius: 8px;
+    border: 1px solid rgba(212,175,55,0.5);
+    background: rgba(212,175,55,0.18); color: #fff8ec; cursor: pointer;
+  }
+  .sp-swap-banner button:hover { background: rgba(212,175,55,0.3); }
   /* Ganze Ferienwochen (z.B. Herbstferien): statt des Stundenplan-Rasters
      ein grosses, ruhiges Banner ueber die volle Breite. */
   .sp-ferien-banner {
@@ -1115,9 +1220,12 @@
      Pfeil-Knopf wieder verkleinern (Timer laeuft dabei im Hintergrund weiter,
      durch Klick auf die kleine Countdown-Anzeige in der Zeile wieder aufklappbar). */
   .sp-big-timer {
-    position: fixed; top: 96px; left: 50%;
-    transform: translateX(-50%) scale(0.5);
-    z-index: 55;
+    /* Position (left/top) wird von JS gesetzt (bigTimerEnsurePosition/Drag),
+       NICHT mehr per "left:50%+translateX(-50%)" zentriert -- sonst wuerde
+       das Ziehen (das left/top direkt setzt) mit der Zentrierung kollidieren.
+       transform macht hier nur noch den Grösser-Werden-Effekt (scale), keine
+       Positionierung mehr. Fabian, 10.10.2026: "die Uhr verschieben können". */
+    position: fixed; z-index: 55;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     background: rgba(8,6,4,0.88);
     border: 2px solid var(--gold);
@@ -1126,13 +1234,17 @@
     box-shadow: 0 0 40px rgba(212,175,55,0.55), 0 8px 30px rgba(0,0,0,0.6);
     opacity: 0;
     pointer-events: none;
+    cursor: grab;
+    touch-action: none;
     transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.25s;
   }
   .sp-big-timer.active {
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
     opacity: 1;
     pointer-events: auto;
   }
+  .sp-big-timer:not(.active) { transform: scale(0.5); }
+  .sp-big-timer.dragging { cursor: grabbing; transition: none; }
   /* Bleibt blinkend, bis aktiv weggeklickt wird (Klick auf die Karte oder auf
      den Verkleinern-Pfeil), verschwindet NICHT von selbst nach Ablauf. */
   @keyframes spBigTimerDoneBlink {
@@ -1168,7 +1280,11 @@
   .sp-big-timer-pause:hover { background: rgba(212,175,55,0.25); }
   .sp-step-timer-display { cursor: pointer; }
   @media (max-width: 480px) {
-    .sp-big-timer { top: 80px; padding: 10px 22px 12px; }
+    /* "top" wird hier NICHT mehr gesetzt: ein Inline-Style (von JS, siehe
+       bigTimerPosDefault) hat immer Vorrang vor dieser Regel und wuerde sie
+       sonst wirkungslos machen. Die Fallhoehe fuer schmale Bildschirme steckt
+       deshalb direkt in bigTimerPosDefault() im Script. */
+    .sp-big-timer { padding: 10px 22px 12px; }
     .sp-big-timer-value { font-size: 38px; }
     .sp-big-timer-label { max-width: 180px; font-size: 12px; }
   }
@@ -1474,8 +1590,10 @@
      Do-Fr rechts). Teilt sich die Wochen-Navigation (spCurrentWeek) mit dem
      Stundenplan. */
   #scene-hausaufgaben {
-    background-color: #0c0906;
-    background-image: radial-gradient(130% 90% at 50% 0%, rgba(64,42,22,0.6), rgba(10,7,4,0.92));
+    /* Heller Hintergrund (10.10.2026, Fabian: "wirkt sonst komisch mit dem
+       Braun") -- das Buch selbst (.ha-book) bleibt bewusst dunkles
+       Leder/Holz, wie ein echtes Buch auf einem hellen Tisch. */
+    background: radial-gradient(ellipse at center, #faf3e2, #ead9b8);
     align-items: flex-start;
     overflow-y: auto;
   }
@@ -1489,12 +1607,15 @@
     gap: 14px; margin-bottom: 12px; flex-wrap: wrap;
   }
   .ha-kw-label { text-align: center; min-width: 180px; }
-  .ha-kw-main { color: var(--gold); font-size: 19px; letter-spacing: 0.3px; }
-  .ha-kw-sub { color: #9a8f78; font-size: 12px; margin-top: 2px; min-height: 14px; }
+  /* siehe .sp-kw-main: dunkler statt var(--gold), zu wenig Kontrast auf hell. */
+  .ha-kw-main { color: #8a6a1f; font-size: 19px; letter-spacing: 0.3px; }
+  .ha-kw-sub { color: #6b5438; font-size: 12px; margin-top: 2px; min-height: 14px; }
   .ha-print-btn {
     font-family: inherit; font-size: 13px; cursor: pointer;
     border: 1px solid rgba(212,175,55,0.5);
-    background: rgba(212,175,55,0.12); color: #e8dcc3;
+    /* siehe .sp-nav-btn: dunkle statt durchscheinende Flaeche, sitzt direkt
+       auf dem jetzt hellen Szenen-Hintergrund (10.10.2026). */
+    background: rgba(20,14,10,0.85); color: #e8dcc3;
     border-radius: 9px; padding: 7px 14px;
     transition: background 0.2s;
   }
@@ -1611,8 +1732,8 @@
 
 <nav>
   <button id="nav-ablauf" onclick="showScene('ablauf')">Ablauf</button>
-  <button id="nav-trank" class="active" onclick="showScene('trank')">Alchemistenkammer</button>
-  <button id="nav-truhe" onclick="showScene('truhe')">Schatzkammer</button>
+  <button id="nav-trank" class="active" onclick="showScene('trank')">Labor</button>
+  <button id="nav-truhe" onclick="showScene('truhe')">Tresor</button>
   <span class="nav-more" id="nav-more">
     <button id="nav-hausaufgaben" onclick="showScene('hausaufgaben')">Hausaufgaben</button>
     <button id="nav-rad" onclick="showScene('rad')">Glücksrad</button>
@@ -1660,8 +1781,21 @@
           <path d="M12 7v5l3.3 2"/>
         </svg>
       </button>
+      <!-- Tausch-Modus (Fabian, 10.10.2026, Nachtrag): EIN Knopf statt eines
+           Symbols pro Zelle. Schaltet applySpSwapBehavior() im Raster an/aus,
+           siehe toggleSwapMode() im Script. -->
+      <button class="sp-swap-mode-btn" id="sp-swap-mode-btn" onclick="toggleSwapMode()" aria-label="Lektionen tauschen" title="Lektionen tauschen">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"/><line x1="21" y1="3" x2="13" y2="11"/>
+          <polyline points="8 21 3 21 3 16"/><line x1="3" y1="21" x2="11" y2="13"/>
+        </svg>
+      </button>
     </div>
     <div class="stundenplan-hint" id="stundenplan-hint">Aufs Fach klicken fuer die Lektionsnotiz</div>
+    <!-- Wochen-Tausch (Fabian, 10.10.2026): zeigt wahlweise "wird verschoben,
+         jetzt Ziel antippen" + Abbrechen, ODER "Woche weicht ab" +
+         Zuruecksetzen, ODER bleibt leer -- siehe renderStundenplan(). -->
+    <div class="sp-swap-banner" id="sp-swap-banner" hidden></div>
     <div class="stundenplan-scroll">
       <div class="stundenplan-grid" id="stundenplan-grid"></div>
     </div>
@@ -1774,41 +1908,36 @@
 <!-- Hauptansicht: echtes Reagenzglas-Foto + pixelgenaues Fluessigkeits-Overlay -->
 <div class="scene active" id="scene-trank">
   <div class="stage">
-    <img class="bg" src="Bilder/Reagenzglas.png" alt="Reagenzglas">
-    <svg class="overlay" viewBox="0 0 2752 1536" preserveAspectRatio="xMidYMid meet">
+    <img class="bg" src="Bilder/Labor.jpg" alt="Reagenzglas im Labor">
+    <svg class="overlay" viewBox="0 0 1376 768" preserveAspectRatio="xMidYMid meet">
       <defs>
         <clipPath id="vial-clip">
-          <path d="M 1329 610 L 1412 610 L 1412 1010 A 41.5 41.5 0 1 1 1329 1010 Z" />
+          <path d="M 880 258 L 962 258 L 962 580 A 41 41 0 1 1 880 580 Z" />
         </clipPath>
         <linearGradient id="liquid-gradient" x1="0" y1="1" x2="0" y2="0">
           <stop offset="0%" stop-color="#2fa8ff"/>
           <stop offset="55%" stop-color="#7fd8ff"/>
           <stop offset="100%" stop-color="#e0f7ff"/>
         </linearGradient>
-        <radialGradient id="flame-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#ffdf9b" stop-opacity="0.9"/>
-          <stop offset="45%" stop-color="#ffb347" stop-opacity="0.5"/>
-          <stop offset="100%" stop-color="#ffb347" stop-opacity="0"/>
-        </radialGradient>
+        <!-- Ring-Flicken (Fabian, 10.10.2026: "der Balken geht ueber die
+             Halterung"): der Holzring der Glashalterung liegt bei y~518-550,
+             MITTEN in der fuellbaren Hoehe -- ohne diesen Flicken wuerde die
+             Fluessigkeit bei genug Punkten einfach durch den Ring hindurch
+             "scheinen". Per Pixelmessung ermittelt, etwas grosszuegig
+             bemessen (Rand-Sicherheit). -->
+        <clipPath id="ring-patch-clip">
+          <rect x="800" y="514" width="245" height="40" />
+        </clipPath>
       </defs>
-      <g class="candle-flames">
-        <circle class="flame" cx="646" cy="450" r="30" fill="url(#flame-glow)" style="animation-delay:0s; animation-duration:1.7s"/>
-        <circle class="flame" cx="1010" cy="752" r="34" fill="url(#flame-glow)" style="animation-delay:0.3s; animation-duration:1.5s"/>
-        <circle class="flame" cx="1103" cy="884" r="30" fill="url(#flame-glow)" style="animation-delay:0.9s; animation-duration:1.8s"/>
-        <circle class="flame" cx="1141" cy="177" r="20" fill="url(#flame-glow)" style="animation-delay:0.5s; animation-duration:1.6s"/>
-        <circle class="flame" cx="1248" cy="126" r="20" fill="url(#flame-glow)" style="animation-delay:1.1s; animation-duration:1.4s"/>
-        <circle class="flame" cx="1303" cy="214" r="20" fill="url(#flame-glow)" style="animation-delay:0.2s; animation-duration:1.9s"/>
-        <circle class="flame" cx="1463" cy="215" r="20" fill="url(#flame-glow)" style="animation-delay:0.8s; animation-duration:1.5s"/>
-        <circle class="flame" cx="1512" cy="122" r="20" fill="url(#flame-glow)" style="animation-delay:1.3s; animation-duration:1.7s"/>
-        <circle class="flame" cx="1621" cy="182" r="20" fill="url(#flame-glow)" style="animation-delay:0.4s; animation-duration:1.6s"/>
-        <circle class="flame" cx="1666" cy="895" r="32" fill="url(#flame-glow)" style="animation-delay:0.7s; animation-duration:1.8s"/>
-        <circle class="flame" cx="1737" cy="990" r="30" fill="url(#flame-glow)" style="animation-delay:1.0s; animation-duration:1.5s"/>
-        <circle class="flame" cx="1796" cy="728" r="32" fill="url(#flame-glow)" style="animation-delay:0.15s; animation-duration:1.9s"/>
-        <circle class="flame" cx="2103" cy="471" r="28" fill="url(#flame-glow)" style="animation-delay:0.6s; animation-duration:1.6s"/>
-      </g>
+      <!-- Kerzenflammen (candle-flames) entfernt 10.10.2026: gehoerten zum
+           alten, dunklen Reagenzglas.png, siehe Konzept.md "Neues App-Design". -->
       <g clip-path="url(#vial-clip)" class="liquid-glow">
-        <rect id="liquid-clip-rect" x="1320" y="1010" width="102" height="0" fill="url(#liquid-gradient)" />
+        <rect id="liquid-clip-rect" x="880" y="580" width="82" height="0" fill="url(#liquid-gradient)" />
       </g>
+      <!-- Zeichnet den echten Ring aus Labor.jpg nochmal ueber die
+           Fluessigkeit (gleiches Bild, gleiche 1376x768-Koordinaten wie das
+           img.bg darunter, darum deckungsgleich ohne weitere Umrechnung). -->
+      <image href="Bilder/Labor.jpg" x="0" y="0" width="1376" height="768" clip-path="url(#ring-patch-clip)" />
     </svg>
   </div>
 
@@ -1823,18 +1952,28 @@
 
 <!-- Schatzkammer -->
 <div class="scene" id="scene-truhe">
-  <div class="truhe-glows" aria-hidden="true">
-    <div class="truhe-glow" style="width:300px;height:300px;left:9%;top:8%;margin:-150px 0 0 -150px;animation-delay:0s;"></div>
-    <div class="truhe-glow" style="width:340px;height:340px;left:7%;top:56%;margin:-170px 0 0 -170px;animation-delay:1.1s;"></div>
-    <div class="truhe-glow" style="width:280px;height:280px;left:48%;top:15%;margin:-140px 0 0 -140px;animation-delay:0.5s;"></div>
-    <div class="truhe-glow" style="width:260px;height:260px;left:77%;top:18%;margin:-130px 0 0 -130px;animation-delay:1.7s;"></div>
-  </div>
   <div class="panel">
-    <h1>Schatzkammer</h1>
+    <h1>Tresor</h1>
     <div class="sub">Punkte gegen Belohnungen eintauschen</div>
     <div class="rewards-grid" id="rewards-grid"></div>
     <div class="redeem-msg" id="redeem-msg"></div>
   </div>
+  <!-- Bild-Justierung, zweite Fassung (Fabian, 10.10.2026: Pfeiltasten liessen
+       sich nicht fein genug treffen, "ich will es ziehen koennen wie ein
+       Fenster"). Echtes Ziehen per Pointer Events (gleiches Prinzip wie beim
+       verschiebbaren Timer), direkt am kleinen Griff unten rechts. Waehrend
+       des Ziehens bewegt sich das Hintergrundbild unter dem Finger/der Maus
+       mit. Loslassen speichert sofort (localStorage) -- kein separater
+       Speichern-Schritt noetig. "Zuruecksetzen" erscheint nur, wenn die
+       Position vom Standard abweicht. -->
+  <button type="button" class="truhe-drag-handle" id="truhe-drag-handle" title="Hintergrund ziehen, um es zu verschieben">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/>
+      <polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/>
+      <line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>
+    </svg>
+  </button>
+  <button type="button" class="truhe-pos-reset" id="truhe-pos-reset" onclick="resetTruhePos()" title="Bildposition zuruecksetzen" hidden>Zuruecksetzen</button>
 </div>
 
 <!-- Gluecksrad -->
@@ -1981,12 +2120,17 @@
     "6": ["Milena", "Amelia", "Fadri", "Dunja", "Nicole", "Leandro", "Marvin", "Ilai", "Melina", "Aaron"],
     "5": ["Theo E.", "Theo M.", "Yannik", "Kian", "Eliane", "Marla", "Elena", "Sarina", "Mara"],
   };
-  // Reagenzglas-Koordinaten im Originalbild (2752x1536), per Pixelmessung ermittelt
-  const VIAL_TOP = 610;
-  const VIAL_STRAIGHT_BOTTOM = 1010;
-  const VIAL_RADIUS = 41.5;
-  const VIAL_LEFT = 1329 - 9;   // etwas breiter als das Glas selbst, damit der Glow schoen ins Glas passt
-  const VIAL_RIGHT = 1412 + 9;
+  // Reagenzglas-Koordinaten im neuen Labor.jpg (1376x768), per Pixelmessung
+  // ermittelt und mit einer Testueberlagerung visuell verifiziert (10.10.2026,
+  // Bildwechsel von Reagenzglas.png/"Alchemistenkammer" auf Labor.jpg/"Labor").
+  // 10.10.2026, Nachtrag: Fabian fand die Fuellung "zu dick" -- 6px von
+  // beiden Glaswaenden zurueckgezogen (Testueberlagerung bestaetigt), damit
+  // ein duenner Glasrand sichtbar bleibt statt die ganze Glasbreite zu fuellen.
+  const VIAL_TOP = 258;
+  const VIAL_STRAIGHT_BOTTOM = 580;
+  const VIAL_RADIUS = 41;
+  const VIAL_LEFT = 880;
+  const VIAL_RIGHT = 962;
   const VIAL_LOWEST = VIAL_STRAIGHT_BOTTOM + VIAL_RADIUS;
   const VIAL_FILLABLE_HEIGHT = (VIAL_STRAIGHT_BOTTOM - VIAL_TOP) + VIAL_RADIUS;
 
@@ -2082,6 +2226,19 @@
       });
     });
   })();
+
+  // Wochen-Tausch im Stundenplan (Fabian, 10.10.2026: "Bausteine selbstaendig
+  // bewegen können, falls Lektionen wechseln"). state.stundenplanSwaps[KW]
+  // [Tag-Lektion] = 'AndererTag-AndereLektion' -- ein reiner Anzeige-Zeiger,
+  // "diese Rasterzelle zeigt/oeffnet diese Woche das, was eigentlich bei
+  // dieser anderen Zelle passiert". KEIN Lektionsplan wird dabei je bewegt
+  // oder kopiert (steht unveraendert in state.stundenplanNotes unter seinem
+  // echten Tag-Lektion-Schluessel), nur welche Rasterzelle ihn zeigt/oeffnet
+  // aendert sich. Fehlt ein Eintrag fuer eine Zelle: keine Abweichung, zeigt
+  // normal ihren eigenen Platz. Siehe swapOrigin()/swapCells() weiter unten
+  // und Konzept.md "Lektionen-Tausch" fuer die Begruendung (Tippen-zum-
+  // Auswaehlen statt Ziehen, WCAG 2.5.7, Smartboard-Tauglichkeit).
+  if (!state.stundenplanSwaps || typeof state.stundenplanSwaps !== 'object') state.stundenplanSwaps = {};
 
   // Hausaufgabenbuch (Reiter "Hausaufgaben", 30.8.2026): state.hausaufgaben[KW]
   // [Wochentag] = [{ fach, text }]. Wochentag = der Tag, an dem die HA erledigt
@@ -2216,7 +2373,87 @@
   let currentSceneName = 'trank';
   let tafelReturnScene = 'trank';
 
+  // Bild-Justierung Tresor, zweite Fassung (Fabian, 10.10.2026: "ich will es
+  // ziehen koennen wie ein Fenster"). truhePos sind Prozentwerte fuer
+  // background-position, Default = die zuletzt berechneten 62%/45%. In
+  // localStorage gemerkt (eigener Schluessel, nicht Teil von state/
+  // STORAGE_KEY, da rein optisch und nicht "Schuljahr-Daten").
+  const TRUHE_POS_KEY = 'klassenApp_truhePos_v1';
+  const TRUHE_POS_DEFAULT = { x: 62, y: 45 };
+  const TRUHE_IMG_W = 1376, TRUHE_IMG_H = 768; // echte Masse von Tresor.jpg
+  let truhePos = { x: TRUHE_POS_DEFAULT.x, y: TRUHE_POS_DEFAULT.y };
+  (function loadTruhePos() {
+    try {
+      const raw = localStorage.getItem(TRUHE_POS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p.x === 'number' && typeof p.y === 'number') truhePos = p;
+      }
+    } catch (e) {}
+  })();
+  function applyTruhePos() {
+    const el = document.getElementById('scene-truhe');
+    if (el) el.style.backgroundPosition = truhePos.x + '% ' + truhePos.y + '%';
+    const resetBtn = document.getElementById('truhe-pos-reset');
+    if (resetBtn) resetBtn.hidden = (truhePos.x === TRUHE_POS_DEFAULT.x && truhePos.y === TRUHE_POS_DEFAULT.y);
+  }
+  function saveTruhePos() {
+    try { localStorage.setItem(TRUHE_POS_KEY, JSON.stringify(truhePos)); } catch (e) {}
+  }
+  function resetTruhePos() {
+    truhePos = { x: TRUHE_POS_DEFAULT.x, y: TRUHE_POS_DEFAULT.y };
+    try { localStorage.removeItem(TRUHE_POS_KEY); } catch (e) {}
+    applyTruhePos();
+  }
+  // Echtes Ziehen per Pointer Events, gleiches Grundprinzip wie beim
+  // verschiebbaren Timer (bigTimerDrag...). Rechnet die Maus-/Finger-
+  // Bewegung in Pixeln in die passende Prozent-Aenderung um, abhaengig
+  // davon, wie stark background-size:cover das Bild gerade hochskaliert
+  // und wo es dadurch ueberhaupt noch Spielraum zum Verschieben gibt.
+  let truheDrag = null; // { startX, startY, startPosX, startPosY, rangeX, rangeY }
+  let truheDragWired = false;
+  function setupTruheDrag() {
+    if (truheDragWired) return;
+    const handle = document.getElementById('truhe-drag-handle');
+    if (!handle) return;
+    handle.addEventListener('pointerdown', truheDragStart);
+    window.addEventListener('pointermove', truheDragMove);
+    window.addEventListener('pointerup', truheDragEnd);
+    truheDragWired = true;
+  }
+  function truheDragStart(evt) {
+    const scene = document.getElementById('scene-truhe');
+    if (!scene) return;
+    const rect = scene.getBoundingClientRect();
+    const scale = Math.max(rect.width / TRUHE_IMG_W, rect.height / TRUHE_IMG_H);
+    // rangeX/Y = um wie viel Pixel das hochskalierte Bild ueber den
+    // sichtbaren Bereich hinausragt -- nur so viel Spielraum gibt es zum
+    // Verschieben (bei 0 laesst sich auf dieser Achse nichts verschieben).
+    const rangeX = rect.width - TRUHE_IMG_W * scale;   // <= 0
+    const rangeY = rect.height - TRUHE_IMG_H * scale;  // <= 0
+    truheDrag = { startX: evt.clientX, startY: evt.clientY, startPosX: truhePos.x, startPosY: truhePos.y, rangeX: rangeX, rangeY: rangeY };
+    document.getElementById('truhe-drag-handle').classList.add('dragging');
+    evt.preventDefault();
+  }
+  function truheDragMove(evt) {
+    if (!truheDrag) return;
+    evt.preventDefault();
+    const dx = evt.clientX - truheDrag.startX;
+    const dy = evt.clientY - truheDrag.startY;
+    const newX = truheDrag.rangeX === 0 ? truheDrag.startPosX : truheDrag.startPosX + (dx * 100 / truheDrag.rangeX);
+    const newY = truheDrag.rangeY === 0 ? truheDrag.startPosY : truheDrag.startPosY + (dy * 100 / truheDrag.rangeY);
+    truhePos = { x: Math.max(0, Math.min(100, Math.round(newX))), y: Math.max(0, Math.min(100, Math.round(newY))) };
+    applyTruhePos();
+  }
+  function truheDragEnd() {
+    if (!truheDrag) return;
+    truheDrag = null;
+    document.getElementById('truhe-drag-handle').classList.remove('dragging');
+    saveTruhePos();
+  }
+
   function showScene(name) {
+    if (name === 'truhe') { applyTruhePos(); setupTruheDrag(); }
     if (name === 'tafel' && currentSceneName !== 'tafel') tafelReturnScene = currentSceneName;
     document.body.classList.toggle('tafel-fullscreen', name === 'tafel');
     currentSceneName = name;
@@ -2321,6 +2558,56 @@
     }
     return null;
   }
+
+  // ===== Wochen-Tausch im Stundenplan (Fabian, 10.10.2026) =====
+  // Tippen-zum-Auswaehlen statt Ziehen: Griff an Zelle A antippen (markiert
+  // sie als "wird verschoben"), dann Zelle B antippen -> getauscht, nur fuer
+  // die aktuelle KW. Dieselben zwei Zellen nochmal antippen hebt den Tausch
+  // wieder auf (symmetrische Rechnung, kein Spezialfall fuer "rueckgaengig"
+  // noetig). "Alle Zellen, auch fremde" (Fabian bewusst bestaetigt,
+  // 10.10.2026): keine Einschraenkung auf eigene Lektionen.
+  function swapKey(day, period) { return day + '-' + period; }
+  // Loest auf, was eine Rasterzelle DIESE WOCHE tatsaechlich zeigt/oeffnet:
+  // entweder sich selbst (Normalfall, kein Eintrag) oder eine andere Zelle,
+  // falls getauscht. Folgt KEINER Kette von Zeigern (swapCells haelt die
+  // Tabelle immer flach, siehe dort), ein einziger Lookup reicht.
+  function swapOrigin(day, period, week) {
+    const map = state.stundenplanSwaps[week];
+    const origin = map && map[swapKey(day, period)];
+    if (!origin) return { day: day, period: period };
+    const parts = origin.split('-');
+    return { day: parts[0], period: Number(parts[1]) };
+  }
+  function hasSwapsThisWeek(week) {
+    return !!(state.stundenplanSwaps[week] && Object.keys(state.stundenplanSwaps[week]).length);
+  }
+  // Tauscht, was an den zwei Zellen angezeigt/geoeffnet wird. Loest zuerst
+  // die AKTUELLEN Ursprungszellen auf (falls eine der beiden schon Teil eines
+  // fruehereren Tauschs war, siehe swapOrigin), damit Ketten von Tauschen
+  // korrekt bleiben, und raeumt einen Eintrag weg, sobald er wieder auf sich
+  // selbst zeigt -- so loescht sich ein zweimal hintereinander ausgefuehrter
+  // Tausch von selbst wieder aus der Tabelle. KEIN Lektionsplan wird hier je
+  // verschoben, nur dieser Zeiger.
+  function swapCells(dayA, periodA, dayB, periodB, week) {
+    const keyA = swapKey(dayA, periodA), keyB = swapKey(dayB, periodB);
+    if (keyA === keyB) return;
+    const originA = swapOrigin(dayA, periodA, week);
+    const originB = swapOrigin(dayB, periodB, week);
+    const originAKey = swapKey(originA.day, originA.period);
+    const originBKey = swapKey(originB.day, originB.period);
+    if (!state.stundenplanSwaps[week]) state.stundenplanSwaps[week] = {};
+    const map = state.stundenplanSwaps[week];
+    if (originBKey === keyA) delete map[keyA]; else map[keyA] = originBKey;
+    if (originAKey === keyB) delete map[keyB]; else map[keyB] = originAKey;
+    if (!Object.keys(map).length) delete state.stundenplanSwaps[week];
+    saveState();
+  }
+  function resetWeekSwaps(week) {
+    delete state.stundenplanSwaps[week];
+    saveState();
+    renderStundenplan();
+  }
+
   // Ganztaegige/halbtaegige Spezialtermine (z.B. Umweltmorgen), bei denen die
   // Klasse den ganzen Morgen ausser Haus ist (Fabian, 16.8.2026, aus
   // "Umweltmorgen.docx"). Key = 'KW-Wochentag', eindeutig innerhalb eines
@@ -2363,7 +2650,12 @@
     '44-Donnerstag': { label: 'Begegnungsmorgen', icon: '🤝', detail: '29.10.2026: Begegnungsmorgen (Perioden noch zu bestätigen, angenommen: ganzer Morgen 1.-4.)', periods: [1, 2, 3, 4] },
     // Fabian, 17.8.2026: Paedagogischer Tag (Anlass fuer Lehrpersonen), SuS
     // haben schulfrei. Ganzer Tag, da kein Unterricht stattfindet.
-    '44-Freitag': { label: 'SuS frei', icon: '🧑‍🏫', detail: '30.10.2026: Pädagogischer Tag (Anlass für Lehrpersonen), SuS frei', periods: [1, 2, 3, 4, 5, 6] }
+    '44-Freitag': { label: 'SuS frei', icon: '🧑‍🏫', detail: '30.10.2026: Pädagogischer Tag (Anlass für Lehrpersonen), SuS frei', periods: [1, 2, 3, 4, 5, 6] },
+    // Ergaenzt 10.10.2026 aus Fabians Terminliste
+    // ("CLAUDE_ZUHAUSE_Uebergabe.md", Abschnitt "Termine bis Weihnachten").
+    // Zweiter Begegnungsmorgen. Gleiche ANNAHME wie beim ersten am 29.10.:
+    // ganzer Morgen (Perioden 1-4), von Fabian noch zu bestaetigen.
+    '50-Mittwoch': { label: 'Begegnungsmorgen', icon: '🤝', detail: '09.12.2026: Begegnungsmorgen 2 (Perioden noch zu bestätigen, angenommen: ganzer Morgen 1.-4.)', periods: [1, 2, 3, 4] }
   };
   function specialDayFor(day) {
     return SP_SPECIAL_DAYS[spCurrentWeek + '-' + day] || null;
@@ -2375,9 +2667,29 @@
   // Ferienwochen angezeigt (z.B. eine Stufensitzung in den Herbstferien),
   // siehe renderStundenplan(). Fabian, 17.8.2026 (aus "Infos für
   // Claude.docx").
+  // Ergaenzt 10.10.2026 aus Fabians Terminliste in
+  // "Ethik/2 Herbst bis Winter/CLAUDE_ZUHAUSE_Uebergabe.md" (Abschnitt
+  // "Termine bis Weihnachten"). Bewusst als Badge und NICHT als
+  // SP_SPECIAL_DAYS: diese Termine ersetzen keine ganze Lektion, der
+  // normale Ablauf bleibt sichtbar. Der Teamnachmittag (25.11.) stand
+  // bereits hier und musste nicht ergaenzt werden.
   const SP_MEETINGS = {
     '36-Montag': { icon: '📋', label: 'Stufensitzung', detail: 'Stufensitzung, 31.08.2026, 16:00' },
     '42-Freitag': { icon: '📋', label: 'Stufensitzung', detail: 'Stufensitzung, 16.10.2026, 09:00 (während der Herbstferien)' },
+    // Faellt mitten in die 2. Lektion und die Pause (09:45-10:05) hinein und
+    // reicht in die 3. Lektion. Deshalb als Badge mit Zeitangabe, damit der
+    // Stundenplan nicht faelschlich zwei ganze Lektionen als "faellt aus"
+    // zeigt. OFFEN (Fabian fragen): soll die 2. und 3. Lektion markiert
+    // werden, oder stimmt der Badge so?
+    '44-Mittwoch': { icon: '🥛', label: 'Pausenmilch', detail: '28.10.2026: Tag der Pausenmilch, 09:30 bis 10:30' },
+    // Bestaetigt (Fabian, 10.10.2026): Myrjam Hammer ist die Schulleiterin,
+    // Patrik Wohlwend ist Lehrer (eigenes Zimmer, siehe "Zimmer Wohlwend" in
+    // Deutsch KW44 Donnerstag). Beide keine SuS, darum zu Recht hier als
+    // Termin-Badge und nicht im Geburtstagskalender der Kinder (SP_BIRTHDAYS).
+    '45-Montag': { icon: '🎂', label: 'Geburtstag Fr. Hammer', detail: '02.11.2026: Geburtstag Frau Hammer, Schulleiterin' },
+    '45-Freitag': { icon: '🎂', label: 'Geburtstag Hr. Wohlwend', detail: '06.11.2026: Geburtstag Herr Wohlwend' },
+    // Abendanlass, liegt ausserhalb des Lektionsrasters.
+    '46-Freitag': { icon: '📚', label: 'Lesenacht', detail: '13.11.2026: Lesenacht' },
     '48-Mittwoch': { icon: '📋', label: 'Teamnachmittag', detail: 'Teamnachmittag, 25.11.2026' }
   };
   function meetingFor(day) {
@@ -2509,6 +2821,24 @@
   // Dezember) reicht, also vor den Weihnachtsferien endet.
   const SP_FERIEN_WEEKS = { 40: 'Herbstferien', 41: 'Herbstferien', 42: 'Herbstferien' };
 
+  // Hinweise, die fuer eine GANZE Woche gelten und sich keiner einzelnen
+  // Lektion und keinem einzelnen Tag zuordnen lassen. Erscheinen als kleine
+  // Zeile unter der KW-Anzeige (siehe renderStundenplan), dort wo vor den
+  // Herbstferien der Ferien-Hinweis stand. Ergaenzt 10.10.2026 aus Fabians
+  // Terminliste in "Ethik/2 Herbst bis Winter/CLAUDE_ZUHAUSE_Uebergabe.md".
+  // Die Adventssonntage selbst sind keine Schultage, Fabians Vorgabe lautet
+  // "Kleine Aktion jeweils in der Woche danach" -- deshalb steht der Hinweis
+  // bewusst in der FOLGEwoche des jeweiligen Sonntags.
+  // Der 4. Advent (20.12.2026) hat KEINE Schulwoche danach: letzter Schultag
+  // vor den Weihnachtsferien ist Fr 18.12. (KW51). Er fehlt hier deshalb
+  // absichtlich und nicht aus Versehen.
+  const SP_WEEK_NOTES = {
+    43: 'Erster Schultag nach den Herbstferien: Mo 19.10.',
+    49: '1. Advent war am 29.11. · kleine Aktion diese Woche',
+    50: '2. Advent war am 06.12. · kleine Aktion diese Woche',
+    51: '3. Advent war am 13.12. · kleine Aktion diese Woche'
+  };
+
   // Echte Kurzinhalte fuer KW33 (erste Schulwoche), aus den bestehenden
   // Grobplanungen uebernommen (Ethik/Mathe/NMG/Kreativnachmittag haben fuer
   // KW33 noch kein Material, bleiben bewusst leer zum spaeteren Ausfuellen).
@@ -2546,6 +2876,144 @@
     if (state.stundenplanNotes[34][k] === undefined) state.stundenplanNotes[34][k] = SP_SEED_KW34[k];
   });
 
+  // Lektionsplaene aus den KWxx_Lektionsplan_App.json-Dateien (Ethik KW44-50,
+  // Deutsch KW43-45), von Fabian und Schul-Claude ab 7.10.2026 geplant, siehe
+  // Konzept.md "Lektionsplan-Import aus JSON". Bis die richtige Importfunktion
+  // steht (noch offen), hier als Seed wie KW33/34: jeder Schritt kommt 1:1 aus
+  // dem Feld `tafel.schritte` der jeweiligen JSON-Datei (Text + Minuten), das
+  // ist exakt das Format, das die Lektionstafel/Schrittliste hier erwartet.
+  // KW45_Do (Deutsch, Impro mit Szene 1) ist absichtlich NICHT drin:
+  // `status: "entwurf"`, laut APP_Import_Anleitung.md noch nicht uebernehmen.
+  const SP_SEED_KW43 = {
+    'Dienstag-3': [
+      { text: 'Hörspiel hören und Feedback geben', min: 10 },
+      { text: 'Checkliste Teil 1 ausfüllen', min: 5 },
+      { text: 'Ins Tonstudio gehen und bereit machen', min: 5 },
+      { text: 'Aufnehmen', min: 18 },
+      { text: 'Speichern, zurück in den Kreis, Tablet zurück', min: 7 }
+    ],
+    'Donnerstag-5': [
+      { text: 'Hörspiel hören und Feedback geben', min: 10 },
+      { text: 'Ins Tonstudio gehen und bereit machen', min: 5 },
+      { text: 'Fertig aufnehmen', min: 20 },
+      { text: 'Speichern, Datei abgeben, zurück in den Kreis', min: 7 }
+    ]
+  };
+  if (!state.stundenplanNotes[43]) state.stundenplanNotes[43] = {};
+  Object.keys(SP_SEED_KW43).forEach(k => {
+    if (state.stundenplanNotes[43][k] === undefined) state.stundenplanNotes[43][k] = SP_SEED_KW43[k];
+  });
+
+  const SP_SEED_KW44 = {
+    'Montag-1': [
+      { text: 'Geburtstag Aaron', min: 5 },
+      { text: 'Behauptung und Begründung: Blatt 1', min: 10 },
+      { text: 'Lea und das Handy: Blatt 2 allein, dann zu zweit', min: 16 },
+      { text: 'Kreis: Was macht ein Argument stark?', min: 10 },
+      { text: 'Exit-Ticket und aufräumen', min: 9 }
+    ],
+    'Dienstag-3': [
+      { text: 'Hörspiel hören und Feedback geben', min: 10 },
+      { text: 'Dossier und Rollen: Seite 2 bis 4', min: 15 },
+      { text: 'Ideen für Szene 1 sammeln und eine wählen: Seite 6', min: 17 },
+      { text: 'Zettel einkleben, Gruppen-Check', min: 5 }
+    ],
+    'Donnerstag-5': [
+      { text: 'So planen und spielen wir eine Szene', min: 10 },
+      { text: 'Ins Zimmer gehen', min: 5 },
+      { text: 'Szene 1 planen und spielen: Seite 7', min: 22 },
+      { text: 'Zurück, Gruppen-Check', min: 10 }
+    ]
+  };
+  if (!state.stundenplanNotes[44]) state.stundenplanNotes[44] = {};
+  Object.keys(SP_SEED_KW44).forEach(k => {
+    if (state.stundenplanNotes[44][k] === undefined) state.stundenplanNotes[44][k] = SP_SEED_KW44[k];
+  });
+
+  const SP_SEED_KW45 = {
+    'Montag-1': [
+      { text: 'Hausaufgabe und Rückmeldung', min: 8 },
+      { text: 'Der Auftrag', min: 12 },
+      { text: 'Thema wählen', min: 8 },
+      { text: 'Handout beginnen: Frage und Argument dafür', min: 17 },
+      { text: 'Aufräumen', min: 5 }
+    ],
+    'Dienstag-3': [
+      { text: 'Was ist Impro-Theater?', min: 7 },
+      { text: 'In der Gruppe: Blatt lesen, Rollen verteilen', min: 5 },
+      { text: 'Vorspielen und Rückmeldung', min: 24 },
+      { text: 'Was haben wir gelernt?', min: 8 }
+    ]
+  };
+  if (!state.stundenplanNotes[45]) state.stundenplanNotes[45] = {};
+  Object.keys(SP_SEED_KW45).forEach(k => {
+    if (state.stundenplanNotes[45][k] === undefined) state.stundenplanNotes[45][k] = SP_SEED_KW45[k];
+  });
+
+  const SP_SEED_KW46 = {
+    'Montag-1': [
+      { text: 'Klassenrat', min: 20 },
+      { text: 'Musterhandout anschauen', min: 5 },
+      { text: 'Handout: Gegenargument, meine Meinung, Fazit', min: 18 },
+      { text: 'Wo stehe ich?', min: 2 },
+      { text: 'Aufräumen', min: 5 }
+    ]
+  };
+  if (!state.stundenplanNotes[46]) state.stundenplanNotes[46] = {};
+  Object.keys(SP_SEED_KW46).forEach(k => {
+    if (state.stundenplanNotes[46][k] === undefined) state.stundenplanNotes[46][k] = SP_SEED_KW46[k];
+  });
+
+  const SP_SEED_KW47 = {
+    'Montag-1': [
+      { text: 'Handout fertig machen und prüfen', min: 17 },
+      { text: 'Stichwortkarte schreiben', min: 5 },
+      { text: 'Vortrag üben mit Feedback', min: 16 },
+      { text: 'Reihenfolge der Vorträge', min: 7 },
+      { text: 'Aufräumen', min: 5 }
+    ]
+  };
+  if (!state.stundenplanNotes[47]) state.stundenplanNotes[47] = {};
+  Object.keys(SP_SEED_KW47).forEach(k => {
+    if (state.stundenplanNotes[47][k] === undefined) state.stundenplanNotes[47][k] = SP_SEED_KW47[k];
+  });
+
+  const SP_SEED_KW48 = {
+    'Montag-1': [
+      { text: 'Regeln fürs Zuhören', min: 3 },
+      { text: 'Vorträge Runde 1', min: 42 },
+      { text: 'Aufräumen', min: 5 }
+    ]
+  };
+  if (!state.stundenplanNotes[48]) state.stundenplanNotes[48] = {};
+  Object.keys(SP_SEED_KW48).forEach(k => {
+    if (state.stundenplanNotes[48][k] === undefined) state.stundenplanNotes[48][k] = SP_SEED_KW48[k];
+  });
+
+  const SP_SEED_KW49 = {
+    'Montag-1': [
+      { text: 'Regeln fürs Zuhören', min: 3 },
+      { text: 'Vorträge Runde 2', min: 42 },
+      { text: 'Aufräumen', min: 5 }
+    ]
+  };
+  if (!state.stundenplanNotes[49]) state.stundenplanNotes[49] = {};
+  Object.keys(SP_SEED_KW49).forEach(k => {
+    if (state.stundenplanNotes[49][k] === undefined) state.stundenplanNotes[49][k] = SP_SEED_KW49[k];
+  });
+
+  const SP_SEED_KW50 = {
+    'Montag-1': [
+      { text: 'Vorträge Runde 3', min: 30 },
+      { text: 'Rückblick auf die Reihe', min: 5 },
+      { text: 'Klassenrat', min: 15 }
+    ]
+  };
+  if (!state.stundenplanNotes[50]) state.stundenplanNotes[50] = {};
+  Object.keys(SP_SEED_KW50).forEach(k => {
+    if (state.stundenplanNotes[50][k] === undefined) state.stundenplanNotes[50][k] = SP_SEED_KW50[k];
+  });
+
   // Welche Woche ist "jetzt" dran: echte ISO-Kalenderwoche berechnen, auf
   // den navigierbaren Bereich (KW33-39) begrenzen. Wird NICHT gespeichert,
   // das App startet also beim naechsten Aufstarten immer bei der aktuellen
@@ -2559,6 +3027,12 @@
     return 1 + Math.round(diff / (7 * 24 * 3600 * 1000));
   }
   let spCurrentWeek = Math.min(SP_WEEK_MAX, Math.max(SP_WEEK_MIN, isoWeekNumber(new Date())));
+  // Tausch-Modus (Fabian, 10.10.2026, Nachtrag: EIN globaler Knopf statt
+  // eines Symbols pro Zelle, siehe sp-swap-mode-btn). Beide Variablen bewusst
+  // NICHT in state (rein fluechtige UI-Zustaende, die App startet nach einem
+  // Neuladen immer ruhig/aufgeraeumt, nie mitten in einem Tausch-Vorgang).
+  let spSwapModeOn = false; // true = Raster reagiert auf Antippen statt zu oeffnen
+  let spMovePending = null; // { day, period } = bereits ausgewaehlte erste Zelle, oder null
 
   let spEditDay = null, spEditPeriod = null;
 
@@ -2566,6 +3040,16 @@
     const next = spCurrentWeek + delta;
     if (next < SP_WEEK_MIN || next > SP_WEEK_MAX) return;
     spCurrentWeek = next;
+    spMovePending = null; // eine schon ausgewaehlte Zelle gilt nicht ueber die Woche hinaus
+    // spSwapModeOn bleibt bewusst erhalten: Fabian darf den Modus einschalten,
+    // zur richtigen KW blaettern und dort die zwei Zellen antippen.
+    renderStundenplan();
+  }
+  // Schaltet den Tausch-Modus an/aus (sp-swap-mode-btn). Aus-Schalten
+  // verwirft eine evtl. gerade ausgewaehlte Zelle gleich mit.
+  function toggleSwapMode() {
+    spSwapModeOn = !spSwapModeOn;
+    if (!spSwapModeOn) spMovePending = null;
     renderStundenplan();
   }
 
@@ -2850,8 +3334,12 @@
     document.getElementById('sp-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
     // Der generelle Herbstferien-Hinweis ist nur VOR den Ferien noch
     // sinnvoll (Ankuendigung), waehrend/nach den Ferien uebernimmt das
-    // grosse Banner unten bzw. ist es einfach vorbei.
-    document.getElementById('sp-kw-sub').textContent = spCurrentWeek < Math.min(...Object.keys(SP_FERIEN_WEEKS).map(Number)) ? SP_HERBSTFERIEN_TEXT : '';
+    // grosse Banner unten bzw. ist es einfach vorbei. Danach steht an
+    // derselben Stelle die Wochen-Notiz (SP_WEEK_NOTES, z.B. Advent).
+    document.getElementById('sp-kw-sub').textContent =
+      spCurrentWeek < Math.min(...Object.keys(SP_FERIEN_WEEKS).map(Number))
+        ? SP_HERBSTFERIEN_TEXT
+        : (SP_WEEK_NOTES[spCurrentWeek] || '');
     document.getElementById('sp-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
     document.getElementById('sp-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
 
@@ -2944,17 +3432,26 @@
       grid.appendChild(label);
 
       SP_DAYS.forEach(day => {
-        const subject = STUNDENPLAN[day][period - 1] || '';
+        // origin = was diese Rasterzelle DIESE WOCHE tatsaechlich zeigt/
+        // oeffnet (siehe swapOrigin oben) -- im Normalfall sie selbst.
+        // zivFor/isfFor bleiben bewusst an (day,period), nicht an origin:
+        // das sind feste Zeit-Tatsachen (wer physisch dann da ist), keine
+        // Fach-Eigenschaften, die mit einem Tausch mitziehen sollten.
+        const origin = swapOrigin(day, period, spCurrentWeek);
+        const oDay = origin.day, oPeriod = origin.period;
+        const subject = STUNDENPLAN[oDay][oPeriod - 1] || '';
         const cell = document.createElement('div');
         const key = day + '-' + period;
-        const special = specialDayFor(day);
-        const externSubject = !subject ? externSubjectFor(day, period) : null;
-        if (special && special.periods.includes(period)) {
+        const originKey = oDay + '-' + oPeriod;
+        const isSwapped = key !== originKey;
+        const special = specialDayFor(oDay);
+        const externSubject = !subject ? externSubjectFor(oDay, oPeriod) : null;
+        if (special && special.periods.includes(oPeriod)) {
           cell.className = 'sp-cell sp-special-day';
           cell.textContent = special.icon + ' ' + special.label;
           cell.title = special.detail;
           cell.onclick = () => openSpEdit(day, period);
-          if (weekNotes[key] && weekNotes[key].length) {
+          if (weekNotes[originKey] && weekNotes[originKey].length) {
             const dot = document.createElement('div');
             dot.className = 'sp-note-dot';
             cell.appendChild(dot);
@@ -2986,7 +3483,7 @@
           cell.style.color = SUBJECT_TEXT;
           cell.textContent = subject;
           cell.onclick = () => openSpEdit(day, period);
-          if (weekNotes[key] && weekNotes[key].length) {
+          if (weekNotes[originKey] && weekNotes[originKey].length) {
             const dot = document.createElement('div');
             dot.className = 'sp-note-dot';
             cell.appendChild(dot);
@@ -3005,9 +3502,19 @@
             cell.appendChild(imark);
           }
         }
+        if (isSwapped) {
+          const swapMark = document.createElement('div');
+          swapMark.className = 'sp-swap-mark';
+          swapMark.textContent = '⇄';
+          swapMark.title = 'Diese Woche getauscht (eigentlich ' + originKey + ')';
+          cell.appendChild(swapMark);
+          cell.title = (cell.title ? cell.title + ' ' : '') + '(diese Woche getauscht, eigentlich ' + originKey + ')';
+        }
+        applySpSwapBehavior(cell, day, period);
         grid.appendChild(cell);
       });
     });
+    renderSwapBanner();
 
     // HA-Zeile unter dem Raster: pro Wochentag die Faecher, in denen an dem Tag
     // Hausaufgaben faellig sind (= der Tag, unter den Fabian sie ins Buch
@@ -3044,6 +3551,93 @@
       c.onclick = () => showScene('hausaufgaben');
       grid.appendChild(c);
     });
+  }
+
+  // Tausch-Verhalten einer Rasterzelle, NUR wirksam waehrend spSwapModeOn
+  // (Knopf sp-swap-mode-btn bei der KW-Navigation, kein Symbol mehr pro
+  // Zelle -- Fabians Rueckmeldung 10.10.2026: "ueberladen"). Ist der Modus
+  // aus, bleibt die Zelle unveraendert (ihr normaler Klick-Handler von oben
+  // bleibt stehen). "Alle Zellen, auch fremde" (Fabian, 10.10.2026): keine
+  // Einschraenkung auf eigene Lektionen.
+  function applySpSwapBehavior(cell, day, period) {
+    if (!spSwapModeOn) return;
+    const isPending = spMovePending && spMovePending.day === day && spMovePending.period === period;
+    if (isPending) {
+      // Nochmal antippen waehlt die Zelle wieder ab (Modus bleibt an), damit
+      // man sich umentscheiden kann, ohne den Modus neu einzuschalten.
+      cell.classList.add('sp-move-source');
+      cell.onclick = (evt) => { evt.stopPropagation(); spMovePending = null; renderStundenplan(); };
+    } else if (spMovePending) {
+      cell.classList.add('sp-swap-target');
+      cell.onclick = (evt) => {
+        evt.stopPropagation();
+        swapCells(spMovePending.day, spMovePending.period, day, period, spCurrentWeek);
+        spMovePending = null;
+        renderStundenplan();
+      };
+    } else {
+      // Modus an, aber noch nichts ausgewaehlt: jede Zelle antippen waehlt
+      // sie als erste aus.
+      cell.classList.add('sp-swap-selectable');
+      cell.onclick = (evt) => {
+        evt.stopPropagation();
+        spMovePending = { day: day, period: period };
+        renderStundenplan();
+      };
+    }
+  }
+
+  // Banner ueber dem Raster, je nach Zustand (genau einer trifft zu):
+  // Erstens, Tausch-Modus an, nichts ausgewaehlt: kurze Anleitung + "Fertig"
+  //   (beendet den Modus ganz, gleich wie der Knopf bei der KW-Navigation).
+  // Zweitens, Tausch-Modus an, eine Zelle ausgewaehlt: welche + "Abbrechen"
+  //   (wirft nur die Auswahl weg, der Modus bleibt an fuer den naechsten
+  //   Versuch).
+  // Drittens, Modus aus, aber diese Woche weicht ab: Hinweis +
+  //   "Zuruecksetzen" (hebt ALLE Tausche der Woche auf einmal auf). Erfuellt
+  //   Fabians Vorgabe "sichtbar, dass eine Woche abweicht, rueckgaengig mit
+  //   einem Klick" (CLAUDE_ZUHAUSE_Uebergabe.md Aufgabe 2).
+  // Sonst: leer/versteckt.
+  // Synchronisiert nebenbei den Zustand des Knopfs bei der KW-Navigation.
+  function renderSwapBanner() {
+    const btn = document.getElementById('sp-swap-mode-btn');
+    if (btn) btn.classList.toggle('active', spSwapModeOn);
+    const el = document.getElementById('sp-swap-banner');
+    if (!el) return;
+    el.innerHTML = '';
+    if (spSwapModeOn && spMovePending) {
+      el.hidden = false;
+      const txt = document.createElement('span');
+      txt.textContent = spMovePending.day + ', ' + spMovePending.period + '. Lektion wird verschoben – tippe die Ziel-Lektion an.';
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.textContent = 'Abbrechen';
+      cancel.onclick = () => { spMovePending = null; renderStundenplan(); };
+      el.appendChild(txt);
+      el.appendChild(cancel);
+    } else if (spSwapModeOn) {
+      el.hidden = false;
+      const txt = document.createElement('span');
+      txt.textContent = 'Tausch-Modus: Lektion antippen, die du verschieben willst.';
+      const done = document.createElement('button');
+      done.type = 'button';
+      done.textContent = 'Fertig';
+      done.onclick = () => toggleSwapMode();
+      el.appendChild(txt);
+      el.appendChild(done);
+    } else if (hasSwapsThisWeek(spCurrentWeek)) {
+      el.hidden = false;
+      const txt = document.createElement('span');
+      txt.textContent = 'Diese Woche weicht vom Stundenplan ab.';
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.textContent = 'Zurücksetzen';
+      reset.onclick = () => resetWeekSwaps(spCurrentWeek);
+      el.appendChild(txt);
+      el.appendChild(reset);
+    } else {
+      el.hidden = true;
+    }
   }
 
   // ===== Hausaufgabenbuch (Reiter "Hausaufgaben", 30.8.2026) =====
@@ -3113,7 +3707,10 @@
     if (!book) return;
     document.getElementById('ha-kw-main').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek];
     const firstFerien = Math.min.apply(null, Object.keys(SP_FERIEN_WEEKS).map(Number));
-    document.getElementById('ha-kw-sub').textContent = spCurrentWeek < firstFerien ? SP_HERBSTFERIEN_TEXT : '';
+    // Gleiche Logik wie im Stundenplan: vor den Ferien der Ferien-Hinweis,
+    // danach die Wochen-Notiz (SP_WEEK_NOTES, z.B. Advent).
+    document.getElementById('ha-kw-sub').textContent =
+      spCurrentWeek < firstFerien ? SP_HERBSTFERIEN_TEXT : (SP_WEEK_NOTES[spCurrentWeek] || '');
     document.getElementById('ha-prev-week').disabled = spCurrentWeek <= SP_WEEK_MIN;
     document.getElementById('ha-next-week').disabled = spCurrentWeek >= SP_WEEK_MAX;
 
@@ -3351,10 +3948,16 @@
     let arr = [];
     if (Array.isArray(val)) arr = val;
     else if (typeof val === 'string' && val.trim()) arr = [val.trim()];
+    // expanded: true -- Fabian, 10.10.2026: "die voreingestellten Zeiten
+    // moechte ich schon direkt sehen", nicht erst nach einem Klick auf das
+    // Uhr-Symbol. Rein fluechtig wie remaining/done (siehe saveSpNote: nur
+    // text+min werden gespeichert), darum hier bedenkenlos immer auf true --
+    // jeder Schritt zeigt sein Timer-Panel von Anfang an. Das Uhr-Symbol
+    // bleibt trotzdem klickbar, falls Fabian eine Zeile mal einklappen will.
     return arr.map(item => {
-      if (typeof item === 'string') return { text: item, min: SP_DEFAULT_MIN };
-      if (item && typeof item === 'object') return { text: item.text || '', min: item.min || SP_DEFAULT_MIN };
-      return { text: String(item), min: SP_DEFAULT_MIN };
+      if (typeof item === 'string') return { text: item, min: SP_DEFAULT_MIN, expanded: true };
+      if (item && typeof item === 'object') return { text: item.text || '', min: item.min || SP_DEFAULT_MIN, expanded: true };
+      return { text: String(item), min: SP_DEFAULT_MIN, expanded: true };
     });
   }
 
@@ -3425,9 +4028,115 @@
   // die kompakte Anzeige in der Zeile wieder aufklappen.
   let spBigTimerVisible = false;
 
+  // Verschiebbarer grosser Timer (Fabian, 10.10.2026: "die Uhr verschieben
+  // wenn ich will, z.B. wenn ich auf die Tafel schreiben muss oder den
+  // Reiter wechsle"). Gleiches Muster wie setupClockDrag() beim Uhr-Fenster
+  // (Pointer Events, einmal verdrahtet, dann fuer Maus/Touch/Stift gleich),
+  // mit zwei zusaetzlichen Dingen, die das Uhr-Fenster nicht braucht:
+  // Erstens, Klick-vs-Zug-Unterscheidung: der Timer hat Knoepfe UND reagiert
+  //    selbst auf Klick (Karte wegklicken, wenn fertig) -- ohne Schwellenwert
+  //    wuerde jedes Ziehen am Ende versehentlich auch als Klick zaehlen und
+  //    z.B. die Pause umschalten. Erst wenn die Bewegung > BIG_TIMER_DRAG_PX
+  //    ist, gilt es als Ziehen; bis dahin bleibt ein Klick/Tap moeglich.
+  // Zweitens, Position bleibt nur fuer die laufende Sitzung erhalten (wie das
+  //    Uhr-Fenster auch, kein localStorage) -- setzt sich beim naechsten
+  //    Neuladen der Seite auf die Standardposition (oben mittig) zurueck.
+  let bigTimerPos = null; // { left, top } in px, waehrend der Sitzung gemerkt
+  let bigTimerDrag = null; // { startX, startY, startLeft, startTop, moved }
+  let bigTimerJustDragged = false;
+  let bigTimerDragWired = false;
+  const BIG_TIMER_DRAG_PX = 6;
+
+  function bigTimerPosDefault() {
+    const box = document.getElementById('sp-big-timer');
+    const w = (box && box.offsetWidth) || 300;
+    const top = window.innerWidth <= 480 ? 80 : 96;
+    return { left: Math.round((window.innerWidth - w) / 2), top: top };
+  }
+  function bigTimerClamp(left, top) {
+    const box = document.getElementById('sp-big-timer');
+    const w = (box && box.offsetWidth) || 300;
+    const h = (box && box.offsetHeight) || 120;
+    const maxLeft = Math.max(4, window.innerWidth - w - 4);
+    const maxTop = Math.max(4, window.innerHeight - h - 4);
+    return { left: Math.min(Math.max(4, left), maxLeft), top: Math.min(Math.max(4, top), maxTop) };
+  }
+  // Setzt links/oben, falls noch nicht geschehen (erster Aufruf nach dem
+  // Laden) oder stellt eine zuvor per Ziehen gesetzte Position wieder her.
+  function bigTimerEnsurePosition() {
+    const box = document.getElementById('sp-big-timer');
+    if (!box) return;
+    const pos = bigTimerClamp((bigTimerPos || bigTimerPosDefault()).left, (bigTimerPos || bigTimerPosDefault()).top);
+    box.style.left = pos.left + 'px';
+    box.style.top = pos.top + 'px';
+  }
+  function setupBigTimerDrag() {
+    if (bigTimerDragWired) return;
+    const box = document.getElementById('sp-big-timer');
+    if (!box) return;
+    box.addEventListener('pointerdown', bigTimerDragStart);
+    window.addEventListener('pointermove', bigTimerDragMove);
+    window.addEventListener('pointerup', bigTimerDragEnd);
+    // Fenster waehrend des Unterrichts gedreht/verkleinert (Tablet): Box im
+    // sichtbaren Bereich nachziehen, statt sie ausserhalb stehen zu lassen.
+    window.addEventListener('resize', () => {
+      if (!box.classList.contains('active') || !bigTimerPos) return;
+      const pos = bigTimerClamp(bigTimerPos.left, bigTimerPos.top);
+      bigTimerPos = pos;
+      box.style.left = pos.left + 'px';
+      box.style.top = pos.top + 'px';
+    });
+    // Klick-Sperre nach dem Ziehen: bewusst auf `document` mit capture:true
+    // UND NICHT direkt auf der Box selbst. Ein Capture-Listener auf einem
+    // echten Vorfahren laeuft garantiert vor jedem Listener auf der Box oder
+    // ihren Knoepfen (Pause/Verkleinern) -- bei einem Listener auf dem
+    // Zielelement selbst ist die Reihenfolge capture-vs-bubble dagegen nicht
+    // in jedem Browser gleich definiert. So oder so: ein Ziehen darf nie als
+    // Klick durchschlagen (sonst z.B. versehentlich Pause ausloesen).
+    document.addEventListener('click', (evt) => {
+      if (bigTimerJustDragged && evt.target.closest && evt.target.closest('#sp-big-timer')) {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+        bigTimerJustDragged = false;
+      }
+    }, true);
+    bigTimerDragWired = true;
+  }
+  function bigTimerDragStart(evt) {
+    const box = document.getElementById('sp-big-timer');
+    if (!box || !box.classList.contains('active')) return;
+    const rect = box.getBoundingClientRect();
+    bigTimerDrag = { startX: evt.clientX, startY: evt.clientY, startLeft: rect.left, startTop: rect.top, moved: false };
+  }
+  function bigTimerDragMove(evt) {
+    if (!bigTimerDrag) return;
+    const dx = evt.clientX - bigTimerDrag.startX;
+    const dy = evt.clientY - bigTimerDrag.startY;
+    if (!bigTimerDrag.moved) {
+      if (Math.abs(dx) < BIG_TIMER_DRAG_PX && Math.abs(dy) < BIG_TIMER_DRAG_PX) return;
+      bigTimerDrag.moved = true;
+      bigTimerJustDragged = true;
+      document.getElementById('sp-big-timer').classList.add('dragging');
+    }
+    evt.preventDefault();
+    const pos = bigTimerClamp(bigTimerDrag.startLeft + dx, bigTimerDrag.startTop + dy);
+    bigTimerPos = pos;
+    const box = document.getElementById('sp-big-timer');
+    box.style.left = pos.left + 'px';
+    box.style.top = pos.top + 'px';
+  }
+  function bigTimerDragEnd() {
+    if (!bigTimerDrag) return;
+    bigTimerDrag = null;
+    const box = document.getElementById('sp-big-timer');
+    if (box) box.classList.remove('dragging');
+  }
+
   function updateBigTimerDisplay() {
     const box = document.getElementById('sp-big-timer');
     if (!box) return;
+    bigTimerEnsurePosition();
+    setupBigTimerDrag();
     if (!activeStepTimer) {
       box.classList.remove('active', 'sp-step-done');
       return;
@@ -3504,20 +4213,32 @@
   }
 
   function openSpEdit(day, period) {
+    // day/period sind immer die ECHTE Rasterzelle (wann es diese Woche
+    // wirklich stattfindet, siehe SP_PERIOD_TIMES[period] unten). Fach,
+    // Farbe und Inhalt kommen dagegen vom ORIGIN (swapOrigin) -- im
+    // Normalfall sind beide identisch, nach einem Tausch zeigt origin auf
+    // die andere Zelle, deren Lektion hier gerade laeuft.
     spEditDay = day;
     spEditPeriod = period;
-    const subject = STUNDENPLAN[day][period - 1];
-    const key = day + '-' + period;
-    const special = specialDayFor(day);
-    const isSpecial = special && special.periods.includes(period);
+    const origin = swapOrigin(day, period, spCurrentWeek);
+    const oDay = origin.day, oPeriod = origin.period;
+    const isSwapped = oDay !== day || oPeriod !== period;
+    const subject = STUNDENPLAN[oDay][oPeriod - 1];
+    const key = oDay + '-' + oPeriod;
+    const special = specialDayFor(oDay);
+    const isSpecial = special && special.periods.includes(oPeriod);
     const header = document.getElementById('sp-edit-header');
     header.style.background = isSpecial ? '#3a4a2e' : (SUBJECT_COLORS[subject] || 'var(--gold)');
     header.style.color = isSpecial ? '#d6ecc9' : SUBJECT_TEXT;
-    document.getElementById('sp-edit-title').textContent = isSpecial
-      ? day + ', ' + period + '. Lektion (' + special.icon + ' ' + special.label + ')'
-      : day + ', ' + period + '. Lektion (' + subject + ')';
+    document.getElementById('sp-edit-title').textContent =
+      (isSpecial
+        ? day + ', ' + period + '. Lektion (' + special.icon + ' ' + special.label + ')'
+        : day + ', ' + period + '. Lektion (' + subject + ')')
+      + (isSwapped ? ' · getauscht' : '');
     document.getElementById('sp-edit-title').style.color = isSpecial ? '#d6ecc9' : SUBJECT_TEXT;
-    document.getElementById('sp-edit-week').textContent = 'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek] + ' · ' + SP_PERIOD_TIMES[period];
+    document.getElementById('sp-edit-week').textContent =
+      'KW' + spCurrentWeek + ' · ' + SP_WEEK_DATES[spCurrentWeek] + ' · ' + SP_PERIOD_TIMES[period]
+      + (isSwapped ? ' · eigentlich ' + oDay + ', ' + oPeriod + '. Lektion' : '');
     spEditSteps = notesToSteps((state.stundenplanNotes[spCurrentWeek] || {})[key]);
     renderSpSteps();
     document.getElementById('sp-edit-backdrop').classList.add('active');
@@ -3764,7 +4485,7 @@
   }
 
   function addSpStep() {
-    spEditSteps.push({ text: '', min: SP_DEFAULT_MIN, remaining: SP_DEFAULT_MIN * 60 });
+    spEditSteps.push({ text: '', min: SP_DEFAULT_MIN, remaining: SP_DEFAULT_MIN * 60, expanded: true });
     renderSpSteps();
     const inputs = document.querySelectorAll('#sp-steps-list .sp-step-input');
     if (inputs.length) inputs[inputs.length - 1].focus();
@@ -3796,7 +4517,12 @@
 
   function saveSpNote() {
     if (!spEditDay || !spEditPeriod) return;
-    const key = spEditDay + '-' + spEditPeriod;
+    // WICHTIG: unter dem ORIGIN speichern, nicht unter der ggf. getauschten
+    // Rasterzelle (spEditDay/-Period) -- sonst wuerde eine getauschte
+    // Lektion beim Speichern eine zweite, abweichende Kopie unter dem
+    // falschen Schluessel anlegen, siehe openSpEdit/swapOrigin oben.
+    const origin = swapOrigin(spEditDay, spEditPeriod, spCurrentWeek);
+    const key = origin.day + '-' + origin.period;
     const steps = spEditSteps
       .map(s => ({ text: s.text.trim(), min: s.min || SP_DEFAULT_MIN }))
       .filter(s => s.text.length > 0);
@@ -3836,8 +4562,8 @@
     const svg = document.querySelector('#scene-trank svg.overlay');
     if (!svg) return;
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    el.setAttribute('x', 1370);
-    el.setAttribute('y', 560);
+    el.setAttribute('x', 921);
+    el.setAttribute('y', 230);
     el.setAttribute('class', 'float-pop ' + colorClass);
     el.textContent = text;
     svg.appendChild(el);
