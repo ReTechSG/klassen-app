@@ -1185,6 +1185,22 @@
   /* Kleines Symbol auf einer Zelle, die diese Woche nicht ihren normalen
      Inhalt zeigt (getauscht). Oben, mittig -- die drei Eck-Marker und der
      Griff unten rechts sind schon belegt. */
+  /* Pruefung in dieser Lektion (SP_TESTS, Fabian 12.10.2026: "diskret und
+     nicht ueberfuellend, aber die SuS sollen erkennen, wir haben dann einen
+     Test"). Kleines helles Etikett im Textfluss unter dem Fachnamen, keine
+     Ecke (die vier Ecken + oben Mitte sind schon von Notiz/Zivi/ISF/Tausch
+     belegt). Hell auf der farbigen Fachzelle, dunkle Schrift, gut lesbar. */
+  .sp-test-tag {
+    margin-top: 5px;
+    font-size: 11px; line-height: 1.2;
+    color: #2b2116;
+    background: rgba(255,248,236,0.88);
+    border-radius: 8px;
+    padding: 2px 7px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    max-width: 100%;
+  }
   .sp-swap-mark {
     position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
     font-size: 10px; color: var(--gold); line-height: 1;
@@ -2995,6 +3011,33 @@
     return SP_MEETINGS[spCurrentWeek + '-' + day] || null;
   }
 
+  // Pruefungen (Wordtests, Lernkontrollen), Fabian 12.10.2026. Erscheinen als
+  // kleines Etikett "📝 ..." in der Lektionszelle selbst, damit die SuS sehen,
+  // in WELCHER Lektion der Test ist. Key = KW-Tag-Lektion der eigentlichen
+  // Lektion (Herkunft, nicht Rasterzelle): wird die Lektion diese Woche
+  // getauscht, wandert der Test mit. Neue Pruefung = eine Zeile ergaenzen.
+  // Quelle Englisch 5.Kl: "ENG/5.Kl/2 Herbst bis Winter/Englisch_U2_Paket_App.json".
+  const SP_TESTS = {
+    '44-Montag-3': { label: 'Wordtest 2.1', detail: 'Englisch 5. Kl: Wordtest Unit 2.1 (10 Min.)' },
+    '45-Montag-3': { label: 'Wordtest 2.2', detail: 'Englisch 5. Kl: Wordtest Unit 2.2 (10 Min.)' },
+    '46-Montag-3': { label: 'Wordtest 2.3', detail: 'Englisch 5. Kl: Wordtest Unit 2.3 (10 Min.)' },
+    '47-Montag-3': { label: 'Wordtest 2.4', detail: 'Englisch 5. Kl: Wordtest Unit 2.4 (10 Min.)' },
+    '49-Montag-3': { label: 'Grosser Wordtest', detail: 'Englisch 5. Kl: grosser Wordtest Unit 2 (15 Min.)' },
+    '50-Montag-3': { label: 'Lernkontrolle', detail: 'Englisch 5. Kl: Lernkontrolle Unit 2 (Schreiben, Sprechen einzeln am Pult)' },
+    // Englisch 6.Kl, aus "ENG/6.Kl/2 Herbst bis Winter/Englisch_6Kl_U2_Paket_App.json".
+    '44-Montag-2': { label: 'Wordtest 2.1', detail: 'Englisch 6. Kl: Wordtest Unit 2.1 (10 Min.)' },
+    '45-Montag-2': { label: 'Wordtest 2.2', detail: 'Englisch 6. Kl: Wordtest Unit 2.2 (10 Min.)' },
+    '46-Montag-2': { label: 'Wordtest 2.3', detail: 'Englisch 6. Kl: Wordtest Unit 2.3 (10 Min.)' },
+    '47-Montag-2': { label: 'Wordtest 2.4', detail: 'Englisch 6. Kl: Wordtest Unit 2.4 (10 Min.)' },
+    '48-Montag-2': { label: 'Grosser Wordtest', detail: 'Englisch 6. Kl: grosser Wordtest Unit 2 (15 Min.)' },
+    '49-Montag-2': { label: 'Writing', detail: 'Englisch 6. Kl: Writing My fascinating animal (von Hand, 25 Min.)' },
+    '49-Mittwoch-1': { label: 'Vorträge 1', detail: 'Englisch 6. Kl: Vorträge 1 (5 Kinder, 3 bis 4 Min. mit Plakat)' },
+    '50-Montag-2': { label: 'Vorträge 2', detail: 'Englisch 6. Kl: Vorträge 2 (5 Kinder, 3 bis 4 Min. mit Plakat)' }
+  };
+  function testFor(originKey) {
+    return SP_TESTS[spCurrentWeek + '-' + originKey] || null;
+  }
+
   // Geburtstage der SuS (Fabian, 20.8.2026). Nur im Tageskopf als Badge
   // sichtbar (keine Lektionszelle betroffen), analog zu SP_MEETINGS. Key =
   // 'KW-Wochentag'. Faellt ein Geburtstag auf ein Wochenende oder in die
@@ -3165,7 +3208,84 @@
   // ist exakt das Format, das die Lektionstafel/Schrittliste hier erwartet.
   // KW45_Do (Deutsch, Impro mit Szene 1) ist absichtlich NICHT drin:
   // `status: "entwurf"`, laut APP_Import_Anleitung.md noch nicht uebernehmen.
+  // Ergaenzt 12.10.2026: Englisch 5.Kl, YW3 Unit 2 Friendship (L1 bis L17,
+  // KW43 bis KW51, Montag 3. und Mittwoch 4. Lektion), gleiches Prinzip, aus
+  // "ENG/5.Kl/2 Herbst bis Winter/Englisch_U2_Paket_App.json" (tafel.schritte).
+  // Mi 09.12. (KW50) faellt aus wegen Begegnungsmorgen 2, darum kein Eintrag.
+  // Ergaenzt 12.10.2026: Englisch 6.Kl, YW4 Unit 2 Fascinating animal facts
+  // (L1 bis L17, Montag 2. und Mittwoch 1. Lektion), aus
+  // "ENG/6.Kl/2 Herbst bis Winter/Englisch_6Kl_U2_Paket_App.json". Dort steht
+  // der Wordtest nur in tafel.start, hier wie bei der 5.Kl als erster Schritt
+  // (mit Timer). Dazu Kreativnachmittag "Kunst aus vier Laendern" (KW43 bis
+  // KW50, Kurs 1 und 2), aus "Kreativenachmittag/Kreativnachmittag_Kunst_aus_
+  // vier_Laendern_Paket_App.json": ganzer Nachmittag (100 Min.) in Montag-5
+  // UND Montag-6, damit beide Zellen denselben Ablauf oeffnen.
+  const SP_KREATIV_AUSTRALIEN = [
+    { text: 'Australien kennenlernen', min: 10 },
+    { text: 'Material holen', min: 5 },
+    { text: 'Tier mit Punkten gestalten', min: 65 },
+    { text: 'Aufräumen', min: 10 },
+    { text: 'Kreis: Werke anschauen', min: 10 }
+  ];
+  const SP_KREATIV_MEXIKO = [
+    { text: 'Mexiko kennenlernen', min: 10 },
+    { text: 'Ablauf und Material', min: 10 },
+    { text: 'Totenkopf gestalten', min: 65 },
+    { text: 'Aufräumen', min: 10 },
+    { text: 'Kreis: Werke anschauen', min: 5 }
+  ];
+  const SP_KREATIV_JAPAN = [
+    { text: 'Japan kennenlernen', min: 10 },
+    { text: 'Testen und Kurs', min: 15 },
+    { text: 'Kirschbaum malen', min: 60 },
+    { text: 'Aufräumen', min: 10 },
+    { text: 'Kreis: Rückblick', min: 5 }
+  ];
+  const SP_KREATIV_NEUSEELAND = [
+    { text: 'Neuseeland kennenlernen', min: 5 },
+    { text: 'Würfeln lernen, Material holen', min: 10 },
+    { text: 'Tiki gestalten', min: 70 },
+    { text: 'Aufräumen', min: 5 },
+    { text: 'Kreis: Werke anschauen', min: 10 }
+  ];
+  // Jede Zelle bekommt eine eigene Kopie (Schritte haben eigenen Timer-Zustand).
+  const spKreativ = list => list.map(s => ({ text: s.text, min: s.min }));
   const SP_SEED_KW43 = {
+    // Englisch 6.Kl: L1 Fascinating animals
+    'Montag-2': [
+      { text: 'Animal ABC', min: 8 },
+      { text: 'Unsere Reise', min: 5 },
+      { text: 'Fakten raten', min: 10 },
+      { text: 'Hören und kontrollieren', min: 10 },
+      { text: 'Most fascinating · Wortliste', min: 14 }
+    ],
+    // Englisch 6.Kl: L2 Animal facts
+    'Mittwoch-1': [
+      { text: 'Memo-Flip', min: 12 },
+      { text: 'Guess the animal', min: 12 },
+      { text: 'Unser Ziel', min: 8 },
+      { text: 'What can they do?', min: 10 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Kreativnachmittag Kurs 1: Australien, Punktmalerei
+    'Montag-5': spKreativ(SP_KREATIV_AUSTRALIEN),
+    'Montag-6': spKreativ(SP_KREATIV_AUSTRALIEN),
+    // Englisch 5.Kl: L1 Hello, Crazy Gang!
+    'Montag-3': [
+      { text: 'Unit 2: Friendship', min: 3 },
+      { text: 'Who is it?', min: 10 },
+      { text: 'Hören: Cathy und Mike', min: 16 },
+      { text: 'Zu zweit: Person beschreiben', min: 13 },
+      { text: 'Wortliste 2.1', min: 5 }
+    ],
+    // Englisch 5.Kl: L2 Adjectives are awesome
+    'Mittwoch-4': [
+      { text: 'Wortliste 2.1: Ping-Pong', min: 5 },
+      { text: 'Adjectives are awesome', min: 7 },
+      { text: 'Characters · zu zweit sprechen', min: 15 },
+      { text: 'Characters Schreibblatt', min: 15 },
+      { text: 'Vorlesen: Who is it?', min: 5 }
+    ],
     'Dienstag-3': [
       { text: 'Hörspiel hören und Feedback geben', min: 10 },
       { text: 'Checkliste Teil 1 ausfüllen', min: 5 },
@@ -3186,6 +3306,42 @@
   });
 
   const SP_SEED_KW44 = {
+    // Englisch 5.Kl: L3 Four friends
+    'Montag-3': [
+      { text: 'Wordtest 2.1', min: 10 },
+      { text: 'Hören: Adjektive markieren', min: 15 },
+      { text: 'Hören: Lücken füllen', min: 10 },
+      { text: 'Short forms', min: 10 },
+      { text: 'Satzrunde: I’m …', min: 5 }
+    ],
+    // Englisch 5.Kl: L4 Refresher to be
+    'Mittwoch-4': [
+      { text: 'Stand up if …', min: 5 },
+      { text: 'am · is · are', min: 10 },
+      { text: 'Zu zweit: über mich', min: 10 },
+      { text: 'Good and bad points', min: 17 },
+      { text: 'Vorlesen', min: 5 }
+    ],
+    // Englisch 6.Kl: L3 What animals can do
+    'Montag-2': [
+      { text: 'Wordtest 2.1', min: 10 },
+      { text: 'Teams', min: 5 },
+      { text: 'Allein lesen', min: 7 },
+      { text: 'Zu zweit', min: 10 },
+      { text: 'Üben: My animal is …', min: 12 },
+      { text: 'Abschluss', min: 6 }
+    ],
+    // Englisch 6.Kl: L4 Expert round
+    'Mittwoch-1': [
+      { text: 'Proben', min: 4 },
+      { text: 'Expertenrunde', min: 18 },
+      { text: 'Fact boxes', min: 7 },
+      { text: 'AB 20 Nr. 1', min: 12 },
+      { text: 'Abschluss', min: 6 }
+    ],
+    // Kreativnachmittag Kurs 1: Mexiko, Sugar Skulls
+    'Montag-5': spKreativ(SP_KREATIV_MEXIKO),
+    'Montag-6': spKreativ(SP_KREATIV_MEXIKO),
     'Montag-1': [
       { text: 'Geburtstag Aaron', min: 5 },
       { text: 'Behauptung und Begründung: Blatt 1', min: 10 },
@@ -3212,6 +3368,41 @@
   });
 
   const SP_SEED_KW45 = {
+    // Englisch 5.Kl: L5 Feelings
+    'Montag-3': [
+      { text: 'Wordtest 2.2', min: 10 },
+      { text: 'Gefühle zeigen', min: 15 },
+      { text: 'KV 2.16 Faces', min: 12 },
+      { text: 'Pantomime', min: 8 },
+      { text: 'Vorspielen', min: 5 }
+    ],
+    // Englisch 5.Kl: L6 have got: wozu?
+    'Mittwoch-4': [
+      { text: 'Lily beschreiben', min: 7 },
+      { text: 'Song', min: 10 },
+      { text: 'have / has got', min: 10 },
+      { text: '’s detective', min: 15 },
+      { text: 'Kontrolle', min: 5 }
+    ],
+    // Englisch 6.Kl: L5 Fact boxes
+    'Montag-2': [
+      { text: 'Wordtest 2.2', min: 10 },
+      { text: 'AB 20 Fact box', min: 15 },
+      { text: 'Vorstellen', min: 8 },
+      { text: 'AB 23 Keywords', min: 12 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Englisch 6.Kl: L6 The great white shark
+    'Mittwoch-1': [
+      { text: 'Haie', min: 4 },
+      { text: 'Lesen AB 22', min: 9 },
+      { text: 'Verben finden', min: 10 },
+      { text: 'Sätze AB 23', min: 14 },
+      { text: 'Ratespiel · Abschluss', min: 10 }
+    ],
+    // Kreativnachmittag Kurs 1: Japan, Kirschblüte
+    'Montag-5': spKreativ(SP_KREATIV_JAPAN),
+    'Montag-6': spKreativ(SP_KREATIV_JAPAN),
     'Montag-1': [
       { text: 'Hausaufgabe und Rückmeldung', min: 8 },
       { text: 'Der Auftrag', min: 12 },
@@ -3232,6 +3423,41 @@
   });
 
   const SP_SEED_KW46 = {
+    // Englisch 5.Kl: L7 have got üben
+    'Montag-3': [
+      { text: 'Wordtest 2.3', min: 10 },
+      { text: 'Going on holiday', min: 12 },
+      { text: 'Spiel: Have you got …?', min: 13 },
+      { text: 'Person beschreiben', min: 10 },
+      { text: 'Vorlesen', min: 5 }
+    ],
+    // Englisch 5.Kl: L8 My own character
+    'Mittwoch-4': [
+      { text: 'Kim kennenlernen', min: 7 },
+      { text: 'Auftrag', min: 3 },
+      { text: 'Figur zeichnen', min: 12 },
+      { text: 'Steckbrief', min: 20 },
+      { text: 'Zeigen', min: 5 }
+    ],
+    // Englisch 6.Kl: L7 Four animals that migrate
+    'Montag-2': [
+      { text: 'Wordtest 2.3', min: 10 },
+      { text: 'Routen', min: 8 },
+      { text: 'Hören AB 24', min: 20 },
+      { text: 'Rekord', min: 7 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Englisch 6.Kl: L8 Things we have to do
+    'Mittwoch-1': [
+      { text: 'Cartoon', min: 5 },
+      { text: 'Song', min: 8 },
+      { text: 'Silly rules', min: 14 },
+      { text: 'Why migrate?', min: 12 },
+      { text: 'Wunschzettel', min: 8 }
+    ],
+    // Kreativnachmittag Kurs 1: Neuseeland, Tiki-Gesichter
+    'Montag-5': spKreativ(SP_KREATIV_NEUSEELAND),
+    'Montag-6': spKreativ(SP_KREATIV_NEUSEELAND),
     'Montag-1': [
       { text: 'Klassenrat', min: 20 },
       { text: 'Musterhandout anschauen', min: 5 },
@@ -3246,6 +3472,41 @@
   });
 
   const SP_SEED_KW47 = {
+    // Englisch 5.Kl: L9 Text zur Figur
+    'Montag-3': [
+      { text: 'Wordtest 2.4', min: 10 },
+      { text: 'Das zählt', min: 7 },
+      { text: 'Text schreiben', min: 18 },
+      { text: 'Two stars and a wish', min: 8 },
+      { text: 'Galerie: Who is it?', min: 7 }
+    ],
+    // Englisch 5.Kl: L10 Comparing 1
+    'Mittwoch-4': [
+      { text: 'Who is taller?', min: 7 },
+      { text: 'Regeln finden', min: 12 },
+      { text: 'the tallest', min: 6 },
+      { text: 'AB 23', min: 17 },
+      { text: 'Blitzrunde', min: 5 }
+    ],
+    // Englisch 6.Kl: L9 The barn swallow · Projekt-Start
+    'Montag-2': [
+      { text: 'Wordtest 2.4', min: 10 },
+      { text: 'Barn swallow', min: 12 },
+      { text: 'has to', min: 5 },
+      { text: 'Unser Projekt', min: 15 },
+      { text: 'Mein Tier', min: 5 },
+      { text: 'Abschluss', min: 3 }
+    ],
+    // Englisch 6.Kl: L10 Research
+    'Mittwoch-1': [
+      { text: 'Tipps', min: 5 },
+      { text: 'Recherche', min: 30 },
+      { text: 'Check', min: 7 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Kreativnachmittag Kurs 2: Australien, Punktmalerei
+    'Montag-5': spKreativ(SP_KREATIV_AUSTRALIEN),
+    'Montag-6': spKreativ(SP_KREATIV_AUSTRALIEN),
     'Montag-1': [
       { text: 'Handout fertig machen und prüfen', min: 17 },
       { text: 'Stichwortkarte schreiben', min: 5 },
@@ -3260,6 +3521,40 @@
   });
 
   const SP_SEED_KW48 = {
+    // Englisch 5.Kl: L11 Comparing 2
+    'Montag-3': [
+      { text: 'Blitzrunde', min: 5 },
+      { text: 'Neue Regeln', min: 20 },
+      { text: 'Üben', min: 17 },
+      { text: 'Kontrolle', min: 5 }
+    ],
+    // Englisch 5.Kl: L12 Speaking: spot the differences
+    'Mittwoch-4': [
+      { text: 'Adjective Search', min: 12 },
+      { text: 'Satzrahmen', min: 5 },
+      { text: 'Roboter', min: 10 },
+      { text: 'Das zählt', min: 5 },
+      { text: 'Spot the differences', min: 15 }
+    ],
+    // Englisch 6.Kl: L11 From fact box to text
+    'Montag-2': [
+      { text: 'Grosser Wordtest', min: 15 },
+      { text: 'Modell', min: 8 },
+      { text: 'Erzählen', min: 5 },
+      { text: 'Entwurf', min: 17 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Englisch 6.Kl: L12 Feedback and poster
+    'Mittwoch-1': [
+      { text: 'Entwurf fertig', min: 8 },
+      { text: 'Feedback', min: 12 },
+      { text: 'Verbessern', min: 7 },
+      { text: 'Plakat planen', min: 15 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Kreativnachmittag Kurs 2: Mexiko, Sugar Skulls
+    'Montag-5': spKreativ(SP_KREATIV_MEXIKO),
+    'Montag-6': spKreativ(SP_KREATIV_MEXIKO),
     'Montag-1': [
       { text: 'Regeln fürs Zuhören', min: 3 },
       { text: 'Vorträge Runde 1', min: 42 },
@@ -3272,6 +3567,38 @@
   });
 
   const SP_SEED_KW49 = {
+    // Englisch 5.Kl: L13 Grosser Wordtest · Get ready
+    'Montag-3': [
+      { text: 'grosser Wordtest', min: 15 },
+      { text: 'Dossier kennenlernen', min: 7 },
+      { text: 'Wo stehe ich?', min: 5 },
+      { text: 'Üben nach Sternen', min: 18 },
+      { text: 'Was habe ich geschafft?', min: 5 }
+    ],
+    // Englisch 5.Kl: L14 Generalprobe
+    'Mittwoch-4': [
+      { text: 'Ablauf', min: 4 },
+      { text: 'Sprechen zu zweit', min: 15 },
+      { text: 'Schreiben', min: 13 },
+      { text: 'Ampel · Dossier', min: 11 },
+      { text: 'Was nehme ich mit?', min: 4 }
+    ],
+    // Englisch 6.Kl: L13 Writing · Poster
+    'Montag-2': [
+      { text: 'Writing', min: 25 },
+      { text: 'Plakat', min: 12 },
+      { text: 'Stichwortkarten', min: 7 },
+      { text: 'Abschluss', min: 3 }
+    ],
+    // Englisch 6.Kl: L14 Presentations 1
+    'Mittwoch-1': [
+      { text: 'Proben', min: 7 },
+      { text: 'Vorträge', min: 32 },
+      { text: 'Rückmeldung', min: 8 }
+    ],
+    // Kreativnachmittag Kurs 2: Japan, Kirschblüte
+    'Montag-5': spKreativ(SP_KREATIV_JAPAN),
+    'Montag-6': spKreativ(SP_KREATIV_JAPAN),
     'Montag-1': [
       { text: 'Regeln fürs Zuhören', min: 3 },
       { text: 'Vorträge Runde 2', min: 42 },
@@ -3284,6 +3611,21 @@
   });
 
   const SP_SEED_KW50 = {
+    // Englisch 5.Kl: L15 Lernkontrolle Unit 2
+    'Montag-3': [
+      { text: 'Schreiben', min: 15 },
+      { text: 'Schreiben · Sprechen am Pult', min: 27 },
+      { text: 'Rate yourself', min: 5 }
+    ],
+    // Englisch 6.Kl: L15 Presentations 2
+    'Montag-2': [
+      { text: 'Proben', min: 5 },
+      { text: 'Vorträge', min: 32 },
+      { text: 'Animal quiz', min: 10 }
+    ],
+    // Kreativnachmittag Kurs 2: Neuseeland, Tiki-Gesichter
+    'Montag-5': spKreativ(SP_KREATIV_NEUSEELAND),
+    'Montag-6': spKreativ(SP_KREATIV_NEUSEELAND),
     'Montag-1': [
       { text: 'Vorträge Runde 3', min: 30 },
       { text: 'Rückblick auf die Reihe', min: 5 },
@@ -3293,6 +3635,40 @@
   if (!state.stundenplanNotes[50]) state.stundenplanNotes[50] = {};
   Object.keys(SP_SEED_KW50).forEach(k => {
     if (state.stundenplanNotes[50][k] === undefined) state.stundenplanNotes[50][k] = SP_SEED_KW50[k];
+  });
+
+  const SP_SEED_KW51 = {
+    // Englisch 5.Kl: L16 Lernkontrolle zurück · Friendship cards
+    'Montag-3': [
+      { text: 'Lernkontrolle zurück', min: 10 },
+      { text: 'Auftrag', min: 5 },
+      { text: 'Karten schreiben', min: 25 },
+      { text: 'Karten lesen', min: 7 }
+    ],
+    // Englisch 5.Kl: L17 Abschluss
+    'Mittwoch-4': [
+      { text: 'Who is it? Galerie', min: 15 },
+      { text: 'Christmas quiz', min: 25 },
+      { text: 'The best thing was …', min: 7 }
+    ],
+    // Englisch 6.Kl: L16 Feedback · Exhibition prep
+    'Montag-2': [
+      { text: 'Rückmeldung', min: 8 },
+      { text: 'Fehler finden', min: 10 },
+      { text: 'Ausstellung vorbereiten', min: 17 },
+      { text: 'Now I can', min: 7 },
+      { text: 'Abschluss', min: 5 }
+    ],
+    // Englisch 6.Kl: L17 Animal Fact Exhibition
+    'Mittwoch-1': [
+      { text: 'Exhibition', min: 25 },
+      { text: 'Animal Taboo', min: 15 },
+      { text: 'Goodbye', min: 7 }
+    ]
+  };
+  if (!state.stundenplanNotes[51]) state.stundenplanNotes[51] = {};
+  Object.keys(SP_SEED_KW51).forEach(k => {
+    if (state.stundenplanNotes[51][k] === undefined) state.stundenplanNotes[51][k] = SP_SEED_KW51[k];
   });
 
   // Welche Woche ist "jetzt" dran: echte ISO-Kalenderwoche berechnen, auf
@@ -3761,6 +4137,14 @@
           cell.style.color = SUBJECT_TEXT;
           cell.textContent = subject;
           cell.onclick = () => openSpEdit(day, period);
+          const test = testFor(originKey);
+          if (test) {
+            const ttag = document.createElement('div');
+            ttag.className = 'sp-test-tag';
+            ttag.textContent = '📝 ' + test.label;
+            cell.title = test.detail;
+            cell.appendChild(ttag);
+          }
           if (weekNotes[originKey] && weekNotes[originKey].length) {
             const dot = document.createElement('div');
             dot.className = 'sp-note-dot';
