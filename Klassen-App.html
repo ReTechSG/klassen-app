@@ -3021,6 +3021,7 @@
     '44-Montag-3': { label: 'Wordtest 2.1', detail: 'Englisch 5. Kl: Wordtest Unit 2.1 (10 Min.)' },
     '45-Montag-3': { label: 'Wordtest 2.2', detail: 'Englisch 5. Kl: Wordtest Unit 2.2 (10 Min.)' },
     '46-Montag-3': { label: 'Wordtest 2.3', detail: 'Englisch 5. Kl: Wordtest Unit 2.3 (10 Min.)' },
+    '47-Freitag-5': { label: 'Vortrag Beruf', detail: 'NMG Berufe: Vorträge zum Zukunftstag-Beruf, Note NMG' },
     '47-Montag-3': { label: 'Wordtest 2.4', detail: 'Englisch 5. Kl: Wordtest Unit 2.4 (10 Min.)' },
     '49-Montag-3': { label: 'Grosser Wordtest', detail: 'Englisch 5. Kl: grosser Wordtest Unit 2 (15 Min.)' },
     '50-Montag-3': { label: 'Lernkontrolle', detail: 'Englisch 5. Kl: Lernkontrolle Unit 2 (Schreiben, Sprechen einzeln am Pult)' },
@@ -3250,7 +3251,60 @@
   ];
   // Jede Zelle bekommt eine eigene Kopie (Schritte haben eigenen Timer-Zustand).
   const spKreativ = list => list.map(s => ({ text: s.text, min: s.min }));
+  // Ergaenzt 14.10.2026: NMG Berufe (L1 bis L13, KW43 bis KW47), Schritte aus tafel.schritte
+  // der Dateien "NMG/Herbst bis Winter/KWxx/.../KWxx_Tag_Lektionsplan_App.json". Fr 30.10. frei.
+  // NMG Berufe L3 Vom Baum zum Tisch (Doppellektion, in Freitag-5 UND Freitag-6)
+  const SP_NMG_BERUFE_L3 = [
+    { text: 'Leitfrage · Wer hat heute schon für mich gearbeitet?', min: 15 },
+    { text: 'Vom Baum zum Tisch: Schritte ordnen', min: 18 },
+    { text: 'Drei Erwerbsbereiche', min: 20 },
+    { text: 'Landkarte und Diagramm mit uns', min: 20 },
+    { text: 'Blatt 8/1', min: 22 }
+  ];
+  // NMG Berufe L8 Interview-Werkstatt (Doppellektion, in Freitag-5 UND Freitag-6)
+  const SP_NMG_BERUFE_L8 = [
+    { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+    { text: 'Wer bin ich? · gute Fragen', min: 15 },
+    { text: 'Meine Interviewfragen', min: 15 },
+    { text: 'Wir interviewen unseren Lehrer · zu zweit üben', min: 32 },
+    { text: 'Blatt 8/2 · So wird der Vortrag beurteilt', min: 28 }
+  ];
+  // NMG Berufe L10 Gruppenpuzzle: Berufe in der Region (Doppellektion, in Freitag-5 UND Freitag-6)
+  const SP_NMG_BERUFE_L10 = [
+    { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+    { text: 'Was passiert, wenn niemand …?', min: 10 },
+    { text: 'Expertengruppe: lesen und notieren', min: 35 },
+    { text: 'Stammgruppe: einander erklären', min: 35 },
+    { text: 'Welcher Beruf fehlt am meisten?', min: 10 }
+  ];
+  // NMG Berufe L13 Vorträge (Doppellektion, in Freitag-5 UND Freitag-6)
+  const SP_NMG_BERUFE_L13 = [
+    { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+    { text: 'Vorträge 1 bis 10', min: 42 },
+    { text: 'Bewegungspause', min: 5 },
+    { text: 'Vorträge 11 bis 19', min: 37 },
+    { text: 'Was hat uns überrascht?', min: 3 }
+  ];
   const SP_SEED_KW43 = {
+    // NMG Berufe L1 Was denke ich über Berufe?
+    'Mittwoch-3': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Arbeiten: Dürfen oder Müssen?', min: 7 },
+      { text: 'Mein Berufe-Check: allein', min: 10 },
+      { text: 'Gruppe: 8 Berufe ordnen', min: 15 },
+      { text: 'Wo sind wir uneinig?', min: 8 }
+    ],
+    // NMG Berufe L2 Das Berufs-Raster
+    'Donnerstag-6': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Berufe-Koffer: Wer arbeitet damit?', min: 12 },
+      { text: 'Was gehört zu einem Beruf?', min: 10 },
+      { text: 'Zu zweit: Raster ausfüllen', min: 15 },
+      { text: 'Vorlesen', min: 3 }
+    ],
+    // NMG Berufe L3 Vom Baum zum Tisch
+    'Freitag-5': spKreativ(SP_NMG_BERUFE_L3),
+    'Freitag-6': spKreativ(SP_NMG_BERUFE_L3),
     // Englisch 6.Kl: L1 Fascinating animals
     'Montag-2': [
       { text: 'Animal ABC', min: 8 },
@@ -3306,6 +3360,22 @@
   });
 
   const SP_SEED_KW44 = {
+    // NMG Berufe L4 Ein Beruf im Film
+    'Mittwoch-3': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Berufe-Pantomime', min: 6 },
+      { text: 'Film: Gleisbauerin', min: 10 },
+      { text: 'Raster allein, dann zu zweit vergleichen', min: 14 },
+      { text: 'Hausauftrag Blatt 8/3', min: 10 }
+    ],
+    // NMG Berufe L5 Wege in einen Beruf
+    'Donnerstag-6': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Wege in einen Beruf', min: 13 },
+      { text: 'Unser Lehrer erzählt seinen Weg', min: 10 },
+      { text: 'Traumberuf-Check', min: 12 },
+      { text: 'Exit-Ticket', min: 5 }
+    ],
     // Englisch 5.Kl: L3 Four friends
     'Montag-3': [
       { text: 'Wordtest 2.1', min: 10 },
@@ -3368,6 +3438,25 @@
   });
 
   const SP_SEED_KW45 = {
+    // NMG Berufe L6 Arbeit mit und ohne Lohn
+    'Mittwoch-3': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Blatt 8/3: Was habt ihr herausgefunden?', min: 8 },
+      { text: 'Buch: Arbeit ohne Lohn', min: 10 },
+      { text: 'Kärtchen sortieren: vier Arten von Arbeit', min: 12 },
+      { text: 'Was wäre, wenn …?', min: 10 }
+    ],
+    // NMG Berufe L7 Männerberufe, Frauenberufe?
+    'Donnerstag-6': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Zeichne eine Person', min: 10 },
+      { text: 'Was fällt auf?', min: 10 },
+      { text: 'Meinungskarussell', min: 15 },
+      { text: 'Beide Formen', min: 5 }
+    ],
+    // NMG Berufe L8 Interview-Werkstatt
+    'Freitag-5': spKreativ(SP_NMG_BERUFE_L8),
+    'Freitag-6': spKreativ(SP_NMG_BERUFE_L8),
     // Englisch 5.Kl: L5 Feelings
     'Montag-3': [
       { text: 'Wordtest 2.2', min: 10 },
@@ -3423,6 +3512,17 @@
   });
 
   const SP_SEED_KW46 = {
+    // NMG Berufe L9 Zukunftstag und Berufe der Zukunft
+    'Mittwoch-3': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Checkliste Zukunftstag', min: 15 },
+      { text: 'Alte und neue Berufe', min: 5 },
+      { text: 'Beruf der Zukunft erfinden', min: 15 },
+      { text: 'Zeigen', min: 5 }
+    ],
+    // NMG Berufe L10 Gruppenpuzzle: Berufe in der Region
+    'Freitag-5': spKreativ(SP_NMG_BERUFE_L10),
+    'Freitag-6': spKreativ(SP_NMG_BERUFE_L10),
     // Englisch 5.Kl: L7 have got üben
     'Montag-3': [
       { text: 'Wordtest 2.3', min: 10 },
@@ -3472,6 +3572,25 @@
   });
 
   const SP_SEED_KW47 = {
+    // NMG Berufe L11 Mein Zukunftstag
+    'Mittwoch-3': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'Sprechmühle: Mein Zukunftstag', min: 12 },
+      { text: 'Erwartet und erlebt', min: 8 },
+      { text: 'Landkarte: Stimmt mein Platz?', min: 5 },
+      { text: 'Stichwortzettel beginnen', min: 15 }
+    ],
+    // NMG Berufe L12 Probevortrag
+    'Donnerstag-6': [
+      { text: 'Leitfrage: Was macht einen Beruf wertvoll?', min: 5 },
+      { text: 'So geben wir Rückmeldung', min: 5 },
+      { text: 'Probevortrag: A spricht, B hört zu', min: 12 },
+      { text: 'Wechsel: B spricht', min: 12 },
+      { text: 'Stichwortzettel verbessern', min: 11 }
+    ],
+    // NMG Berufe L13 Vorträge
+    'Freitag-5': spKreativ(SP_NMG_BERUFE_L13),
+    'Freitag-6': spKreativ(SP_NMG_BERUFE_L13),
     // Englisch 5.Kl: L9 Text zur Figur
     'Montag-3': [
       { text: 'Wordtest 2.4', min: 10 },
