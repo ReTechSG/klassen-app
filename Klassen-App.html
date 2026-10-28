@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" translate="no">
 <head>
 <meta charset="UTF-8">
+<!-- Edge/Chrome sollen die App nie automatisch uebersetzen (28.10.2026: Edge hat
+     "Labor" zu "Arbeit" und "Theo E." zu "Laut E." gemacht, die laengeren Woerter
+     haben dazu das Menue verschoben). -->
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <!-- Browser soll die Seite nicht dauerhaft cachen: sonst zeigt der Schul-PC /
      Fabians Browser nach einem GitHub-Deploy noch die alte Version, obwohl online
@@ -2750,6 +2754,10 @@
     more.classList.toggle('show', open);
     btn.classList.toggle('open', open);
   }
+  // Jede Hoehenaenderung der Navbar (Auf-/Zuklappen, Zoom, Schrift laedt nach)
+  // neu messen. Ohne das blieb der Abstand beim Aufklappen im Ablauf alt, und
+  // die KW-Zeile mit Uhr-Knopf lag hinter dem Menue (28.10.2026).
+  if (window.ResizeObserver) new ResizeObserver(handleViewportChange).observe(document.querySelector('nav'));
 
   // Merkt sich, aus welcher Szene man in die Wandtafel gewechselt ist,
   // damit der X-Knopf dorthin zurueckspringt statt fest auf eine Szene.
@@ -3026,11 +3034,12 @@
     '49-Montag-3': { label: 'Grosser Wordtest', detail: 'Englisch 5. Kl: grosser Wordtest Unit 2 (15 Min.)' },
     '50-Montag-3': { label: 'Lernkontrolle', detail: 'Englisch 5. Kl: Lernkontrolle Unit 2 (Schreiben, Sprechen einzeln am Pult)' },
     // Englisch 6.Kl, aus "ENG/6.Kl/2 Herbst bis Winter/Englisch_6Kl_U2_Paket_App.json".
+    // Ab KW45 am Mittwoch, weil am Montag die Franzoesischwoerter sind.
+    // Wordtest 2.4 entfaellt, die Liste 2.4 kommt im grossen Wordtest (Fabian, 28.10.2026).
     '44-Montag-2': { label: 'Wordtest 2.1', detail: 'Englisch 6. Kl: Wordtest Unit 2.1 (10 Min.)' },
-    '45-Montag-2': { label: 'Wordtest 2.2', detail: 'Englisch 6. Kl: Wordtest Unit 2.2 (10 Min.)' },
-    '46-Montag-2': { label: 'Wordtest 2.3', detail: 'Englisch 6. Kl: Wordtest Unit 2.3 (10 Min.)' },
-    '47-Montag-2': { label: 'Wordtest 2.4', detail: 'Englisch 6. Kl: Wordtest Unit 2.4 (10 Min.)' },
-    '48-Montag-2': { label: 'Grosser Wordtest', detail: 'Englisch 6. Kl: grosser Wordtest Unit 2 (15 Min.)' },
+    '45-Mittwoch-1': { label: 'Wordtest 2.2', detail: 'Englisch 6. Kl: Wordtest Unit 2.2 (10 Min.)' },
+    '46-Mittwoch-1': { label: 'Wordtest 2.3', detail: 'Englisch 6. Kl: Wordtest Unit 2.3 (10 Min.)' },
+    '48-Mittwoch-1': { label: 'Grosser Wordtest', detail: 'Englisch 6. Kl: grosser Wordtest Unit 2, alle 4 Listen (15 Min.)' },
     '49-Montag-2': { label: 'Writing', detail: 'Englisch 6. Kl: Writing My fascinating animal (von Hand, 25 Min.)' },
     '49-Mittwoch-1': { label: 'Vorträge 1', detail: 'Englisch 6. Kl: Vorträge 1 (5 Kinder, 3 bis 4 Min. mit Plakat)' },
     '50-Montag-2': { label: 'Vorträge 2', detail: 'Englisch 6. Kl: Vorträge 2 (5 Kinder, 3 bis 4 Min. mit Plakat)' }
@@ -3475,19 +3484,19 @@
     ],
     // Englisch 6.Kl: L5 Fact boxes
     'Montag-2': [
-      { text: 'Wordtest 2.2', min: 10 },
-      { text: 'AB 20 Fact box', min: 15 },
-      { text: 'Vorstellen', min: 8 },
-      { text: 'AB 23 Keywords', min: 12 },
+      { text: 'AB 20 Fact box', min: 19 },
+      { text: 'Vorstellen', min: 10 },
+      { text: 'AB 23 Keywords', min: 13 },
       { text: 'Abschluss', min: 5 }
     ],
     // Englisch 6.Kl: L6 The great white shark
     'Mittwoch-1': [
+      { text: 'Wordtest 2.2', min: 10 },
       { text: 'Haie', min: 4 },
       { text: 'Lesen AB 22', min: 9 },
       { text: 'Verben finden', min: 10 },
-      { text: 'Sätze AB 23', min: 14 },
-      { text: 'Ratespiel · Abschluss', min: 10 }
+      { text: 'Sätze AB 23', min: 12 },
+      { text: 'Abschluss', min: 5 }
     ],
     // Kreativnachmittag Kurs 1: Japan, Kirschblüte
     'Montag-5': spKreativ(SP_KREATIV_JAPAN),
@@ -3541,18 +3550,19 @@
     ],
     // Englisch 6.Kl: L7 Four animals that migrate
     'Montag-2': [
-      { text: 'Wordtest 2.3', min: 10 },
+      { text: 'Ratespiel', min: 5 },
       { text: 'Routen', min: 8 },
       { text: 'Hören AB 24', min: 20 },
-      { text: 'Rekord', min: 7 },
+      { text: 'Rekord', min: 9 },
       { text: 'Abschluss', min: 5 }
     ],
     // Englisch 6.Kl: L8 Things we have to do
     'Mittwoch-1': [
+      { text: 'Wordtest 2.3', min: 10 },
       { text: 'Cartoon', min: 5 },
       { text: 'Song', min: 8 },
-      { text: 'Silly rules', min: 14 },
-      { text: 'Why migrate?', min: 12 },
+      { text: 'Silly rules', min: 10 },
+      { text: 'Why migrate?', min: 9 },
       { text: 'Wunschzettel', min: 8 }
     ],
     // Kreativnachmittag Kurs 1: Neuseeland, Tiki-Gesichter
@@ -3609,12 +3619,11 @@
     ],
     // Englisch 6.Kl: L9 The barn swallow · Projekt-Start
     'Montag-2': [
-      { text: 'Wordtest 2.4', min: 10 },
       { text: 'Barn swallow', min: 12 },
       { text: 'has to', min: 5 },
-      { text: 'Unser Projekt', min: 15 },
-      { text: 'Mein Tier', min: 5 },
-      { text: 'Abschluss', min: 3 }
+      { text: 'Unser Projekt', min: 18 },
+      { text: 'Mein Tier', min: 7 },
+      { text: 'Abschluss', min: 5 }
     ],
     // Englisch 6.Kl: L10 Research
     'Mittwoch-1': [
@@ -3657,18 +3666,18 @@
     ],
     // Englisch 6.Kl: L11 From fact box to text
     'Montag-2': [
-      { text: 'Grosser Wordtest', min: 15 },
       { text: 'Modell', min: 8 },
       { text: 'Erzählen', min: 5 },
       { text: 'Entwurf', min: 17 },
+      { text: 'Plakat planen', min: 12 },
       { text: 'Abschluss', min: 5 }
     ],
-    // Englisch 6.Kl: L12 Feedback and poster
+    // Englisch 6.Kl: L12 Big word test · Feedback
     'Mittwoch-1': [
+      { text: 'Grosser Wordtest', min: 15 },
       { text: 'Entwurf fertig', min: 8 },
       { text: 'Feedback', min: 12 },
-      { text: 'Verbessern', min: 7 },
-      { text: 'Plakat planen', min: 15 },
+      { text: 'Verbessern', min: 10 },
       { text: 'Abschluss', min: 5 }
     ],
     // Kreativnachmittag Kurs 2: Mexiko, Sugar Skulls
@@ -3788,6 +3797,25 @@
   if (!state.stundenplanNotes[51]) state.stundenplanNotes[51] = {};
   Object.keys(SP_SEED_KW51).forEach(k => {
     if (state.stundenplanNotes[51][k] === undefined) state.stundenplanNotes[51][k] = SP_SEED_KW51[k];
+  });
+
+  // Geaenderte Seeds: Die Seeds oben fuellen nur leere Zellen. Steht im Browser
+  // noch der alte Seed (unveraendert), wird er hier durch den neuen ersetzt. Von
+  // Hand geaenderte Zellen bleiben, wie sie sind.
+  // 28.10.2026: Englisch 6.Kl, Wordtests ab KW45 am Mittwoch, Wordtest 2.4 entfaellt.
+  const SP_SEED_ALT = [
+    { kw: 45, key: 'Montag-2', neu: SP_SEED_KW45, alt: [['Wordtest 2.2', 10], ['AB 20 Fact box', 15], ['Vorstellen', 8], ['AB 23 Keywords', 12], ['Abschluss', 5]] },
+    { kw: 45, key: 'Mittwoch-1', neu: SP_SEED_KW45, alt: [['Haie', 4], ['Lesen AB 22', 9], ['Verben finden', 10], ['Sätze AB 23', 14], ['Ratespiel · Abschluss', 10]] },
+    { kw: 46, key: 'Montag-2', neu: SP_SEED_KW46, alt: [['Wordtest 2.3', 10], ['Routen', 8], ['Hören AB 24', 20], ['Rekord', 7], ['Abschluss', 5]] },
+    { kw: 46, key: 'Mittwoch-1', neu: SP_SEED_KW46, alt: [['Cartoon', 5], ['Song', 8], ['Silly rules', 14], ['Why migrate?', 12], ['Wunschzettel', 8]] },
+    { kw: 47, key: 'Montag-2', neu: SP_SEED_KW47, alt: [['Wordtest 2.4', 10], ['Barn swallow', 12], ['has to', 5], ['Unser Projekt', 15], ['Mein Tier', 5], ['Abschluss', 3]] },
+    { kw: 48, key: 'Montag-2', neu: SP_SEED_KW48, alt: [['Grosser Wordtest', 15], ['Modell', 8], ['Erzählen', 5], ['Entwurf', 17], ['Abschluss', 5]] },
+    { kw: 48, key: 'Mittwoch-1', neu: SP_SEED_KW48, alt: [['Entwurf fertig', 8], ['Feedback', 12], ['Verbessern', 7], ['Plakat planen', 15], ['Abschluss', 5]] }
+  ];
+  SP_SEED_ALT.forEach(u => {
+    const steps = state.stundenplanNotes[u.kw] && state.stundenplanNotes[u.kw][u.key];
+    const alt = u.alt.map(([text, min]) => ({ text, min }));
+    if (JSON.stringify(steps) === JSON.stringify(alt)) state.stundenplanNotes[u.kw][u.key] = u.neu[u.key];
   });
 
   // Welche Woche ist "jetzt" dran: echte ISO-Kalenderwoche berechnen, auf
@@ -5971,10 +5999,19 @@
   // Verhaeltnis der GECROPPTEN Plakette (ohne den dunklen Bildrand), nicht
   // des ganzen Originalbilds, siehe Kommentar bei .reel-frame im CSS.
   const REEL_RATIO = (0.825 * 3040) / (0.763 * 1408);
+  // Oberkante fuer Spule und Namen-Kasten: unter der Navbar und, wo die
+  // Wimpelkette sichtbar ist, auch unter der Kette (sonst lag der Kasten auf
+  // der Kette, 28.10.2026).
+  function reelTopLimit() {
+    const clearance = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--top-clearance')) || 100;
+    const garland = document.querySelector('#scene-rad .deco-garland');
+    const r = garland ? garland.getBoundingClientRect() : null;
+    return r && r.height > 0 ? Math.max(clearance, Math.ceil(r.bottom) + 6) : clearance;
+  }
   function updateReelFrameSize() {
     const frame = document.getElementById('reel-frame');
     if (!frame) return;
-    const clearance = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--top-clearance')) || 100;
+    const clearance = reelTopLimit();
     const PANEL_WIDTH = 340, GAP = 46, SIDE_PAD = 40, BOTTOM_PAD = 40;
     const MIN_W = 380, MAX_W = 640;
     const availableHeight = window.innerHeight - clearance - BOTTOM_PAD;
@@ -6004,7 +6041,7 @@
     const layout = document.querySelector('.wheel-layout');
     const frame = document.getElementById('reel-frame');
     if (!layout || !frame) return;
-    const clearance = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--top-clearance')) || 100;
+    const clearance = reelTopLimit();
     const BOTTOM_PAD = 40;
     const panel = document.querySelector('.wheel-panel');
     const contentHeight = Math.max(
