@@ -2969,9 +2969,16 @@
     '44-Freitag': { label: 'SuS frei', icon: '🧑‍🏫', detail: '30.10.2026: Pädagogischer Tag (Anlass für Lehrpersonen), SuS frei', periods: [1, 2, 3, 4, 5, 6] },
     // Ergaenzt 10.10.2026 aus Fabians Terminliste
     // ("CLAUDE_ZUHAUSE_Uebergabe.md", Abschnitt "Termine bis Weihnachten").
-    // Zweiter Begegnungsmorgen. Gleiche ANNAHME wie beim ersten am 29.10.:
-    // ganzer Morgen (Perioden 1-4), von Fabian noch zu bestaetigen.
-    '50-Mittwoch': { label: 'Begegnungsmorgen', icon: '🤝', detail: '09.12.2026: Begegnungsmorgen 2 (Perioden noch zu bestätigen, angenommen: ganzer Morgen 1.-4.)', periods: [1, 2, 3, 4] }
+    // Advent-Einstieg der Schule (Schuldokument "Ablauf 3 Anlaesse Advent fuers
+    // Team", 23.11.2026): 10:10, Ende nicht angegeben. Nur die 3. Lektion markiert,
+    // die Englisch-Lektion dahinter oeffnet sich weiter per Klick.
+    '49-Montag': { label: 'Advent-Einstieg 10:10', icon: '🕯️', detail: '30.11.2026: Advent-Einstieg der Schule um 10:10, Lieder Zimetstern und s gröschte Gschenk auswendig, leeres Glas für die Klasse mitnehmen. Danach Englisch 5. Kl (Get ready).', periods: [3] },
+    // Zweiter Begegnungsmorgen. Zeiten bestaetigt 23.11.2026 durch das
+    // Schuldokument "Ablauf 3 Anlaesse Advent fuers Team": 08:10 bis 11:40.
+    '50-Mittwoch': { label: 'Begegnungsmorgen', icon: '🤝', detail: '09.12.2026: Begegnungsmorgen 2 «Zeit schenken», 08:10 bis 11:40 im Gemeindesaal, mit der 3b/4b (Figliuolo)', periods: [1, 2, 3, 4] },
+    // Gleiches Schuldokument: Adventsanlass mit Eltern in der Kirche ab 08:10.
+    // Ende nicht angegeben, ANNAHME: 1./2. Lektion (Sport faellt aus).
+    '51-Dienstag': { label: 'Advent Kirche', icon: '⛪', detail: '15.12.2026: Adventsanlass mit Eltern in der Kirche, ab 08:10, alle singen die Lieder, Liederblätter mitnehmen (Ende noch offen)', periods: [1, 2] }
   };
   function specialDayFor(day) {
     return SP_SPECIAL_DAYS[spCurrentWeek + '-' + day] || null;
@@ -3031,8 +3038,10 @@
     '46-Montag-3': { label: 'Wordtest 2.3', detail: 'Englisch 5. Kl: Wordtest Unit 2.3 (10 Min.)' },
     '47-Freitag-5': { label: 'Vortrag Beruf', detail: 'NMG Berufe: Vorträge zum Zukunftstag-Beruf, Note NMG' },
     '47-Montag-3': { label: 'Wordtest 2.4', detail: 'Englisch 5. Kl: Wordtest Unit 2.4 (10 Min.)' },
-    '49-Montag-3': { label: 'Grosser Wordtest', detail: 'Englisch 5. Kl: grosser Wordtest Unit 2 (15 Min.)' },
-    '50-Montag-3': { label: 'Lernkontrolle', detail: 'Englisch 5. Kl: Lernkontrolle Unit 2 (Schreiben, Sprechen einzeln am Pult)' },
+    // 23.11.2026 verschoben: grosser Wordtest in die ERG-Lektion (um 10:10 ist der
+    // Advent-Einstieg), Lernkontrolle in die NMG-Lektion am Do (Mo 7.12. Franzoesischpruefung).
+    '49-Montag-1': { label: 'Grosser Wordtest 5. Kl U2', detail: 'Englisch 5. Kl: grosser Wordtest Unit 2 (10 Min.), in der ERG-Lektion' },
+    '50-Donnerstag-6': { label: 'Lernkontrolle 5. Kl U2', detail: 'Englisch 5. Kl: Lernkontrolle Unit 2 (Schreiben, Sprechen einzeln am Pult), in der NMG-Lektion' },
     // Englisch 6.Kl, aus "ENG/6.Kl/2 Herbst bis Winter/Englisch_6Kl_U2_Paket_App.json".
     // Ab KW45 am Mittwoch, weil am Montag die Franzoesischwoerter sind.
     // Wordtest 2.4 entfaellt, die Liste 2.4 kommt im grossen Wordtest (Fabian, 28.10.2026).
@@ -3695,13 +3704,14 @@
   });
 
   const SP_SEED_KW49 = {
-    // Englisch 5.Kl: L13 Grosser Wordtest · Get ready
+    // Englisch 5.Kl: L13 Get ready (23.11.2026: grosser Wordtest in Montag-1 verschoben,
+    // um 10:10 ist der Advent-Einstieg der Schule)
     'Montag-3': [
-      { text: 'grosser Wordtest', min: 15 },
+      { text: 'Advent-Einstieg (ab 10.10 Uhr)', min: 25 },
       { text: 'Dossier kennenlernen', min: 7 },
       { text: 'Wo stehe ich?', min: 5 },
-      { text: 'Üben nach Sternen', min: 18 },
-      { text: 'Was habe ich geschafft?', min: 5 }
+      { text: 'Üben nach Sternen', min: 10 },
+      { text: 'Was habe ich geschafft?', min: 3 }
     ],
     // Englisch 5.Kl: L14 Generalprobe
     'Mittwoch-4': [
@@ -3739,11 +3749,19 @@
   });
 
   const SP_SEED_KW50 = {
-    // Englisch 5.Kl: L15 Lernkontrolle Unit 2
+    // Englisch 5.Kl: L14b Üben für die Lernkontrolle (23.11.2026: die Lernkontrolle
+    // ist neu am Do 10.12., weil am Mo 7.12. die Franzoesischpruefung ist)
     'Montag-3': [
-      { text: 'Schreiben', min: 15 },
-      { text: 'Schreiben · Sprechen am Pult', min: 27 },
-      { text: 'Rate yourself', min: 5 }
+      { text: 'Ampel anschauen', min: 5 },
+      { text: 'Üben nach Ampel', min: 20 },
+      { text: 'Sprechen zu zweit', min: 17 },
+      { text: 'Was kann ich jetzt?', min: 5 }
+    ],
+    // Englisch 5.Kl: L15 Lernkontrolle Unit 2, in der NMG-Lektion
+    'Donnerstag-6': [
+      { text: '5. Kl: Schreiben', min: 15 },
+      { text: '5. Kl: Schreiben · Sprechen am Pult', min: 27 },
+      { text: '5. Kl: Rate yourself', min: 5 }
     ],
     // Englisch 6.Kl: L15 Presentations 2
     'Montag-2': [
@@ -3810,7 +3828,10 @@
     { kw: 46, key: 'Mittwoch-1', neu: SP_SEED_KW46, alt: [['Cartoon', 5], ['Song', 8], ['Silly rules', 14], ['Why migrate?', 12], ['Wunschzettel', 8]] },
     { kw: 47, key: 'Montag-2', neu: SP_SEED_KW47, alt: [['Wordtest 2.4', 10], ['Barn swallow', 12], ['has to', 5], ['Unser Projekt', 15], ['Mein Tier', 5], ['Abschluss', 3]] },
     { kw: 48, key: 'Montag-2', neu: SP_SEED_KW48, alt: [['Grosser Wordtest', 15], ['Modell', 8], ['Erzählen', 5], ['Entwurf', 17], ['Abschluss', 5]] },
-    { kw: 48, key: 'Mittwoch-1', neu: SP_SEED_KW48, alt: [['Entwurf fertig', 8], ['Feedback', 12], ['Verbessern', 7], ['Plakat planen', 15], ['Abschluss', 5]] }
+    { kw: 48, key: 'Mittwoch-1', neu: SP_SEED_KW48, alt: [['Entwurf fertig', 8], ['Feedback', 12], ['Verbessern', 7], ['Plakat planen', 15], ['Abschluss', 5]] },
+    // 23.11.2026: grosser Wordtest 5.Kl in ERG (Advent-Einstieg), Lernkontrolle 5.Kl auf Do 10.12.
+    { kw: 49, key: 'Montag-3', neu: SP_SEED_KW49, alt: [['grosser Wordtest', 15], ['Dossier kennenlernen', 7], ['Wo stehe ich?', 5], ['Üben nach Sternen', 18], ['Was habe ich geschafft?', 5]] },
+    { kw: 50, key: 'Montag-3', neu: SP_SEED_KW50, alt: [['Schreiben', 15], ['Schreiben · Sprechen am Pult', 27], ['Rate yourself', 5]] }
   ];
   SP_SEED_ALT.forEach(u => {
     const steps = state.stundenplanNotes[u.kw] && state.stundenplanNotes[u.kw][u.key];
